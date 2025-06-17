@@ -1,0 +1,212 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  name        String
+  surname     String
+  password    String
+  cellNumber  String
+  company     String
+  position    String
+  workAddress String
+  role        UserRole @default(STUDENT)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  enrollments     Enrollment[]
+  instructorCourses Course[] @relation("InstructorCourses")
+  assignments     Assignment[]
+  submissions     Submission[]
+  discussions     Discussion[]
+  discussionPosts DiscussionPost[]
+  announcements   Announcement[]
+  gradesReceived  Grade[] @relation("StudentGrades")
+  gradesGiven     Grade[] @relation("GraderGrades")
+  
+  @@map("users")
+}
+
+model Course {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  code        String   @unique
+  semester    String
+  year        Int
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  instructorId String
+  instructor   User   @relation("InstructorCourses", fields: [instructorId], references: [id])
+  enrollments  Enrollment[]
+  assignments  Assignment[]
+  discussions  Discussion[]
+  announcements Announcement[]
+  content      CourseContent[]
+  
+  @@map("courses")
+}
+
+model Enrollment {
+  id         String   @id @default(cuid())
+  enrolledAt DateTime @default(now())
+  
+  // Relations
+  userId   String
+  courseId String
+  user     User   @relation(fields: [userId], references: [id])
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, courseId])
+  @@map("enrollments")
+}
+
+model Assignment {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  dueDate     DateTime?
+  maxPoints   Int      @default(100)
+  isPublished Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  courseId    String
+  createdById String
+  course      Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  createdBy   User         @relation(fields: [createdById], references: [id])
+  submissions Submission[]
+  grades      Grade[]
+  
+  @@map("assignments")
+}
+
+model Submission {
+  id          String   @id @default(cuid())
+  content     String?
+  fileUrl     String?
+  submittedAt DateTime @default(now())
+  
+  // Relations
+  assignmentId String
+  studentId    String
+  assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  student      User       @relation(fields: [studentId], references: [id])
+  
+  @@unique([assignmentId, studentId])
+  @@map("submissions")
+}
+
+model Grade {
+  id        String   @id @default(cuid())
+  points    Float
+  feedback  String?
+  gradedAt  DateTime @default(now())
+  
+  // Relations
+  assignmentId String
+  studentId    String
+  gradedById   String
+  assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  student      User       @relation("StudentGrades", fields: [studentId], references: [id])
+  gradedBy     User       @relation("GraderGrades", fields: [gradedById], references: [id])
+  
+  @@unique([assignmentId, studentId])
+  @@map("grades")
+}
+
+model Discussion {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  isPinned    Boolean  @default(false)
+  isLocked    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  
+  // Relations
+  courseId  String
+  createdBy String
+  course    Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  author    User             @relation(fields: [createdBy], references: [id])
+  posts     DiscussionPost[]
+  
+  @@map("discussions")
+}
+
+model DiscussionPost {
+  id        String   @id @default(cuid())
+  content   String
+  parentId  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  discussionId String
+  authorId     String
+  discussion   Discussion       @relation(fields: [discussionId], references: [id], onDelete: Cascade)
+  author       User             @relation(fields: [authorId], references: [id])
+  parent       DiscussionPost?  @relation("PostReplies", fields: [parentId], references: [id])
+  replies      DiscussionPost[] @relation("PostReplies")
+  
+  @@map("discussion_posts")
+}
+
+model Announcement {
+  id        String   @id @default(cuid())
+  title     String
+  content   String
+  createdAt DateTime @default(now())
+  
+  // Relations
+  courseId String
+  authorId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  author   User   @relation(fields: [authorId], references: [id])
+  
+  @@map("announcements")
+}
+
+model CourseContent {
+  id          String      @id @default(cuid())
+  title       String
+  type        ContentType
+  content     String?
+  fileUrl     String?
+  thumbnailUrl String?
+  orderIndex  Int
+  isPublished Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+  
+  // Relations
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  
+  @@map("course_content")
+}
+
+enum UserRole {
+  STUDENT
+  INSTRUCTOR
+  ADMIN
+}
+
+enum ContentType {
+  TEXT
+  VIDEO
+  DOCUMENT
+  LINK
+  SCORM
+  YOUTUBE
+}

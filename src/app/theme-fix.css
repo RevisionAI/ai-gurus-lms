@@ -1,0 +1,177 @@
+/* EMERGENCY TEXT VISIBILITY FIXES - OVERRIDE ALL COLORS */
+
+/* Override background */
+body {
+  background-color: #0f0924 !important; /* Dark purple background */
+  color: white !important;
+}
+
+/* Force all page containers to have dark background */
+.min-h-screen {
+  background-color: #0f0924 !important;
+}
+
+/* Override any light backgrounds */
+.bg-gray-50, .bg-gray-100, .bg-white {
+  background-color: #0f0924 !important;
+}
+
+/* Ensure gradient backgrounds are preserved */
+.bg-accent-pink-gradient {
+  background: linear-gradient(135deg, #EC4899 0%, #D946EF 100%) !important;
+}
+
+.bg-accent-blue-purple-gradient {
+  background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%) !important;
+}
+
+.bg-accent-orange-yellow-gradient {
+  background: linear-gradient(135deg, #F59E0B 0%, #FBBF24 100%) !important;
+}
+
+.bg-button-gradient {
+  background: transparent !important;
+}
+
+/* TARGET EVERYTHING - force white text on all elements */
+* {
+  color: white !important;
+}
+
+/* Override all text classes */
+[class*="text-"] {
+  color: white !important;
+}
+
+/* Override for Quick Actions/Links buttons in course overview (both instructor and student) */
+.space-y-3 a[href*="/instructor/courses/"],
+.space-y-3 a[href*="/courses/"] {
+  background-color: transparent !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Make cards stand out with semi-transparent backgrounds */
+div[class*="card"],
+div[class*="box"],
+div[class*="container"],
+.bg-card-bg,
+section,
+article,
+aside,
+.rounded-lg,
+.shadow {
+  background-color: rgba(255, 255, 255, 0.2) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3) !important;
+  border-radius: 0.5rem !important;
+  color: white !important;
+}
+
+/* Ensure these elements and ALL their children have white text */
+div[class*="card"] *,
+div[class*="box"] *,
+div[class*="container"] *,
+.bg-card-bg *,
+section *,
+article *,
+aside *,
+.rounded-lg *,
+.shadow *,
+main * {
+  color: white !important;
+}
+
+/* Target specific text elements */
+h1, h2, h3, h4, h5, h6,
+[class*="heading"],
+[class*="title"],
+.font-bold,
+.font-semibold,
+.font-medium {
+  color: white !important;
+  font-weight: 700 !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+}
+
+p, span, div, label, li, td, th {
+  color: white !important;
+}
+
+/* Interactive elements */
+a, [role="button"], .cursor-pointer, [class*="btn"] {
+  color: white !important;
+  font-weight: 500 !important;
+}
+
+/* Button styling - solid colors for functionality */
+button[type="submit"], button[type="button"], button:not([class*="bg-"]) {
+  color: white !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  pointer-events: auto !important;
+  z-index: 999 !important;
+  position: relative !important;
+}
+
+button[type="submit"]:hover, button[type="button"]:hover {
+  background-color: #DB2777 !important;
+}
+
+button[type="submit"]:active, button[type="button"]:active {
+  background-color: #BE185D !important;
+}
+
+/* Specific override for login/signup buttons */
+button[class*="bg-gradient"] {
+  background: transparent !important;
+  pointer-events: auto !important;
+  z-index: 1000 !important;
+  position: relative !important;
+}
+
+/* Form elements */
+input, select, textarea {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  color: white !important;
+}
+
+/* Icons */
+svg, [class*="icon"], i {
+  color: white !important;
+  fill: white !important;
+  stroke: white !important;
+}
+
+/* Tailwind text color overrides for all colors */
+.text-black, .text-white, .text-gray-100, .text-gray-200, .text-gray-300, 
+.text-gray-400, .text-gray-500, .text-gray-600, .text-gray-700, .text-gray-800, 
+.text-gray-900, [class*="text-blue-"], [class*="text-red-"], 
+[class*="text-green-"], [class*="text-yellow-"], [class*="text-purple-"], 
+[class*="text-pink-"], [class*="text-indigo-"] {
+  color: white !important;
+}
+
+/* Override any potential text color transitions */
+* {
+  transition: none !important;
+}
+
+/* Emergency button fix - force all button events */
+button, input[type="submit"], input[type="button"] {
+  pointer-events: auto !important;
+  position: relative !important;
+  z-index: 9999 !important;
+}
+
+/* Navbar specific overrides */
+nav, .navbar {
+  background-color: rgba(255, 255, 255, 0.2) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3) !important;
+  color: white !important;
+}
+
+nav *, .navbar * {
+  color: white !important;
+}
+
