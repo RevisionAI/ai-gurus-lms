@@ -95,8 +95,8 @@ export default function RegisterPage() {
       {/* Right section - Registration form (2/3) */}
       <div className="w-2/3 py-12 px-4 sm:px-6 lg:px-8 overflow-auto flex flex-col items-center justify-center bg-gradient-to-br from-gray-900 to-black">
         <div className="max-w-md w-full mb-8 flex items-center justify-center">
-          <h2 className="text-2xl font-bold text-center">
-            <strong>Coming Soon</strong> - <em>Create AI videos for you ads, promos and stories</em>
+          <h2 className="text-3xl font-bold text-center bg-gradient-to-r from-blue-400 to-cyan-400 text-transparent bg-clip-text">
+            AI Fluency Program Registration
           </h2>
         </div>
         <div className="max-w-3xl w-full space-y-8 bg-card-bg p-8 rounded-lg shadow-xl border border-gray-800">

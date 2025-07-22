@@ -67,11 +67,11 @@ export default function LoginPage() {
             <div className="flex justify-center mb-2">
               <img src="/Logo.png" alt="Revision AI Learning Port Logo" className="h-14 w-auto" />
             </div>
-            <h1 className="text-center text-3xl font-bold bg-gradient-to-r from-pink-500 to-blue-500 text-transparent bg-clip-text">
-              Revision AI Learning Port
+            <h1 className="text-center text-3xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 text-transparent bg-clip-text">
+              AI Fluency Program
             </h1>
             <h2 className="mt-6 text-center text-xl text-white">
-              Sign in to your account
+              Sign in to your AI Fluency account
             </h2>
           </div>
           <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
