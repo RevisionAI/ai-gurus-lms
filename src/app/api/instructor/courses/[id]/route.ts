@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { cascadeSoftDeleteCourse, notDeleted } from '@/lib/soft-delete'
+import { updateCourseSchema } from '@/validators/course'
 
 export async function GET(
   request: NextRequest,
@@ -62,7 +64,31 @@ export async function PUT(
     }
 
     const { id } = await params
-    const { title, description, code, semester, year, isActive } = await request.json()
+    const body = await request.json()
+
+    // Validate with Zod schema
+    const validation = updateCourseSchema.safeParse(body)
+    if (!validation.success) {
+      return NextResponse.json(
+        {
+          error: 'Validation failed',
+          details: validation.error.errors
+        },
+        { status: 400 }
+      )
+    }
+
+    const {
+      title,
+      description,
+      code,
+      semester,
+      year,
+      isActive,
+      prerequisites,
+      learningObjectives,
+      targetAudience
+    } = validation.data
 
     const course = await prisma.course.findUnique({
       where: {
@@ -76,7 +102,7 @@ export async function PUT(
     }
 
     // Check if course code is being changed and if it already exists
-    if (code !== course.code) {
+    if (code && code !== course.code) {
       const existingCourse = await prisma.course.findUnique({
         where: { code }
       })
@@ -89,18 +115,23 @@ export async function PUT(
       }
     }
 
+    // Build update data, only including fields that were provided
+    const updateData: Record<string, unknown> = {}
+    if (title !== undefined) updateData.title = title
+    if (description !== undefined) updateData.description = description
+    if (code !== undefined) updateData.code = code
+    if (semester !== undefined) updateData.semester = semester
+    if (year !== undefined) updateData.year = year
+    if (isActive !== undefined) updateData.isActive = isActive
+    if (prerequisites !== undefined) updateData.prerequisites = prerequisites
+    if (learningObjectives !== undefined) updateData.learningObjectives = learningObjectives
+    if (targetAudience !== undefined) updateData.targetAudience = targetAudience
+
     const updatedCourse = await prisma.course.update({
       where: {
         id
       },
-      data: {
-        title,
-        description,
-        code,
-        semester,
-        year: year ? parseInt(year) : course.year,
-        isActive: isActive !== undefined ? isActive : course.isActive
-      }
+      data: updateData
     })
 
     return NextResponse.json(updatedCourse)
@@ -126,21 +157,19 @@ export async function DELETE(
     const course = await prisma.course.findUnique({
       where: {
         id,
-        instructorId: session.user.id
+        instructorId: session.user.id,
+        ...notDeleted,
       }
     })
 
     if (!course) {
-      return NextResponse.json({ error: 'Course not found' }, { status: 404 })
+      return NextResponse.json({ error: 'Course not found or has been archived' }, { status: 404 })
     }
 
-    await prisma.course.delete({
-      where: {
-        id
-      }
-    })
+    // Soft delete course and cascade to related content (assignments, discussions, content, announcements)
+    await cascadeSoftDeleteCourse(id)
 
-    return NextResponse.json({ message: 'Course deleted successfully' })
+    return NextResponse.json({ message: 'Course archived successfully' })
   } catch (error) {
     console.error('Error deleting course:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

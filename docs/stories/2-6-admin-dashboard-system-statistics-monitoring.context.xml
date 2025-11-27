@@ -1,0 +1,1093 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>2.6</story-id>
+    <story-key>2-6-admin-dashboard-system-statistics-monitoring</story-key>
+    <title>Admin Dashboard - System Statistics &amp; Monitoring</title>
+    <epic>Epic 2 - Feature Completion &amp; Admin Capabilities</epic>
+    <status>drafted</status>
+    <created>2025-11-26</created>
+    <prerequisites>Story 2.5 (Admin Interface Foundation)</prerequisites>
+  </metadata>
+
+  <story-summary>
+    <user-story>
+      <as>an administrator</as>
+      <i-want>real-time system statistics and monitoring dashboards</i-want>
+      <so-that>I can understand platform health and usage patterns</so-that>
+    </user-story>
+
+    <description>
+      This story implements a comprehensive admin dashboard with system-wide statistics aggregation,
+      real-time activity monitoring, and system health indicators. The dashboard provides administrators
+      with visibility into platform usage patterns including user counts by role, course metrics,
+      enrollment trends, assignment activity, and discussion engagement. Features include caching for
+      performance optimization, visualization charts for enrollment trends and completion rates, and
+      drill-down navigation to detailed management views.
+    </description>
+
+    <key-features>
+      <feature>System overview metrics (users by role, courses by status, enrollments, assignments, discussions)</feature>
+      <feature>24-hour activity feed (recent logins, enrollments, submissions)</feature>
+      <feature>System health indicators (database and storage status)</feature>
+      <feature>Time-series charts (enrollments over 30 days, completion rates)</feature>
+      <feature>Redis-based caching with 5-minute TTL and cache invalidation on writes</feature>
+      <feature>Drill-down navigation links to detailed management interfaces</feature>
+      <feature>Manual and auto-refresh capabilities</feature>
+    </key-features>
+  </story-summary>
+
+  <acceptance-criteria>
+    <criterion id="AC-2.6.1" priority="critical">
+      <description>Dashboard displays total users by role (students, instructors, admins)</description>
+      <verification>Verify StatsOverview component shows user counts grouped by role with accurate totals</verification>
+    </criterion>
+
+    <criterion id="AC-2.6.2" priority="critical">
+      <description>Dashboard displays total courses (active, inactive)</description>
+      <verification>Verify course metrics show breakdown of active vs inactive courses</verification>
+    </criterion>
+
+    <criterion id="AC-2.6.3" priority="critical">
+      <description>Dashboard displays enrollment, assignment, and discussion counts</description>
+      <verification>Verify all aggregate counts display correctly in overview cards</verification>
+    </criterion>
+
+    <criterion id="AC-2.6.4" priority="high">
+      <description>Activity metrics show recent logins, enrollments, submissions (24h)</description>
+      <verification>Verify ActivityFeed component shows counts for actions within last 24 hours</verification>
+    </criterion>
+
+    <criterion id="AC-2.6.5" priority="high">
+      <description>System health indicators show database and storage status</description>
+      <verification>Verify SystemHealth component displays connection status for database and R2 storage</verification>
+    </criterion>
+
+    <criterion id="AC-2.6.6" priority="medium">
+      <description>Charts visualize enrollments over time and completion rates</description>
+      <verification>Verify EnrollmentChart shows 30-day trend and CompletionRateChart shows top 10 courses</verification>
+    </criterion>
+
+    <criterion id="AC-2.6.7" priority="medium">
+      <description>Drill-down links from metrics to detailed lists</description>
+      <verification>Verify clicking user/course counts navigates to management pages</verification>
+    </criterion>
+
+    <criterion id="AC-2.6.8" priority="high">
+      <description>Stats cached for 5 minutes with cache invalidation on writes</description>
+      <verification>Verify Redis caching implemented with 300s TTL and mutation endpoints invalidate cache</verification>
+    </criterion>
+
+    <criterion id="AC-2.6.9" priority="critical">
+      <description>Unit tests cover statistics aggregation logic</description>
+      <verification>Verify unit tests achieve 80%+ coverage for stats calculation functions</verification>
+    </criterion>
+
+    <criterion id="AC-2.6.10" priority="critical">
+      <description>Integration tests verify statistics API endpoint</description>
+      <verification>Verify integration tests validate API response structure and accuracy with seeded data</verification>
+    </criterion>
+
+    <criterion id="AC-2.6.11" priority="critical">
+      <description>E2E test validates admin sees accurate system statistics</description>
+      <verification>Verify Playwright test seeds data and asserts correct stats displayed in dashboard</verification>
+    </criterion>
+  </acceptance-criteria>
+
+  <technical-context>
+    <architecture>
+      <component-structure>
+        <component name="AdminDashboard" path="/src/app/admin/page.tsx" type="page">
+          Main dashboard page that orchestrates all statistics components and handles data fetching
+        </component>
+        <component name="StatsOverview" path="/src/components/admin/StatsOverview.tsx" type="presentation">
+          Card-based layout displaying user counts, course counts, enrollment/assignment/discussion totals
+        </component>
+        <component name="ActivityFeed" path="/src/components/admin/ActivityFeed.tsx" type="presentation">
+          Timeline view showing 24-hour activity metrics (logins, enrollments, submissions)
+        </component>
+        <component name="SystemHealth" path="/src/components/admin/SystemHealth.tsx" type="presentation">
+          Color-coded status indicators for database and storage connectivity
+        </component>
+        <component name="EnrollmentChart" path="/src/components/admin/EnrollmentChart.tsx" type="visualization">
+          Line chart showing enrollment trends over last 30 days using Recharts
+        </component>
+        <component name="CompletionRateChart" path="/src/components/admin/CompletionRateChart.tsx" type="visualization">
+          Horizontal bar chart showing top 10 courses by completion rate
+        </component>
+        <component name="StatsAPI" path="/src/app/api/admin/stats/detailed/route.ts" type="api">
+          GET endpoint for fetching all dashboard statistics with Redis caching
+        </component>
+      </component-structure>
+
+      <data-flow>
+        <step>Admin navigates to /admin dashboard page</step>
+        <step>Server Component fetches GET /api/admin/stats/detailed</step>
+        <step>API checks Redis cache for key "admin:stats:detailed"</step>
+        <step>If cache hit: return cached statistics immediately (sub-50ms response)</step>
+        <step>If cache miss: execute parallel Prisma queries (Promise.all pattern)</step>
+        <step>Aggregate query results into SystemStats interface structure</step>
+        <step>Store result in Redis with 300-second TTL</step>
+        <step>Return statistics to client</step>
+        <step>Dashboard page passes data to child components via props</step>
+        <step>Components render metrics, charts, and health indicators</step>
+        <step>On user/course/enrollment mutations: invalidate "admin:stats:detailed" cache key</step>
+      </data-flow>
+
+      <database-schema>
+        <models-to-aggregate>
+          <model name="User" counts="total, by role (STUDENT, INSTRUCTOR, ADMIN), recent logins (updatedAt)">
+            Filter: deletedAt IS NULL (exclude soft-deleted users)
+            Grouping: role field for user breakdown
+            Activity: updatedAt within last 24 hours for recent logins
+          </model>
+          <model name="Course" counts="total, active (isActive=true), inactive (isActive=false)">
+            Filter: deletedAt IS NULL (exclude soft-deleted courses)
+            Grouping: isActive field for active/inactive split
+          </model>
+          <model name="Enrollment" counts="total, recent (createdAt within 24h)">
+            No soft delete field - count all enrollments
+            Activity: createdAt within last 24 hours for recent enrollments
+          </model>
+          <model name="Assignment" counts="total, submissions count, completion rates">
+            Filter: deletedAt IS NULL (exclude soft-deleted assignments)
+            Relations: Join with Submission and Grade for completion calculations
+          </model>
+          <model name="Submission" counts="total, recent (createdAt within 24h)">
+            No soft delete field - count all submissions
+            Activity: createdAt within last 24 hours for recent submissions
+          </model>
+          <model name="Discussion" counts="total">
+            Filter: deletedAt IS NULL (exclude soft-deleted discussions)
+          </model>
+          <model name="DiscussionPost" counts="total">
+            No soft delete field - count all posts
+          </model>
+          <model name="Grade" counts="per assignment for completion rate">
+            Filter: deletedAt IS NULL (exclude soft-deleted grades)
+            Used to calculate assignment completion percentages
+          </model>
+        </models-to-aggregate>
+      </database-schema>
+
+      <api-contracts>
+        <endpoint method="GET" path="/api/admin/stats/detailed">
+          <authentication>Required - Admin role only (session.user.role === 'ADMIN')</authentication>
+          <response-structure>
+            <json>
+{
+  "users": {
+    "total": number,
+    "students": number,
+    "instructors": number,
+    "admins": number
+  },
+  "courses": {
+    "total": number,
+    "active": number,
+    "inactive": number
+  },
+  "enrollments": number,
+  "assignments": {
+    "total": number,
+    "submissions": number
+  },
+  "discussions": {
+    "total": number,
+    "posts": number
+  },
+  "recentActivity": {
+    "logins": number,
+    "enrollments": number,
+    "submissions": number,
+    "timestamp": string
+  },
+  "systemHealth": {
+    "database": "healthy" | "degraded" | "down",
+    "storage": "healthy" | "degraded" | "down",
+    "lastChecked": string
+  },
+  "enrollmentsOverTime": [
+    { "date": string, "count": number }
+  ],
+  "completionRates": [
+    { "courseId": string, "courseTitle": string, "rate": number }
+  ]
+}
+            </json>
+          </response-structure>
+          <error-responses>
+            <error status="401" code="UNAUTHORIZED">No session or non-admin user</error>
+            <error status="500" code="INTERNAL_SERVER_ERROR">Database query failure</error>
+          </error-responses>
+          <caching>
+            <strategy>Redis with key "admin:stats:detailed"</strategy>
+            <ttl>300 seconds (5 minutes)</ttl>
+            <invalidation>On user/course/enrollment/assignment mutations</invalidation>
+          </caching>
+        </endpoint>
+      </api-contracts>
+
+      <parallel-query-pattern>
+        <description>
+          Efficient statistics aggregation using Promise.all for parallel Prisma queries.
+          Pattern from tech spec ensures sub-2-second response for dashboard load.
+        </description>
+        <code-example language="typescript">
+// Parallel count queries for dashboard stats
+const [userCounts, courseCounts, enrollmentCount, assignmentStats, discussionStats] = await Promise.all([
+  // User counts by role
+  prisma.user.groupBy({
+    by: ['role'],
+    where: { deletedAt: null },
+    _count: true,
+  }),
+
+  // Course counts by active status
+  prisma.course.groupBy({
+    by: ['isActive'],
+    where: { deletedAt: null },
+    _count: true,
+  }),
+
+  // Total enrollments
+  prisma.enrollment.count(),
+
+  // Assignment and submission counts
+  prisma.$transaction([
+    prisma.assignment.count({ where: { deletedAt: null } }),
+    prisma.submission.count(),
+  ]),
+
+  // Discussion and post counts
+  prisma.$transaction([
+    prisma.discussion.count({ where: { deletedAt: null } }),
+    prisma.discussionPost.count(),
+  ]),
+]);
+
+// 24-hour activity metrics
+const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+const [recentLogins, recentEnrollments, recentSubmissions] = await Promise.all([
+  prisma.user.count({
+    where: {
+      deletedAt: null,
+      updatedAt: { gte: twentyFourHoursAgo },
+    },
+  }),
+  prisma.enrollment.count({
+    where: { createdAt: { gte: twentyFourHoursAgo } },
+  }),
+  prisma.submission.count({
+    where: { submittedAt: { gte: twentyFourHoursAgo } },
+  }),
+]);
+        </code-example>
+      </parallel-query-pattern>
+
+      <enrollments-over-time-query>
+        <description>
+          Time-series data for enrollment chart showing last 30 days.
+          Uses raw SQL for efficient date grouping.
+        </description>
+        <code-example language="typescript">
+// Enrollments grouped by date (last 30 days)
+const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+const enrollmentsOverTime = await prisma.$queryRaw&lt;Array&lt;{ date: Date; count: number }&gt;&gt;`
+  SELECT
+    DATE("enrolledAt") as date,
+    COUNT(*)::int as count
+  FROM enrollments
+  WHERE "enrolledAt" &gt;= ${thirtyDaysAgo}
+  GROUP BY DATE("enrolledAt")
+  ORDER BY date ASC
+`;
+        </code-example>
+      </enrollments-over-time-query>
+
+      <completion-rate-calculation>
+        <description>
+          Calculate assignment completion rates as (graded submissions / total enrolled students) per course.
+          Returns top 10 courses by completion rate.
+        </description>
+        <code-example language="typescript">
+// Get courses with enrollment and grade counts
+const coursesWithStats = await prisma.course.findMany({
+  where: { deletedAt: null },
+  select: {
+    id: true,
+    title: true,
+    _count: {
+      select: {
+        enrollments: true,
+        assignments: true,
+      },
+    },
+    assignments: {
+      where: { deletedAt: null },
+      select: {
+        _count: {
+          select: {
+            grades: {
+              where: { deletedAt: null },
+            },
+          },
+        },
+      },
+    },
+  },
+});
+
+// Calculate completion rates
+const completionRates = coursesWithStats
+  .map(course =&gt; {
+    const totalAssignments = course._count.assignments;
+    const enrolledStudents = course._count.enrollments;
+    const totalPossibleGrades = totalAssignments * enrolledStudents;
+
+    const totalGrades = course.assignments.reduce(
+      (sum, assignment) =&gt; sum + assignment._count.grades,
+      0
+    );
+
+    const rate = totalPossibleGrades &gt; 0
+      ? (totalGrades / totalPossibleGrades) * 100
+      : 0;
+
+    return {
+      courseId: course.id,
+      courseTitle: course.title,
+      rate: Math.round(rate * 100) / 100, // Round to 2 decimals
+    };
+  })
+  .sort((a, b) =&gt; b.rate - a.rate)
+  .slice(0, 10); // Top 10 courses
+        </code-example>
+      </completion-rate-calculation>
+
+      <system-health-check>
+        <description>
+          Check database and storage connectivity for health indicators.
+        </description>
+        <code-example language="typescript">
+// Database health check
+let databaseStatus: 'healthy' | 'degraded' | 'down' = 'healthy';
+try {
+  await prisma.$queryRaw`SELECT 1`;
+} catch (error) {
+  console.error('Database health check failed:', error);
+  databaseStatus = 'down';
+}
+
+// Storage health check (R2)
+let storageStatus: 'healthy' | 'degraded' | 'down' = 'healthy';
+try {
+  // Simple R2 connectivity check (list buckets or similar lightweight operation)
+  // Implementation depends on R2 client availability
+  // For now, mark as healthy if no errors in recent uploads
+  storageStatus = 'healthy';
+} catch (error) {
+  console.error('Storage health check failed:', error);
+  storageStatus = 'down';
+}
+
+const systemHealth = {
+  database: databaseStatus,
+  storage: storageStatus,
+  lastChecked: new Date().toISOString(),
+};
+        </code-example>
+      </system-health-check>
+    </architecture>
+
+    <dependencies>
+      <package name="@prisma/client" version="^6.9.0" usage="Database queries and aggregations" />
+      <package name="next-auth" version="^4.24.11" usage="Admin session authentication" />
+      <package name="@upstash/redis" version="^1.34.3" usage="Statistics caching (pattern from rate-limit.ts)" />
+      <package name="recharts" version="^2.15.0" usage="Enrollment and completion rate charts" required-install="true" />
+      <package name="lucide-react" version="^0.514.0" usage="Icons for metrics and status indicators" />
+      <package name="date-fns" version="^4.1.0" usage="Date formatting for charts and timestamps" />
+    </dependencies>
+
+    <environment-variables>
+      <variable name="UPSTASH_REDIS_REST_URL" required="true">Upstash Redis REST endpoint for caching</variable>
+      <variable name="UPSTASH_REDIS_REST_TOKEN" required="true">Upstash authentication token</variable>
+      <variable name="STATS_CACHE_TTL" required="false" default="300">Cache TTL in seconds (default 5 minutes)</variable>
+    </environment-variables>
+  </technical-context>
+
+  <existing-code-context>
+    <existing-implementation>
+      <file path="/src/app/api/admin/dashboard/stats/route.ts">
+        <description>
+          Basic stats endpoint already exists with partial implementation.
+          Current implementation:
+          - Counts total users, courses, students, instructors, enrollments, assignments
+          - Uses Promise.all for parallel queries
+          - Admin authorization check implemented
+          - Missing: Soft delete filtering, Redis caching, activity metrics, system health,
+            time-series data, completion rates
+        </description>
+        <code-snippet>
+// EXISTING CODE (TO BE EXTENDED)
+const [
+  totalUsers,
+  totalCourses,
+  totalStudents,
+  totalInstructors,
+  totalEnrollments,
+  totalAssignments
+] = await Promise.all([
+  prisma.user.count(),
+  prisma.course.count(),
+  prisma.user.count({ where: { role: 'STUDENT' } }),
+  prisma.user.count({ where: { role: 'INSTRUCTOR' } }),
+  prisma.enrollment.count(),
+  prisma.assignment.count()
+])
+
+// NEEDS: Soft delete filtering, admin count, discussion counts, activity metrics,
+// caching layer, system health, chart data
+        </code-snippet>
+        <migration-notes>
+          Migrate existing /api/admin/dashboard/stats endpoint to /api/admin/stats/detailed
+          or extend current endpoint with additional fields. Recommend creating new endpoint
+          to avoid breaking existing consumers during transition.
+        </migration-notes>
+      </file>
+
+      <file path="/src/lib/rate-limit.ts">
+        <description>
+          Upstash Redis client pattern for reference.
+          Demonstrates lazy initialization, fail-open strategy, and caching patterns.
+        </description>
+        <redis-client-pattern>
+// Pattern for Redis client initialization (from rate-limit.ts)
+import { Redis } from '@upstash/redis'
+
+let redis: Redis | null = null
+
+function getRedisClient(): Redis | null {
+  if (redis) return redis
+
+  const url = process.env.UPSTASH_REDIS_REST_URL
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN
+
+  if (!url || !token) {
+    console.warn('Redis credentials not configured - caching disabled')
+    return null
+  }
+
+  redis = new Redis({ url, token })
+  return redis
+}
+
+// Usage for stats caching:
+async function getCachedStats(): Promise&lt;SystemStats | null&gt; {
+  const client = getRedisClient()
+  if (!client) return null
+
+  try {
+    const cached = await client.get('admin:stats:detailed')
+    return cached ? JSON.parse(cached as string) : null
+  } catch (error) {
+    console.error('Cache read failed:', error)
+    return null
+  }
+}
+
+async function setCachedStats(stats: SystemStats): Promise&lt;void&gt; {
+  const client = getRedisClient()
+  if (!client) return
+
+  const ttl = parseInt(process.env.STATS_CACHE_TTL || '300', 10)
+
+  try {
+    await client.setex('admin:stats:detailed', ttl, JSON.stringify(stats))
+  } catch (error) {
+    console.error('Cache write failed:', error)
+  }
+}
+
+async function invalidateStatsCache(): Promise&lt;void&gt; {
+  const client = getRedisClient()
+  if (!client) return
+
+  try {
+    await client.del('admin:stats:detailed')
+  } catch (error) {
+    console.error('Cache invalidation failed:', error)
+  }
+}
+        </redis-client-pattern>
+      </file>
+
+      <file path="prisma/schema.prisma">
+        <description>
+          Complete database schema with all models for aggregation.
+          Key models: User (role-based counts), Course (active/inactive), Enrollment,
+          Assignment, Submission, Grade (completion rates), Discussion, DiscussionPost.
+          All except Enrollment, Submission, and DiscussionPost have deletedAt soft delete field.
+        </description>
+        <soft-delete-models>
+          User, Course, Assignment, Grade, Discussion, Announcement, CourseContent
+        </soft-delete-models>
+        <no-soft-delete-models>
+          Enrollment, Submission, DiscussionPost
+        </no-soft-delete-models>
+        <query-filter-requirement>
+          All queries on soft-deletable models MUST include: where: { deletedAt: null }
+          This ensures statistics only reflect active records.
+        </query-filter-requirement>
+      </file>
+    </existing-implementation>
+
+    <related-components>
+      <component path="/src/app/admin/deleted-records/page.tsx">
+        Example admin page structure for reference
+      </component>
+      <component path="/src/app/api/admin/deleted-records/route.ts">
+        Example admin API route with authorization pattern
+      </component>
+    </related-components>
+  </existing-code-context>
+
+  <implementation-guidance>
+    <task-breakdown>
+      <task id="1" name="Statistics API Endpoint">
+        <priority>Critical - Foundation for all UI components</priority>
+        <subtasks>
+          <subtask id="1.1">Create /src/app/api/admin/stats/detailed/route.ts with GET handler</subtask>
+          <subtask id="1.2">Implement admin authorization check (session.user.role === 'ADMIN')</subtask>
+          <subtask id="1.3">Define TypeScript interfaces for SystemStats response</subtask>
+          <subtask id="1.4">Implement parallel user statistics aggregation (groupBy role, filter deletedAt)</subtask>
+          <subtask id="1.5">Implement course statistics (groupBy isActive, filter deletedAt)</subtask>
+          <subtask id="1.6">Implement enrollment, assignment, discussion counts</subtask>
+          <subtask id="1.7">Implement 24-hour activity metrics (calculate timestamp, query recent actions)</subtask>
+          <subtask id="1.8">Implement system health checks (database, storage connectivity)</subtask>
+          <subtask id="1.9">Implement enrollments over time query (raw SQL, last 30 days)</subtask>
+          <subtask id="1.10">Implement completion rate calculation (top 10 courses)</subtask>
+          <subtask id="1.11">Implement Redis caching layer (get/set/invalidate)</subtask>
+          <subtask id="1.12">Add error handling and response formatting</subtask>
+        </subtasks>
+      </task>
+
+      <task id="2" name="Dashboard UI Components">
+        <priority>High - User-facing statistics display</priority>
+        <subtasks>
+          <subtask id="2.1">Install recharts dependency: npm install recharts</subtask>
+          <subtask id="2.2">Create StatsOverview component with card grid layout</subtask>
+          <subtask id="2.3">Create ActivityFeed component with timeline view</subtask>
+          <subtask id="2.4">Create SystemHealth component with color-coded indicators</subtask>
+          <subtask id="2.5">Create EnrollmentChart component with Recharts line chart</subtask>
+          <subtask id="2.6">Create CompletionRateChart component with Recharts bar chart</subtask>
+          <subtask id="2.7">Add drill-down navigation links to all relevant metrics</subtask>
+          <subtask id="2.8">Implement responsive design (mobile/tablet/desktop)</subtask>
+        </subtasks>
+      </task>
+
+      <task id="3" name="Dashboard Page Integration">
+        <priority>High - Orchestrates all components</priority>
+        <subtasks>
+          <subtask id="3.1">Update /src/app/admin/page.tsx to fetch from stats API</subtask>
+          <subtask id="3.2">Implement Server Component data fetching pattern</subtask>
+          <subtask id="3.3">Add Suspense boundaries for loading states</subtask>
+          <subtask id="3.4">Add error boundary for error handling</subtask>
+          <subtask id="3.5">Create grid layout for dashboard sections</subtask>
+          <subtask id="3.6">Implement manual refresh functionality (Client Component)</subtask>
+          <subtask id="3.7">Implement auto-refresh option with 5-minute interval</subtask>
+          <subtask id="3.8">Display last refreshed timestamp</subtask>
+        </subtasks>
+      </task>
+
+      <task id="4" name="Cache Invalidation Integration">
+        <priority>Medium - Performance optimization</priority>
+        <subtasks>
+          <subtask id="4.1">Create cache invalidation utility function</subtask>
+          <subtask id="4.2">Add invalidation to user creation/update/delete endpoints</subtask>
+          <subtask id="4.3">Add invalidation to course creation/update/delete endpoints</subtask>
+          <subtask id="4.4">Add invalidation to enrollment creation/deletion endpoints</subtask>
+          <subtask id="4.5">Add invalidation to assignment submission endpoints</subtask>
+          <subtask id="4.6">Test cache invalidation triggers stats refresh</subtask>
+        </subtasks>
+      </task>
+
+      <task id="5" name="Testing - Unit">
+        <priority>Critical - Quality assurance</priority>
+        <subtasks>
+          <subtask id="5.1">Create /src/__tests__/lib/admin-stats.test.ts</subtask>
+          <subtask id="5.2">Test user count aggregation by role</subtask>
+          <subtask id="5.3">Test course count aggregation (active/inactive)</subtask>
+          <subtask id="5.4">Test with soft-deleted records (should be excluded)</subtask>
+          <subtask id="5.5">Test 24-hour activity window calculation</subtask>
+          <subtask id="5.6">Test completion rate calculation (various scenarios)</subtask>
+          <subtask id="5.7">Test cache hit/miss/expiration logic</subtask>
+          <subtask id="5.8">Mock Prisma client and Redis client</subtask>
+        </subtasks>
+      </task>
+
+      <task id="6" name="Testing - Integration">
+        <priority>Critical - API validation</priority>
+        <subtasks>
+          <subtask id="6.1">Create /src/__tests__/api/admin/stats/detailed.test.ts</subtask>
+          <subtask id="6.2">Test GET returns statistics with admin user (200 OK)</subtask>
+          <subtask id="6.3">Test 401 unauthorized without authentication</subtask>
+          <subtask id="6.4">Test 403 forbidden for non-admin users</subtask>
+          <subtask id="6.5">Seed test database with known data</subtask>
+          <subtask id="6.6">Assert correct counts in response structure</subtask>
+          <subtask id="6.7">Test caching behavior (first request, second request immediate)</subtask>
+          <subtask id="6.8">Test response has all required fields</subtask>
+        </subtasks>
+      </task>
+
+      <task id="7" name="Testing - E2E">
+        <priority>High - User journey validation</priority>
+        <subtasks>
+          <subtask id="7.1">Create /playwright/tests/admin-dashboard.spec.ts</subtask>
+          <subtask id="7.2">Set up test with admin user authentication</subtask>
+          <subtask id="7.3">Seed database with known statistics data</subtask>
+          <subtask id="7.4">Navigate to /admin and assert stats display correctly</subtask>
+          <subtask id="7.5">Test activity feed displays 24h metrics</subtask>
+          <subtask id="7.6">Test system health indicators display</subtask>
+          <subtask id="7.7">Test charts render (check for SVG elements)</subtask>
+          <subtask id="7.8">Test drill-down navigation to user/course management</subtask>
+          <subtask id="7.9">Test refresh functionality</subtask>
+        </subtasks>
+      </task>
+
+      <task id="8" name="Documentation &amp; Code Review">
+        <priority>Medium - Maintainability</priority>
+        <subtasks>
+          <subtask id="8.1">Add JSDoc comments to API route</subtask>
+          <subtask id="8.2">Document all component props with JSDoc</subtask>
+          <subtask id="8.3">Update /docs/admin-guide.md with dashboard usage</subtask>
+          <subtask id="8.4">Document caching behavior and invalidation pattern</subtask>
+          <subtask id="8.5">Run all tests (npm test, npm run test:e2e)</subtask>
+          <subtask id="8.6">Run linter and type check</subtask>
+          <subtask id="8.7">Manual testing across viewports</subtask>
+          <subtask id="8.8">Code review preparation checklist</subtask>
+        </subtasks>
+      </task>
+    </task-breakdown>
+
+    <caching-implementation-guide>
+      <redis-setup>
+        <step>1. Create /src/lib/redis.ts with Redis client initialization pattern</step>
+        <step>2. Use lazy initialization to avoid errors in development without Upstash</step>
+        <step>3. Implement fail-open strategy (continue without cache if Redis unavailable)</step>
+        <step>4. Export getRedisClient() helper function</step>
+      </redis-setup>
+
+      <cache-key-strategy>
+        <key name="admin:stats:detailed" description="Main statistics cache key" />
+        <ttl>300 seconds (5 minutes) - configurable via STATS_CACHE_TTL env var</ttl>
+        <invalidation-triggers>
+          - User created/updated/deleted
+          - Course created/updated/deleted/published
+          - Enrollment created/deleted
+          - Assignment created/deleted/published
+          - Submission created (impacts recent activity)
+          - Grade created/updated (impacts completion rates)
+        </invalidation-triggers>
+      </cache-key-strategy>
+
+      <implementation-pattern>
+        <code-example language="typescript">
+// In /src/app/api/admin/stats/detailed/route.ts
+import { getRedisClient } from '@/lib/redis'
+
+export async function GET() {
+  // 1. Authorization check
+  const session = await getServerSession(authOptions)
+  if (!session || session.user.role !== 'ADMIN') {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  // 2. Check cache
+  const redis = getRedisClient()
+  if (redis) {
+    try {
+      const cached = await redis.get('admin:stats:detailed')
+      if (cached) {
+        return NextResponse.json(JSON.parse(cached as string))
+      }
+    } catch (error) {
+      console.error('Cache read failed:', error)
+      // Continue to fetch from database
+    }
+  }
+
+  // 3. Fetch from database (parallel queries)
+  const stats = await aggregateStatistics()
+
+  // 4. Cache result
+  if (redis) {
+    try {
+      const ttl = parseInt(process.env.STATS_CACHE_TTL || '300', 10)
+      await redis.setex('admin:stats:detailed', ttl, JSON.stringify(stats))
+    } catch (error) {
+      console.error('Cache write failed:', error)
+      // Continue to return stats even if caching failed
+    }
+  }
+
+  return NextResponse.json(stats)
+}
+        </code-example>
+      </implementation-pattern>
+
+      <invalidation-helper>
+        <code-example language="typescript">
+// Create /src/lib/cache-invalidation.ts
+import { getRedisClient } from '@/lib/redis'
+
+export async function invalidateAdminStats(): Promise&lt;void&gt; {
+  const redis = getRedisClient()
+  if (!redis) return
+
+  try {
+    await redis.del('admin:stats:detailed')
+    console.log('Admin stats cache invalidated')
+  } catch (error) {
+    console.error('Cache invalidation failed:', error)
+  }
+}
+
+// Usage in mutation endpoints:
+import { invalidateAdminStats } from '@/lib/cache-invalidation'
+
+// After user creation/update/deletion:
+await invalidateAdminStats()
+        </code-example>
+      </invalidation-helper>
+    </caching-implementation-guide>
+
+    <chart-implementation-guide>
+      <recharts-setup>
+        <installation>npm install recharts</installation>
+        <imports>
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from 'recharts'
+        </imports>
+      </recharts-setup>
+
+      <enrollment-chart-example>
+        <code-example language="typescript">
+// /src/components/admin/EnrollmentChart.tsx
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { format } from 'date-fns'
+
+interface EnrollmentChartProps {
+  data: Array&lt;{ date: string; count: number }&gt;
+}
+
+export function EnrollmentChart({ data }: EnrollmentChartProps) {
+  const formattedData = data.map(item =&gt; ({
+    ...item,
+    date: format(new Date(item.date), 'MMM dd'),
+  }))
+
+  return (
+    &lt;div className="bg-white p-6 rounded-lg shadow"&gt;
+      &lt;h3 className="text-lg font-semibold mb-4"&gt;Enrollments Over Time (30 Days)&lt;/h3&gt;
+      &lt;ResponsiveContainer width="100%" height={300}&gt;
+        &lt;LineChart data={formattedData}&gt;
+          &lt;CartesianGrid strokeDasharray="3 3" /&gt;
+          &lt;XAxis dataKey="date" /&gt;
+          &lt;YAxis /&gt;
+          &lt;Tooltip /&gt;
+          &lt;Line type="monotone" dataKey="count" stroke="#3b82f6" strokeWidth={2} /&gt;
+        &lt;/LineChart&gt;
+      &lt;/ResponsiveContainer&gt;
+    &lt;/div&gt;
+  )
+}
+        </code-example>
+      </enrollment-chart-example>
+
+      <completion-rate-chart-example>
+        <code-example language="typescript">
+// /src/components/admin/CompletionRateChart.tsx
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+
+interface CompletionRateChartProps {
+  data: Array&lt;{ courseTitle: string; rate: number }&gt;
+}
+
+export function CompletionRateChart({ data }: CompletionRateChartProps) {
+  return (
+    &lt;div className="bg-white p-6 rounded-lg shadow"&gt;
+      &lt;h3 className="text-lg font-semibold mb-4"&gt;Top 10 Courses by Completion Rate&lt;/h3&gt;
+      &lt;ResponsiveContainer width="100%" height={400}&gt;
+        &lt;BarChart data={data} layout="vertical"&gt;
+          &lt;CartesianGrid strokeDasharray="3 3" /&gt;
+          &lt;XAxis type="number" domain={[0, 100]} /&gt;
+          &lt;YAxis dataKey="courseTitle" type="category" width={150} /&gt;
+          &lt;Tooltip formatter={(value) =&gt; `${value}%`} /&gt;
+          &lt;Bar dataKey="rate" fill="#10b981" /&gt;
+        &lt;/BarChart&gt;
+      &lt;/ResponsiveContainer&gt;
+    &lt;/div&gt;
+  )
+}
+        </code-example>
+      </completion-rate-chart-example>
+    </chart-implementation-guide>
+
+    <performance-considerations>
+      <optimization>Use Promise.all for parallel query execution (target &lt; 2s dashboard load)</optimization>
+      <optimization>Implement Redis caching to reduce database load (5-minute TTL)</optimization>
+      <optimization>Use Prisma groupBy for efficient aggregations instead of multiple count queries</optimization>
+      <optimization>Limit enrollments-over-time query to 30 days (avoid full table scan)</optimization>
+      <optimization>Limit completion rates to top 10 courses (avoid rendering too many bars)</optimization>
+      <optimization>Use raw SQL for date-based grouping (more efficient than Prisma ORM)</optimization>
+      <optimization>Add database indexes on deletedAt, createdAt, updatedAt, isActive fields</optimization>
+    </performance-considerations>
+
+    <security-considerations>
+      <requirement>Enforce admin-only access on all statistics endpoints (403 for non-admins)</requirement>
+      <requirement>Rate limit admin endpoints to prevent abuse (use existing rate-limit.ts pattern)</requirement>
+      <requirement>Avoid exposing sensitive user data (use counts, not individual records)</requirement>
+      <requirement>Validate all query parameters with Zod schemas</requirement>
+      <requirement>Log all admin dashboard access for audit trail</requirement>
+      <requirement>Sanitize error messages (don't expose database schema details)</requirement>
+    </security-considerations>
+
+    <accessibility-requirements>
+      <requirement>Add ARIA labels to chart components for screen readers</requirement>
+      <requirement>Use semantic HTML (section, article, aside) for dashboard sections</requirement>
+      <requirement>Ensure color contrast meets WCAG 2.1 Level AA (4.5:1 for text)</requirement>
+      <requirement>Provide text alternatives for visual health indicators (not just color)</requirement>
+      <requirement>Support keyboard navigation for drill-down links</requirement>
+      <requirement>Add loading announcements for screen readers during refresh</requirement>
+    </accessibility-requirements>
+  </implementation-guidance>
+
+  <testing-requirements>
+    <unit-tests>
+      <test-file path="/src/__tests__/lib/admin-stats.test.ts">
+        <test-case>Test user count aggregation by role (STUDENT, INSTRUCTOR, ADMIN)</test-case>
+        <test-case>Test user counts exclude soft-deleted users (deletedAt not null)</test-case>
+        <test-case>Test course count aggregation by isActive status</test-case>
+        <test-case>Test course counts exclude soft-deleted courses</test-case>
+        <test-case>Test enrollment count (no soft delete filter needed)</test-case>
+        <test-case>Test assignment and submission counts</test-case>
+        <test-case>Test discussion and post counts</test-case>
+        <test-case>Test 24-hour activity window calculation (timestamp boundary)</test-case>
+        <test-case>Test recent logins counting (updatedAt within 24h)</test-case>
+        <test-case>Test recent enrollments counting (createdAt within 24h)</test-case>
+        <test-case>Test recent submissions counting (submittedAt within 24h)</test-case>
+        <test-case>Test completion rate calculation with zero enrollments (avoid division by zero)</test-case>
+        <test-case>Test completion rate with 100% completion</test-case>
+        <test-case>Test completion rate with partial completion</test-case>
+        <test-case>Test completion rate sorting (descending order)</test-case>
+        <test-case>Test cache hit returns cached data without database query</test-case>
+        <test-case>Test cache miss triggers database fetch and cache write</test-case>
+        <test-case>Test cache expiration after TTL</test-case>
+        <test-case>Test cache invalidation deletes cache key</test-case>
+        <test-case>Mock Prisma client with jest-mock-extended</test-case>
+        <test-case>Mock Redis client operations</test-case>
+      </test-file>
+
+      <coverage-target>80%+ for statistics aggregation logic</coverage-target>
+    </unit-tests>
+
+    <integration-tests>
+      <test-file path="/src/__tests__/api/admin/stats/detailed.test.ts">
+        <test-case>Test GET /api/admin/stats/detailed returns 200 OK with admin user</test-case>
+        <test-case>Test response has all required fields (users, courses, enrollments, etc.)</test-case>
+        <test-case>Test users object has total, students, instructors, admins counts</test-case>
+        <test-case>Test courses object has total, active, inactive counts</test-case>
+        <test-case>Test recentActivity object has logins, enrollments, submissions counts</test-case>
+        <test-case>Test systemHealth object has database, storage status</test-case>
+        <test-case>Test enrollmentsOverTime array has date, count pairs</test-case>
+        <test-case>Test completionRates array has courseId, courseTitle, rate</test-case>
+        <test-case>Test 401 unauthorized without session</test-case>
+        <test-case>Test 403 forbidden for STUDENT role</test-case>
+        <test-case>Test 403 forbidden for INSTRUCTOR role</test-case>
+        <test-case>Seed test database with known data (5 users, 3 courses, 4 enrollments)</test-case>
+        <test-case>Assert API returns correct counts matching seeded data</test-case>
+        <test-case>Test first request triggers database queries</test-case>
+        <test-case>Test second request returns cached data (no additional queries)</test-case>
+        <test-case>Test cache invalidation clears cache and next request re-fetches</test-case>
+        <test-case>Clean up test data after each test</test-case>
+      </test-file>
+
+      <coverage-target>70%+ for API routes</coverage-target>
+    </integration-tests>
+
+    <e2e-tests>
+      <test-file path="/playwright/tests/admin-dashboard.spec.ts">
+        <test-case>Authenticate as admin user before test</test-case>
+        <test-case>Seed database with known statistics (10 users, 5 courses, 8 enrollments)</test-case>
+        <test-case>Navigate to /admin dashboard page</test-case>
+        <test-case>Assert StatsOverview displays correct user count cards</test-case>
+        <test-case>Assert course count cards show active/inactive breakdown</test-case>
+        <test-case>Assert enrollment, assignment, discussion counts visible</test-case>
+        <test-case>Assert ActivityFeed section displays with 24h metrics</test-case>
+        <test-case>Assert timestamp shows "Last updated" time</test-case>
+        <test-case>Assert SystemHealth section displays database status "healthy"</test-case>
+        <test-case>Assert storage status displays</test-case>
+        <test-case>Assert EnrollmentChart renders (check for SVG element)</test-case>
+        <test-case>Assert CompletionRateChart renders</test-case>
+        <test-case>Click user count card and assert navigation to /admin/users (if exists)</test-case>
+        <test-case>Navigate back to dashboard</test-case>
+        <test-case>Click course count card and assert navigation to /admin/courses (if exists)</test-case>
+        <test-case>Click refresh button and assert loading indicator appears</test-case>
+        <test-case>Assert timestamp updates after refresh completes</test-case>
+        <test-case>Test responsive design (resize to mobile viewport)</test-case>
+        <test-case>Take screenshot for visual regression testing</test-case>
+        <test-case>Clean up seeded data after test</test-case>
+      </test-file>
+
+      <coverage-target>Critical user journeys (admin views dashboard, refreshes data, navigates to management)</coverage-target>
+    </e2e-tests>
+
+    <test-data-requirements>
+      <seed-data>
+        <users>
+          <user role="STUDENT" count="5" status="active" />
+          <user role="STUDENT" count="1" status="deleted" note="Should be excluded from counts" />
+          <user role="INSTRUCTOR" count="2" status="active" />
+          <user role="ADMIN" count="1" status="active" note="Test user" />
+        </users>
+        <courses>
+          <course isActive="true" count="3" status="active" />
+          <course isActive="false" count="1" status="active" />
+          <course isActive="true" count="1" status="deleted" note="Should be excluded" />
+        </courses>
+        <enrollments count="8" note="Distributed across active courses" />
+        <assignments count="6" note="2 per active course" />
+        <submissions count="12" note="Some within 24h for activity metrics" />
+        <grades count="10" note="For completion rate calculation" />
+        <discussions count="4" note="Across active courses" />
+      </seed-data>
+    </test-data-requirements>
+
+    <testing-tools>
+      <tool name="Jest" usage="Unit and integration testing framework" />
+      <tool name="React Testing Library" usage="Component testing utilities" />
+      <tool name="jest-mock-extended" usage="Prisma client mocking" />
+      <tool name="Playwright" usage="E2E testing framework" />
+      <tool name="@testing-library/jest-dom" usage="DOM assertion matchers" />
+    </testing-tools>
+  </testing-requirements>
+
+  <dependencies>
+    <story-dependency id="2.5" relationship="prerequisite">
+      Admin Interface Foundation must be complete (layout, navigation, authorization)
+    </story-dependency>
+
+    <story-dependency id="2.7" relationship="drill-down-target">
+      User Management provides target for user count drill-down links
+    </story-dependency>
+
+    <story-dependency id="2.8" relationship="drill-down-target">
+      Course Management provides target for course count drill-down links
+    </story-dependency>
+
+    <infrastructure-dependency name="Upstash Redis">
+      Required for statistics caching. Application should degrade gracefully if unavailable.
+    </infrastructure-dependency>
+
+    <infrastructure-dependency name="Neon PostgreSQL">
+      Required for all database queries. Critical dependency.
+    </infrastructure-dependency>
+
+    <package-dependency name="recharts" install-command="npm install recharts">
+      Required for enrollment and completion rate chart visualizations
+    </package-dependency>
+  </dependencies>
+
+  <implementation-notes>
+    <note priority="high">
+      IMPORTANT: Filter ALL queries on soft-deletable models with `deletedAt: null` to ensure
+      statistics reflect only active records. Models with soft delete: User, Course, Assignment,
+      Grade, Discussion, Announcement, CourseContent.
+    </note>
+
+    <note priority="high">
+      Use Promise.all for parallel query execution to minimize database round trips.
+      Target dashboard load time: &lt; 2 seconds for 50 students × 20 assignments dataset.
+    </note>
+
+    <note priority="medium">
+      Implement fail-open caching strategy: if Redis is unavailable or cache read fails,
+      continue to fetch from database. Cache is performance optimization, not critical path.
+    </note>
+
+    <note priority="medium">
+      Cache invalidation should be called from mutation endpoints AFTER successful database
+      write to ensure cache doesn't contain stale data. Use try-catch to prevent cache failures
+      from blocking mutations.
+    </note>
+
+    <note priority="low">
+      Consider adding query result pagination for drill-down views in future stories.
+      Initial implementation shows all results (acceptable for beta scale).
+    </note>
+
+    <note priority="low">
+      Auto-refresh interval should match cache TTL (5 minutes) to avoid unnecessary requests.
+      Provide toggle to disable auto-refresh for users preferring manual control.
+    </note>
+
+    <note priority="low">
+      System health checks should be lightweight (SELECT 1 for database). Avoid expensive
+      operations that could slow down dashboard load.
+    </note>
+
+    <note priority="high">
+      Use environment variable STATS_CACHE_TTL to configure cache duration (default 300s).
+      This allows production tuning without code changes.
+    </note>
+  </implementation-notes>
+
+  <definition-of-done>
+    <criterion>All 11 acceptance criteria (AC-2.6.1 through AC-2.6.11) are met</criterion>
+    <criterion>Statistics API endpoint /api/admin/stats/detailed implemented with admin authorization</criterion>
+    <criterion>All five dashboard components created and functional (StatsOverview, ActivityFeed, SystemHealth, EnrollmentChart, CompletionRateChart)</criterion>
+    <criterion>User counts display correctly by role (students, instructors, admins)</criterion>
+    <criterion>Course counts display correctly (active, inactive)</criterion>
+    <criterion>Enrollment, assignment, discussion counts display accurately</criterion>
+    <criterion>24-hour activity metrics display (recent logins, enrollments, submissions)</criterion>
+    <criterion>System health indicators show database and storage status</criterion>
+    <criterion>Enrollment chart visualizes 30-day trend</criterion>
+    <criterion>Completion rate chart shows top 10 courses</criterion>
+    <criterion>Drill-down links navigate to user/course management pages</criterion>
+    <criterion>Redis caching implemented with 5-minute TTL</criterion>
+    <criterion>Cache invalidation integrated into user/course/enrollment/submission mutation endpoints</criterion>
+    <criterion>Manual refresh functionality works correctly</criterion>
+    <criterion>Unit tests pass with &gt;80% coverage for statistics logic</criterion>
+    <criterion>Integration tests pass for API endpoint with all scenarios</criterion>
+    <criterion>E2E test validates admin dashboard functionality end-to-end</criterion>
+    <criterion>All database queries filter out soft-deleted records (deletedAt IS NULL)</criterion>
+    <criterion>Dashboard loads in &lt; 2 seconds (p95) for typical dataset</criterion>
+    <criterion>Code follows project style guidelines (ESLint passes)</criterion>
+    <criterion>TypeScript type check passes (no errors)</criterion>
+    <criterion>All components documented with JSDoc comments</criterion>
+    <criterion>API endpoint documented with request/response examples</criterion>
+    <criterion>No console errors or warnings in browser</criterion>
+    <criterion>Dashboard is responsive across mobile/tablet/desktop viewports</criterion>
+    <criterion>Accessibility requirements met (WCAG 2.1 Level AA)</criterion>
+    <criterion>Code reviewed and approved by team</criterion>
+  </definition-of-done>
+
+  <references>
+    <story-file>/Users/eddyh/Documents/2025/Q3/Projects/Vibe Tribe/Vibe Tribe/AI GURUS v12claude/ai-gurus-lms/docs/stories/2-6-admin-dashboard-system-statistics-monitoring.md</story-file>
+    <tech-spec>/Users/eddyh/Documents/2025/Q3/Projects/Vibe Tribe/Vibe Tribe/AI GURUS v12claude/ai-gurus-lms/docs/tech-spec-epic-2.md</tech-spec>
+    <database-schema>/Users/eddyh/Documents/2025/Q3/Projects/Vibe Tribe/Vibe Tribe/AI GURUS v12claude/ai-gurus-lms/prisma/schema.prisma</database-schema>
+    <rate-limit-pattern>/Users/eddyh/Documents/2025/Q3/Projects/Vibe Tribe/Vibe Tribe/AI GURUS v12claude/ai-gurus-lms/src/lib/rate-limit.ts</rate-limit-pattern>
+    <existing-stats-api>/Users/eddyh/Documents/2025/Q3/Projects/Vibe Tribe/Vibe Tribe/AI GURUS v12claude/ai-gurus-lms/src/app/api/admin/dashboard/stats/route.ts</existing-stats-api>
+  </references>
+</story-context>

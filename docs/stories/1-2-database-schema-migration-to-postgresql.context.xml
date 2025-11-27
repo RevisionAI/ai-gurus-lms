@@ -1,0 +1,250 @@
+<story-context id="1-2-database-schema-migration-to-postgresql" v="1.0">
+  <metadata>
+    <epicId>1</epicId>
+    <storyId>2</storyId>
+    <title>Database Schema Migration to PostgreSQL</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-25</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/1-2-database-schema-migration-to-postgresql.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>developer</asA>
+    <iWant>to migrate the Prisma schema from SQLite to PostgreSQL</iWant>
+    <soThat>all database models and relations are operational on production infrastructure</soThat>
+    <tasks>
+      <task id="1" ac="1">Update Prisma schema for PostgreSQL provider
+        <subtask>Change provider = "sqlite" to provider = "postgresql"</subtask>
+        <subtask>Update datasource block to use DATABASE_URL environment variable</subtask>
+        <subtask>Add DIRECT_URL for migrations (Neon connection pooler bypass)</subtask>
+        <subtask>Review all field types for PostgreSQL compatibility</subtask>
+        <subtask>Verify @default(cuid()) works on PostgreSQL</subtask>
+      </task>
+      <task id="2" ac="4">Generate Prisma migration for PostgreSQL
+        <subtask>Run npx prisma migrate dev --name init-postgresql</subtask>
+        <subtask>Review generated migration SQL in prisma/migrations/</subtask>
+        <subtask>Verify all 10 models translated to CREATE TABLE statements</subtask>
+        <subtask>Verify all foreign key constraints included (25 relations)</subtask>
+      </task>
+      <task id="3" ac="4,5">Apply migration to PostgreSQL instance
+        <subtask>Ensure DATABASE_URL and DIRECT_URL configured in .env.local</subtask>
+        <subtask>Run npx prisma migrate deploy</subtask>
+        <subtask>Verify migration succeeded</subtask>
+      </task>
+      <task id="4" ac="2,3,5">Validate database schema completeness
+        <subtask>Connect via npx prisma studio to inspect schema</subtask>
+        <subtask>Verify all 10 models appear as tables with correct columns</subtask>
+        <subtask>Verify all foreign key constraints created</subtask>
+        <subtask>Test cascade delete behavior</subtask>
+      </task>
+      <task id="5" ac="6">Test development environment with PostgreSQL
+        <subtask>Run npm run dev to start Next.js development server</subtask>
+        <subtask>Test basic CRUD operations via API endpoints</subtask>
+        <subtask>Verify Prisma Studio shows data in PostgreSQL</subtask>
+      </task>
+      <task id="6" ac="7">Document rollback procedure
+        <subtask>Document step-by-step rollback to SQLite in /docs/database-rollback.md</subtask>
+        <subtask>Include decision criteria for when to rollback</subtask>
+      </task>
+      <task id="7" ac="7">Test rollback procedure on staging data
+        <subtask>Create staging PostgreSQL database</subtask>
+        <subtask>Execute rollback procedure step-by-step</subtask>
+        <subtask>Verify SQLite database restored with all data intact</subtask>
+      </task>
+      <task id="8" ac="6,7">Clean up migration artifacts and documentation
+        <subtask>Remove or archive old SQLite migrations</subtask>
+        <subtask>Update .env.example with PostgreSQL connection string template</subtask>
+        <subtask>Update project README with PostgreSQL setup instructions</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="1">Prisma schema updated for PostgreSQL provider - Database provider changed from sqlite to postgresql in prisma/schema.prisma</criterion>
+    <criterion id="2">All 10 models migrated successfully - User, Course, Enrollment, Assignment, Submission, Grade, Discussion, DiscussionPost, Announcement, CourseContent models functional on PostgreSQL</criterion>
+    <criterion id="3">All 25 relations maintained - Foreign keys and cascade behaviors preserved with correct constraints</criterion>
+    <criterion id="4">Migration script executed successfully - Prisma migrations generated and applied to PostgreSQL instance</criterion>
+    <criterion id="5">Database schema validated - All tables, indexes, and constraints verified in PostgreSQL</criterion>
+    <criterion id="6">Development environment connected to PostgreSQL - Local development fully operational on PostgreSQL (no SQLite dependency)</criterion>
+    <criterion id="7">Rollback procedure documented and tested - Step-by-step rollback to SQLite documented with staging validation</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture Document</title>
+        <section>Data Architecture, Database Technology Decision</section>
+        <snippet>Neon PostgreSQL selected for serverless auto-scaling. 10 core models with 25 relations. Cascade delete behaviors defined.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Epic 1 Technical Specification</title>
+        <section>Data Models and Contracts, Database Migration Workflow</section>
+        <snippet>Detailed migration workflow: Update schema provider, generate migration, apply to PostgreSQL, validate integrity. DIRECT_URL required for Neon migrations.</snippet>
+      </doc>
+      <doc>
+        <path>docs/epics.md</path>
+        <title>Epic Breakdown</title>
+        <section>Story 1.2: Database Schema Migration to PostgreSQL</section>
+        <snippet>Prerequisites: Story 1.1 complete. 7 acceptance criteria defined. Rollback procedure required.</snippet>
+      </doc>
+      <doc>
+        <path>docs/data-models.md</path>
+        <title>Data Models Documentation</title>
+        <section>Prisma Schema Overview</section>
+        <snippet>10 models documented: User, Course, Enrollment, Assignment, Submission, Grade, Discussion, DiscussionPost, Announcement, CourseContent.</snippet>
+      </doc>
+      <doc>
+        <path>docs/PRD.md</path>
+        <title>Product Requirements Document</title>
+        <section>Infrastructure Requirements</section>
+        <snippet>PostgreSQL database required for production. Must support concurrent users and ACID transactions.</snippet>
+      </doc>
+      <doc>
+        <path>docs/stories/1-1-postgresql-setup-configuration.md</path>
+        <title>Story 1.1: PostgreSQL Setup</title>
+        <section>Prerequisites</section>
+        <snippet>Neon PostgreSQL provisioned. DATABASE_URL and DIRECT_URL configured. Connection pooling enabled. Prerequisite for Story 1.2.</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <file>
+        <path>prisma/schema.prisma</path>
+        <kind>schema</kind>
+        <symbol>datasource db, 10 models, 2 enums</symbol>
+        <lines>1-212</lines>
+        <reason>Current Prisma schema with SQLite provider. Must migrate provider to postgresql, add directUrl. Contains 10 models: User, Course, Enrollment, Assignment, Submission, Grade, Discussion, DiscussionPost, Announcement, CourseContent. 25 relations with cascade deletes configured.</reason>
+      </file>
+      <file>
+        <path>src/lib/prisma.ts</path>
+        <kind>service</kind>
+        <symbol>prisma (PrismaClient singleton)</symbol>
+        <lines>1-9</lines>
+        <reason>Prisma client singleton pattern. May need update for connection pooling configuration after migration. Currently minimal implementation - will need connection_limit option for Neon.</reason>
+      </file>
+      <file>
+        <path>src/lib/auth.ts</path>
+        <kind>service</kind>
+        <symbol>auth configuration</symbol>
+        <lines>all</lines>
+        <reason>NextAuth configuration uses Prisma adapter. Must verify authentication works after PostgreSQL migration.</reason>
+      </file>
+    </code>
+
+    <dependencies>
+      <node>
+        <package name="@prisma/client" version="^6.9.0">Prisma ORM client for database operations</package>
+        <package name="prisma" version="^6.9.0">Prisma CLI for schema management and migrations</package>
+        <package name="next" version="15.3.3">Next.js 15 framework</package>
+        <package name="next-auth" version="^4.24.11">Authentication with Prisma adapter</package>
+        <package name="@next-auth/prisma-adapter" version="^1.0.7">Prisma adapter for NextAuth</package>
+      </node>
+      <external>
+        <service name="Neon PostgreSQL">Serverless PostgreSQL database (provisioned in Story 1.1)</service>
+      </external>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint source="architecture.md">Must maintain all 10 models and 25 relations with identical behavior</constraint>
+    <constraint source="architecture.md">Cascade delete behaviors must be preserved (Course deletion cascades to Enrollment, Assignment, Discussion, Announcement, CourseContent)</constraint>
+    <constraint source="tech-spec-epic-1.md">Connection pooling required - 10 connection limit for Neon free tier</constraint>
+    <constraint source="tech-spec-epic-1.md">DIRECT_URL required for migrations (bypasses Neon connection pooler)</constraint>
+    <constraint source="tech-spec-epic-1.md">Schema-only migration in Story 1.2 - data migration handled in Story 1.3</constraint>
+    <constraint source="security">Never commit .env.local with database credentials to git</constraint>
+    <constraint source="security">Rollback procedure must be documented and tested before production migration</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>Prisma Client Singleton</name>
+      <kind>module export</kind>
+      <signature>export const prisma: PrismaClient</signature>
+      <path>src/lib/prisma.ts</path>
+    </interface>
+    <interface>
+      <name>User Model</name>
+      <kind>Prisma model</kind>
+      <signature>model User { id, email, name, surname, password, cellNumber, company, position, workAddress, role, createdAt, updatedAt, enrollments[], instructorCourses[], assignments[], submissions[], discussions[], discussionPosts[], announcements[], gradesReceived[], gradesGiven[] }</signature>
+      <path>prisma/schema.prisma:10-36</path>
+    </interface>
+    <interface>
+      <name>Course Model</name>
+      <kind>Prisma model</kind>
+      <signature>model Course { id, title, description, code, semester, year, isActive, createdAt, updatedAt, instructorId, instructor, enrollments[], assignments[], discussions[], announcements[], content[] }</signature>
+      <path>prisma/schema.prisma:38-59</path>
+    </interface>
+    <interface>
+      <name>Enrollment Model</name>
+      <kind>Prisma model</kind>
+      <signature>model Enrollment { id, enrolledAt, userId, courseId, user, course } @@unique([userId, courseId])</signature>
+      <path>prisma/schema.prisma:61-73</path>
+    </interface>
+    <interface>
+      <name>Assignment Model</name>
+      <kind>Prisma model</kind>
+      <signature>model Assignment { id, title, description, dueDate, maxPoints, isPublished, createdAt, updatedAt, courseId, createdById, course, createdBy, submissions[], grades[] }</signature>
+      <path>prisma/schema.prisma:75-94</path>
+    </interface>
+    <interface>
+      <name>Submission Model</name>
+      <kind>Prisma model</kind>
+      <signature>model Submission { id, content, fileUrl, submittedAt, assignmentId, studentId, assignment, student } @@unique([assignmentId, studentId])</signature>
+      <path>prisma/schema.prisma:96-110</path>
+    </interface>
+    <interface>
+      <name>Grade Model</name>
+      <kind>Prisma model</kind>
+      <signature>model Grade { id, points, feedback, gradedAt, assignmentId, studentId, gradedById, assignment, student, gradedBy } @@unique([assignmentId, studentId])</signature>
+      <path>prisma/schema.prisma:112-128</path>
+    </interface>
+    <interface>
+      <name>Discussion Model</name>
+      <kind>Prisma model</kind>
+      <signature>model Discussion { id, title, description, isPinned, isLocked, createdAt, courseId, createdBy, course, author, posts[] }</signature>
+      <path>prisma/schema.prisma:130-146</path>
+    </interface>
+    <interface>
+      <name>DiscussionPost Model</name>
+      <kind>Prisma model</kind>
+      <signature>model DiscussionPost { id, content, parentId, createdAt, updatedAt, discussionId, authorId, discussion, author, parent, replies[] } (self-referential)</signature>
+      <path>prisma/schema.prisma:148-164</path>
+    </interface>
+    <interface>
+      <name>Announcement Model</name>
+      <kind>Prisma model</kind>
+      <signature>model Announcement { id, title, content, createdAt, courseId, authorId, course, author }</signature>
+      <path>prisma/schema.prisma:166-179</path>
+    </interface>
+    <interface>
+      <name>CourseContent Model</name>
+      <kind>Prisma model</kind>
+      <signature>model CourseContent { id, title, type, content, fileUrl, thumbnailUrl, orderIndex, isPublished, createdAt, courseId, course }</signature>
+      <path>prisma/schema.prisma:181-197</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>Testing infrastructure to be established in Epic 1.5. For Story 1.2, focus on manual validation and SQL queries to verify schema integrity. Integration tests should validate database connection, CRUD operations on all 10 models, foreign key constraint enforcement, and cascade delete behavior. Unit tests should verify Prisma client configuration.</standards>
+    <locations>
+      <location>__tests__/ (to be created in Epic 1.5)</location>
+      <location>*.test.ts files co-located with source (to be created)</location>
+      <location>prisma/migrations/ (migration SQL for manual review)</location>
+    </locations>
+    <ideas>
+      <idea ac="1,5">Verify prisma/schema.prisma uses provider = "postgresql" and has directUrl configured</idea>
+      <idea ac="2">Query information_schema.tables to verify all 10 tables exist in PostgreSQL</idea>
+      <idea ac="3">Query information_schema.table_constraints for FOREIGN KEY count (expect 25)</idea>
+      <idea ac="4">Run prisma migrate status to verify all migrations applied</idea>
+      <idea ac="5">Query pg_indexes to verify indexes created for foreign keys</idea>
+      <idea ac="6">Run npm run dev and test CRUD via API endpoints (create user, course, enrollment)</idea>
+      <idea ac="6">Verify Prisma Studio connects to PostgreSQL (not SQLite)</idea>
+      <idea ac="7">Execute rollback procedure on staging, verify SQLite restored correctly</idea>
+      <idea ac="3">Test cascade delete: Delete course, verify enrollments/assignments deleted</idea>
+      <idea ac="3">Test foreign key enforcement: Attempt to create enrollment with invalid courseId, expect failure</idea>
+    </ideas>
+  </tests>
+</story-context>

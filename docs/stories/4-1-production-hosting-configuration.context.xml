@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>4.1</story-id>
+    <story-key>4-1-production-hosting-configuration</story-key>
+    <title>Production Hosting Configuration</title>
+    <generated>2025-11-27</generated>
+  </metadata>
+
+  <story>
+    <as-a>DevOps engineer</as-a>
+    <i-want>production hosting infrastructure configured and operational</i-want>
+    <so-that>the platform can serve beta users with enterprise-grade reliability</so-that>
+  </story>
+
+  <acceptance-criteria>
+    <criterion id="1">Production hosting platform provisioned on Vercel (Pro plan)</criterion>
+    <criterion id="2">PostgreSQL production database configured on Neon (connection pooling enabled)</criterion>
+    <criterion id="3">S3/CDN production storage configured with appropriate access controls (R2 buckets)</criterion>
+    <criterion id="4">Environment variables configured via Vercel secrets management</criterion>
+    <criterion id="5">Custom domain configured with SSL/TLS certificates (HTTPS enforced)</criterion>
+    <criterion id="6">Production deployment successful (application accessible via production URL)</criterion>
+    <criterion id="7">Health check endpoint operational (`/api/health/db` returns 200 OK)</criterion>
+    <criterion id="8">Database connection verified (queries execute successfully in production)</criterion>
+    <criterion id="9">File upload/download verified (R2 storage operational in production)</criterion>
+    <criterion id="10">Rollback procedure tested (ability to deploy previous version within 5 minutes)</criterion>
+    <criterion id="11">Documentation: Production hosting setup guide and architecture diagram</criterion>
+  </acceptance-criteria>
+
+  <tasks>
+    <task id="1" subtasks="4">
+      <title>Provision Vercel Pro Production Environment</title>
+      <subtasks>
+        <subtask id="1.1">Upgrade Vercel project from Hobby to Pro plan</subtask>
+        <subtask id="1.2">Configure production environment variables in Vercel dashboard</subtask>
+        <subtask id="1.3">Configure custom domain and SSL/TLS</subtask>
+        <subtask id="1.4">Verify Vercel project configuration</subtask>
+      </subtasks>
+    </task>
+    <task id="2" subtasks="4">
+      <title>Provision Neon PostgreSQL Production Database</title>
+      <subtasks>
+        <subtask id="2.1">Create Neon production instance</subtask>
+        <subtask id="2.2">Configure connection pooling</subtask>
+        <subtask id="2.3">Apply database migrations to production</subtask>
+        <subtask id="2.4">Verify database connection and queries</subtask>
+      </subtasks>
+    </task>
+    <task id="3" subtasks="4">
+      <title>Configure Cloudflare R2 Production Storage</title>
+      <subtasks>
+        <subtask id="3.1">Create production R2 buckets</subtask>
+        <subtask id="3.2">Generate production R2 access credentials</subtask>
+        <subtask id="3.3">Configure public CDN domain</subtask>
+        <subtask id="3.4">Test R2 storage access</subtask>
+      </subtasks>
+    </task>
+    <task id="4" subtasks="4">
+      <title>Deploy Application to Production</title>
+      <subtasks>
+        <subtask id="4.1">Trigger production deployment</subtask>
+        <subtask id="4.2">Verify production deployment</subtask>
+        <subtask id="4.3">Test health check endpoint</subtask>
+        <subtask id="4.4">Validate database connection in production</subtask>
+      </subtasks>
+    </task>
+    <task id="5" subtasks="2">
+      <title>Test Production File Upload/Download</title>
+      <subtasks>
+        <subtask id="5.1">Test file upload flow</subtask>
+        <subtask id="5.2">Test file download flow</subtask>
+      </subtasks>
+    </task>
+    <task id="6" subtasks="4">
+      <title>Test Rollback Procedure</title>
+      <subtasks>
+        <subtask id="6.1">Document current deployment state</subtask>
+        <subtask id="6.2">Execute rollback to previous deployment</subtask>
+        <subtask id="6.3">Verify rollback functionality</subtask>
+        <subtask id="6.4">Restore to latest deployment</subtask>
+      </subtasks>
+    </task>
+    <task id="7" subtasks="3">
+      <title>Create Production Hosting Documentation</title>
+      <subtasks>
+        <subtask id="7.1">Create production hosting setup guide</subtask>
+        <subtask id="7.2">Create production architecture diagram</subtask>
+        <subtask id="7.3">Document environment variables</subtask>
+      </subtasks>
+    </task>
+  </tasks>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/tech-spec-epic-4.md" title="Epic 4 Tech Spec" section="Story 4.1: Production Hosting Configuration">
+        <snippet>Production hosting platform: Vercel Pro ($20/month), PostgreSQL: Neon Scale ($19/month), File storage: Cloudflare R2 (production buckets), Custom domain: learn.aigurus.com. Environment variables configuration includes DATABASE_URL, DIRECT_URL, NEXTAUTH_URL, NEXTAUTH_SECRET, R2 credentials, Upstash Redis credentials. Zero-downtime deployments via Vercel with rollback capability within 5 minutes.</snippet>
+      </doc>
+      <doc path="docs/architecture.md" title="Architecture Document" section="Deployment Architecture">
+        <snippet>Hosting: Vercel (makers of Next.js), Database: Neon PostgreSQL (serverless), File Storage: Cloudflare R2 (S3-compatible), Environment tiers: Development, Preview, Production. Deployment workflow: Automatic via GitHub integration. Security headers configured in next.config.js (HSTS, CSP, X-Frame-Options). All secrets managed via Vercel environment variables (encrypted at rest). HTTPS enforced with automatic SSL/TLS (Let's Encrypt).</snippet>
+      </doc>
+      <doc path="docs/prd.md" title="Product Requirements Document" section="Non-Functional Requirements">
+        <snippet>NFR002: Reliability - System shall maintain 99.5%+ uptime during production operation with automated monitoring and alerting for critical errors. NFR001: Performance - System shall achieve page load times &lt; 2 seconds (p95), API response times &lt; 500ms (p95). NFR004: Security - HTTPS enforced, security headers configured, encryption for data at rest and in transit.</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <file path="src/app/api/health/db/route.ts" kind="api-route" symbol="GET">
+        <reason>Existing health check endpoint to verify in production. Returns status, database connection status, timestamp, and response time. Returns 200 OK when healthy, 503 Service Unavailable when unhealthy.</reason>
+      </file>
+      <file path="src/lib/prisma.ts" kind="database-client" symbol="prisma">
+        <reason>Prisma client singleton with connection pooling configuration. Uses DATABASE_URL environment variable for connection. Logging configured based on NODE_ENV.</reason>
+      </file>
+      <file path="src/lib/r2.ts" kind="storage-client" symbol="getR2Client">
+        <reason>Cloudflare R2 S3-compatible client for file storage. Provides functions for signed URL generation (upload/download), file validation, and public CDN URL resolution. Requires R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME, R2_PUBLIC_URL environment variables.</reason>
+      </file>
+      <file path="next.config.js" kind="configuration" symbol="nextConfig">
+        <reason>Next.js configuration including security headers (CSP, HSTS, X-Frame-Options, X-Content-Type-Options, X-XSS-Protection, Referrer-Policy, Permissions-Policy). These headers are critical for production security and must be validated during deployment.</reason>
+      </file>
+    </code>
+
+    <dependencies>
+      <node>
+        <package name="next" version="15.3.3" purpose="Application framework and hosting target"/>
+        <package name="@prisma/client" version="^6.9.0" purpose="Database client for Neon PostgreSQL"/>
+        <package name="@aws-sdk/client-s3" version="^3.939.0" purpose="S3-compatible client for Cloudflare R2"/>
+        <package name="@aws-sdk/s3-request-presigner" version="^3.939.0" purpose="Generate signed URLs for R2 uploads/downloads"/>
+        <package name="next-auth" version="^4.24.11" purpose="Authentication with session management"/>
+        <package name="@upstash/ratelimit" version="^2.0.7" purpose="Rate limiting via Upstash Redis"/>
+      </node>
+      <external-services>
+        <service name="Vercel" purpose="Production hosting, edge deployment, environment management" cost="$20/month (Pro plan)"/>
+        <service name="Neon PostgreSQL" purpose="Serverless database with connection pooling and automated backups" cost="$19/month (Scale plan)"/>
+        <service name="Cloudflare R2" purpose="S3-compatible object storage with zero egress fees" cost="Free tier (10GB), ~$5/month for production"/>
+        <service name="Upstash Redis" purpose="Serverless rate limiting" cost="Free tier, ~$10/month for production"/>
+        <service name="GitHub" purpose="Repository hosting and CI/CD integration" cost="Free"/>
+      </external-services>
+    </dependencies>
+  </artifacts>
+
+  <interfaces>
+    <interface name="GET /api/health/db" kind="REST endpoint">
+      <signature>GET /api/health/db → { status, database, timestamp, responseTime }</signature>
+      <path>src/app/api/health/db/route.ts</path>
+      <description>Health check endpoint for uptime monitoring. Returns 200 OK when database is connected, 503 Service Unavailable when disconnected. Used by Better Stack for uptime monitoring (Story 4.4).</description>
+    </interface>
+    <interface name="Vercel Environment Variables" kind="Configuration">
+      <signature>Vercel Dashboard → Environment Variables → Production</signature>
+      <description>Required production environment variables: DATABASE_URL (Neon pooled connection), DIRECT_URL (Neon direct connection for migrations), NEXTAUTH_URL (production domain), NEXTAUTH_SECRET (32-char random), R2 credentials (CLOUDFLARE_R2_ENDPOINT, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_PUBLIC_BUCKET, R2_PRIVATE_BUCKET, R2_PUBLIC_CDN_URL), UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN, NODE_ENV=production, LOG_LEVEL=info</description>
+    </interface>
+    <interface name="Neon Database Connection" kind="Database">
+      <signature>postgresql://user:pass@ep-xxx.neon.tech/dbname?sslmode=require</signature>
+      <description>Connection string format for Neon PostgreSQL. DATABASE_URL uses pooled connection for application queries. DIRECT_URL uses direct connection for migrations (npx prisma migrate deploy).</description>
+    </interface>
+    <interface name="Cloudflare R2 Buckets" kind="Storage">
+      <signature>Public bucket: ai-gurus-public-prod, Private bucket: ai-gurus-private-prod</signature>
+      <description>R2 buckets for production file storage. Public bucket for course content (CDN-enabled), private bucket for submissions (signed URLs only). CORS configured for public bucket, disabled for private bucket.</description>
+    </interface>
+  </interfaces>
+
+  <constraints>
+    <constraint>Must maintain 99.5%+ uptime (PRD NFR002) - requires zero-downtime deployments and rollback capability</constraint>
+    <constraint>Zero-downtime deployments via Vercel atomic deployments - production URL updates atomically</constraint>
+    <constraint>Rollback within 5 minutes if issues detected - Vercel dashboard "Promote to Production" on previous deployment</constraint>
+    <constraint>Custom domain: learn.aigurus.com - requires DNS configuration 48-72 hours before launch</constraint>
+    <constraint>SSL/TLS certificates auto-provisioned via Vercel (Let's Encrypt) - verify HTTPS redirect enabled</constraint>
+    <constraint>Security headers enforced via next.config.js - validate CSP, HSTS, X-Frame-Options in production</constraint>
+    <constraint>All production secrets managed via Vercel environment variables - never commit to repository</constraint>
+    <constraint>Database migrations must use DIRECT_URL - pooled connection (DATABASE_URL) not compatible with migrations</constraint>
+    <constraint>Production deployment only from main branch - preview deployments automatic for all PRs</constraint>
+    <constraint>Page load time &lt; 2 seconds (p95), API response time &lt; 500ms (p95) per PRD NFR001</constraint>
+    <constraint>Health check endpoint must respond &lt; 200ms for uptime monitoring (Better Stack Story 4.4)</constraint>
+    <constraint>R2 public bucket CDN-enabled for course content - verify CORS allows GET from custom domain</constraint>
+    <constraint>R2 private bucket uses signed URLs only - verify 1-hour expiry for sensitive content</constraint>
+    <constraint>Neon connection pooling enabled automatically - no additional configuration required</constraint>
+    <constraint>Build time target &lt; 3 minutes - monitor Vercel build logs for optimization opportunities</constraint>
+  </constraints>
+
+  <tests>
+    <standards>Jest for unit/integration tests, Playwright for E2E tests. Test coverage target 70%+ (PRD NFR005). All tests must pass in CI/CD before deployment to production (Story 1.5.3).</standards>
+    <locations>__tests__/unit/, __tests__/integration/, __tests__/e2e/</locations>
+    <ideas>
+      <idea ac="7">Verify health endpoint returns 200 OK with correct JSON structure in production</idea>
+      <idea ac="7">Test health endpoint response time &lt; 200ms (target for uptime monitoring)</idea>
+      <idea ac="8">Test database queries execute successfully (SELECT, INSERT, UPDATE operations)</idea>
+      <idea ac="8">Test database connection pooling handles concurrent requests</idea>
+      <idea ac="9">Test file upload via R2 signed URL (verify file appears in bucket)</idea>
+      <idea ac="9">Test file download via R2 signed URL (verify content integrity)</idea>
+      <idea ac="9">Test signed URL expiry (verify 1-hour expiration for private files)</idea>
+      <idea ac="10">Test rollback procedure execution time (measure &lt; 5 minutes target)</idea>
+      <idea ac="10">Test rollback maintains data integrity (no data loss during rollback)</idea>
+      <idea ac="6">Smoke test: Homepage loads successfully in production</idea>
+      <idea ac="6">Smoke test: Login flow works in production</idea>
+      <idea ac="6">Smoke test: Course catalog accessible in production</idea>
+      <idea ac="5">Verify HTTPS enforced (HTTP → HTTPS redirect)</idea>
+      <idea ac="5">Verify SSL certificate validity (Let's Encrypt auto-provisioned)</idea>
+      <idea ac="5">Verify security headers present (CSP, HSTS, X-Frame-Options)</idea>
+    </ideas>
+  </tests>
+
+  <implementation-notes>
+    <note priority="high">This story involves infrastructure configuration only - no code changes required except documentation</note>
+    <note priority="high">Vercel Pro plan required for production ($20/month) - Hobby plan for non-commercial only</note>
+    <note priority="high">Neon Scale plan required for automated backups ($19/month) - Story 4.2 depends on this</note>
+    <note priority="high">Custom domain DNS configuration requires 48-72 hours for propagation - plan ahead</note>
+    <note priority="medium">Environment variables must be configured for "Production" environment only in Vercel</note>
+    <note priority="medium">Database migrations must be applied before deployment using DIRECT_URL: npx prisma migrate deploy</note>
+    <note priority="medium">R2 buckets must be created with unique production names (ai-gurus-public-prod, ai-gurus-private-prod)</note>
+    <note priority="medium">Production deployment triggers automatically on push to main branch via GitHub integration</note>
+    <note priority="low">Vercel Analytics included with Pro plan - automatically tracks performance metrics (Story 4.4)</note>
+    <note priority="low">Preview deployments automatic for all PRs - use for testing before production merge</note>
+  </implementation-notes>
+
+  <dev-notes>
+    <patterns>
+      <pattern>Infrastructure-as-Code via Vercel dashboard - configuration stored in Vercel project settings</pattern>
+      <pattern>GitOps workflow: Push to main → Automatic deployment via GitHub integration</pattern>
+      <pattern>Zero-downtime deployments: Vercel atomic deployments ensure no service interruption</pattern>
+      <pattern>Rollback pattern: Vercel dashboard → Deployments → Previous deployment → Promote to Production</pattern>
+      <pattern>Environment separation: Development (local), Preview (PR-based), Production (main branch)</pattern>
+      <pattern>Secrets management: Vercel environment variables (encrypted at rest, decrypted at runtime)</pattern>
+    </patterns>
+    <alignment>
+      <item>Follows architecture.md deployment architecture: Vercel + Neon + R2 stack</item>
+      <item>Uses existing health check endpoint from Epic 1 (Story 1.1)</item>
+      <item>Environment variables match tech-spec-epic-4.md specifications</item>
+      <item>Production URL learn.aigurus.com matches PRD requirements</item>
+      <item>Security headers configured per architecture.md (Story 1.10)</item>
+      <item>R2 storage already configured in Epic 1 (Stories 1.4-1.6) - production buckets new</item>
+      <item>Rate limiting already configured in Epic 1 (Story 1.7) - Upstash production instance new</item>
+    </alignment>
+  </dev-notes>
+</story-context>

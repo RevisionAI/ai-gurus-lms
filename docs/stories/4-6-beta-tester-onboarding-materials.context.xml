@@ -1,0 +1,696 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>4-6-beta-tester-onboarding-materials</story-id>
+    <story-title>Beta Tester Onboarding Materials</story-title>
+    <epic>Epic 4: Production Deployment &amp; Monitoring</epic>
+    <generated-date>2025-11-27</generated-date>
+    <status>ready-for-dev</status>
+  </metadata>
+
+  <story-overview>
+    <user-story>
+      As a product manager,
+      I want comprehensive beta tester onboarding materials,
+      so that beta testers can quickly learn the platform and provide valuable feedback.
+    </user-story>
+    <objective>
+      Create professional onboarding materials for 1-10 SME executive beta testers including welcome email,
+      quick start guide, video walkthrough script, feedback survey, and testing checklist to enable
+      rapid platform adoption and structured feedback collection.
+    </objective>
+    <success-criteria>
+      - Beta testers can independently navigate platform within 15 minutes of login
+      - All key workflows documented with clear instructions
+      - Feedback collection mechanisms established
+      - Professional presentation suitable for executive audience
+    </success-criteria>
+  </story-overview>
+
+  <acceptance-criteria>
+    <criterion id="AC1">
+      <description>Beta Welcome Email drafted</description>
+      <details>
+        - Welcome message and program goals
+        - Login credentials and access instructions
+        - Timeline and expectations (duration, feedback cadence)
+        - Contact information for support
+      </details>
+    </criterion>
+    <criterion id="AC2">
+      <description>Quick Start Guide created (docs/beta-quick-start.md)</description>
+      <details>
+        - How to log in and navigate dashboard
+        - How to enroll in a course
+        - How to access content and complete assignments
+        - How to submit assignments and view grades
+        - How to participate in discussions
+      </details>
+    </criterion>
+    <criterion id="AC3">
+      <description>Video Walkthrough recorded (5-10 minutes)</description>
+      <details>
+        - Platform tour covering key features
+        - Demonstration of student workflow (enroll → complete assignment → view grade)
+        - Q&amp;A contact information
+      </details>
+    </criterion>
+    <criterion id="AC4">
+      <description>Feedback Survey prepared (Google Forms or Typeform)</description>
+      <details>
+        - Satisfaction rating (1-5 scale)
+        - Feature usability questions
+        - Bug reporting section
+        - Open-ended feedback
+      </details>
+    </criterion>
+    <criterion id="AC5">
+      <description>Beta Testing Checklist created (key workflows to test)</description>
+      <details>
+        - Enroll in course
+        - View content (all content types)
+        - Submit assignment (text + file)
+        - View grades and feedback
+        - Post in discussion forum
+        - Report any issues encountered
+      </details>
+    </criterion>
+    <criterion id="AC6">
+      <description>All materials reviewed and approved by stakeholder</description>
+    </criterion>
+  </acceptance-criteria>
+
+  <technical-context>
+    <production-url>https://learn.aigurus.com</production-url>
+    <beta-scale>1-10 SME executive testers</beta-scale>
+    <target-audience>Senior executives evaluating AI Gurus bundled offering</target-audience>
+
+    <key-platform-features>
+      <feature name="Authentication">
+        - NextAuth database sessions
+        - 30-day session duration, 7-day idle timeout
+        - Password reset capability
+      </feature>
+      <feature name="Course Enrollment">
+        - Browse course catalog
+        - View course prerequisites, learning objectives, target audience
+        - Self-enrollment with prerequisite confirmation
+        - Enrollment confirmation
+      </feature>
+      <feature name="Course Navigation">
+        - Tabbed interface: Overview, Content, Assignments, Discussions, Announcements
+        - Dashboard with quick stats (content items, assignments, announcements)
+        - Breadcrumb navigation
+      </feature>
+      <feature name="Content Access">
+        - Multiple content types: TEXT, VIDEO, DOCUMENT, LINK, SCORM, YOUTUBE
+        - Embedded YouTube videos with player
+        - File downloads for documents and videos
+        - External link access
+      </feature>
+      <feature name="Assignment Submission">
+        - Text response submission
+        - File attachment upload (PDF, DOCX, images - max 50MB)
+        - Submission confirmation
+        - View submission status
+      </feature>
+      <feature name="Grade Viewing">
+        - Access gradebook from main navigation
+        - View assignment grades with instructor feedback
+        - Course GPA calculation (4.0 scale)
+        - Overall GPA across all courses
+      </feature>
+      <feature name="Discussion Participation">
+        - Create new discussion posts
+        - Reply to existing threads
+        - View nested replies
+        - Instructor and peer interaction
+      </feature>
+      <feature name="Announcements">
+        - View course announcements
+        - Chronological display with author and date
+        - Read full announcement content
+      </feature>
+    </key-platform-features>
+
+    <user-roles>
+      <role name="STUDENT">Primary beta tester role for AI Fluency Program</role>
+      <role name="INSTRUCTOR">Content creator and grader (may be involved in beta)</role>
+      <role name="ADMIN">Platform administrator (support contact)</role>
+    </user-roles>
+  </technical-context>
+
+  <user-journey-documentation>
+    <journey name="Discovery &amp; Enrollment" source="PRD Journey 1">
+      <step>Student receives bundled package invitation (post-assessment)</step>
+      <step>Logs in → Views course catalog at /courses</step>
+      <step>Reviews AI Fluency Program details (description, syllabus, duration)</step>
+      <step>Reviews prerequisites, learning objectives, and target audience → Confirms course fit</step>
+      <step>Decision Point: Self-enroll or request instructor enrollment?</step>
+      <step>Confirms enrollment → Receives welcome/onboarding materials</step>
+    </journey>
+
+    <journey name="Course Navigation &amp; Content Consumption" source="PRD Journey 1">
+      <step>Accesses course dashboard → Views content modules</step>
+      <step>Progresses through content (videos, documents, readings)</step>
+      <step>Decision Point: Need clarification? → Posts discussion question</step>
+      <step>Completes module → Moves to next section</step>
+    </journey>
+
+    <journey name="Assignment Submission" source="PRD Journey 1">
+      <step>Views assignment details (due date, requirements, rubric)</step>
+      <step>Decision Point: Text response only or file attachment needed?</step>
+      <step>Drafts response → Attaches files (if applicable)</step>
+      <step>Submits → Receives confirmation</step>
+      <step>Edge Case: Late submission → System allows with timestamp</step>
+    </journey>
+
+    <journey name="Feedback &amp; Progress Tracking" source="PRD Journey 1">
+      <step>Receives grade notification → Views instructor feedback</step>
+      <step>Checks gradebook → Monitors GPA and progress</step>
+      <step>Decision Point: Disagree with grade? → Contacts instructor via discussion</step>
+      <step>Completes course → Views final GPA and achievement</step>
+    </journey>
+  </user-journey-documentation>
+
+  <quick-start-guide-outline>
+    <section name="Welcome Beta Testers">
+      - Thank you message for participation
+      - Beta program purpose and goals
+      - What to expect during beta
+    </section>
+
+    <section name="Getting Started">
+      <subsection name="Login Process">
+        - Navigate to: https://learn.aigurus.com
+        - Enter credentials (provided in welcome email)
+        - First-time login: Password change prompt (optional but recommended)
+      </subsection>
+      <subsection name="Dashboard Overview">
+        - Course catalog: Browse available courses
+        - My Courses: View enrolled courses
+        - Navigation: Main menu structure
+        - Profile: Manage account settings
+      </subsection>
+    </section>
+
+    <section name="Course Enrollment">
+      <subsection name="Browse Catalog">
+        - Click "Courses" in main navigation
+        - View course cards with title, code, instructor
+        - Search functionality for filtering courses
+      </subsection>
+      <subsection name="View Course Details">
+        - Click course card to view details
+        - Review description, prerequisites, learning objectives
+        - Check target audience to ensure course fit
+        - View instructor information and enrolled student count
+      </subsection>
+      <subsection name="Enroll in Course">
+        - Prerequisites: If present, review and confirm you meet them
+        - Check prerequisite confirmation checkbox
+        - Click "Enroll Now" button
+        - Confirmation message appears
+        - Course moves from "Available Courses" to "My Enrolled Courses"
+      </subsection>
+    </section>
+
+    <section name="Accessing Course Content">
+      <subsection name="Navigate Course Tabs">
+        - Overview: Course description, quick stats, upcoming assignments
+        - Content: All course materials (videos, readings, resources)
+        - Assignments: View and submit assignments
+        - Discussions: Participate in course discussions
+        - Announcements: View course announcements
+      </subsection>
+      <subsection name="View Content">
+        - Click "Content" tab
+        - Content displayed with icons (video, document, link)
+        - Embedded YouTube videos play inline
+        - Documents and files available for download
+        - External links open in new tab
+      </subsection>
+    </section>
+
+    <section name="Assignment Submission">
+      <subsection name="Submit Text Response">
+        - Navigate to "Assignments" tab
+        - Click assignment to view details
+        - Review assignment description, due date, max points
+        - Enter text response in submission textarea
+        - Click "Submit" button
+      </subsection>
+      <subsection name="Upload File">
+        - Click "Choose File" or file upload button
+        - Select file from computer (PDF, DOCX, images supported)
+        - Max file size: 50MB
+        - Verify file appears in submission
+        - Click "Submit" button
+        - Submission confirmation displayed
+      </subsection>
+    </section>
+
+    <section name="Viewing Grades &amp; Feedback">
+      <subsection name="Access Gradebook">
+        - Click "Gradebook" in main navigation (if available)
+        - OR view grades within course assignment page
+        - View all assignment grades
+        - See course GPA (4.0 scale)
+      </subsection>
+      <subsection name="View Instructor Feedback">
+        - Click grade to view detailed feedback
+        - Read instructor comments
+        - Review points earned vs. max points
+      </subsection>
+      <subsection name="Understanding GPA">
+        - Course GPA: Weighted average of all assignments in course
+        - Overall GPA: Average across all enrolled courses
+        - 4.0 scale (A = 4.0, B = 3.0, C = 2.0, D = 1.0, F = 0.0)
+      </subsection>
+    </section>
+
+    <section name="Discussion Participation">
+      <subsection name="Create Discussion Post">
+        - Navigate to "Discussions" tab in course
+        - Click "New Post" or "Create Discussion" button
+        - Enter title and content
+        - Click "Post" button
+        - Post appears in discussion list
+      </subsection>
+      <subsection name="Reply to Thread">
+        - Click discussion post to view thread
+        - Scroll to reply section
+        - Enter your response
+        - Click "Reply" button
+        - Reply appears in nested thread
+      </subsection>
+    </section>
+
+    <section name="Troubleshooting">
+      <subsection name="Common Issues">
+        - Can't login: Verify credentials, try password reset
+        - File upload fails: Check file size (max 50MB), verify file type
+        - Content not loading: Refresh page, check internet connection
+        - Video not playing: Check browser compatibility (Chrome, Firefox, Safari, Edge)
+      </subsection>
+      <subsection name="Getting Help">
+        - Email support: [support@aigurus.com or beta contact email]
+        - Response time: Within 24 hours (business days)
+        - For urgent issues: [phone or emergency contact if provided]
+      </subsection>
+    </section>
+
+    <section name="Feedback">
+      - Your feedback is invaluable
+      - Complete feedback survey: [survey URL]
+      - Report bugs immediately: [bug reporting process]
+      - Share suggestions and ideas
+      - Thank you for helping improve AI Gurus LMS
+    </section>
+  </quick-start-guide-outline>
+
+  <welcome-email-template>
+    <subject>Welcome to AI Gurus LMS Beta Program!</subject>
+    <body>
+Dear [Beta Tester Name],
+
+Welcome to the AI Gurus LMS beta program! We're excited to have you as one of our first users.
+
+**Program Goals:**
+- Validate core learning workflows (enrollment, content access, assignments, grading)
+- Gather feedback on user experience and feature usability
+- Identify bugs and improvement opportunities before public launch
+
+**Your Access:**
+- Platform URL: https://learn.aigurus.com
+- Username: [provided individually]
+- Temporary Password: [provided individually]
+- Please change your password upon first login for security
+
+**Timeline &amp; Expectations:**
+- Beta Duration: [X weeks/months]
+- Testing Checklist: Complete key workflows (see attached)
+- Feedback Survey: Please complete after initial testing
+- Feedback Cadence: Weekly check-ins via email
+
+**Getting Started:**
+1. Watch the video walkthrough (5-10 minutes): [video URL]
+2. Review the Quick Start Guide: [guide URL or attached]
+3. Complete the Beta Testing Checklist: [checklist URL or attached]
+4. Submit feedback via survey: [survey URL]
+
+**Support:**
+- Email: [support email address]
+- Response Time: Within 24 hours (business days)
+
+**Important:** This is a beta environment. While we've tested extensively, you may encounter bugs.
+Please report any issues immediately—your feedback directly shapes the final product!
+
+Thank you for your participation and valuable insights. We look forward to hearing your feedback.
+
+Best regards,
+[Product Manager Name]
+AI Gurus Team
+    </body>
+  </welcome-email-template>
+
+  <video-walkthrough-script>
+    <segment time="0:00-0:30" title="Introduction">
+      - Welcome to AI Gurus LMS
+      - Purpose of beta program
+      - What we'll cover in this walkthrough (6 key workflows)
+    </segment>
+
+    <segment time="0:30-1:30" title="Login &amp; Dashboard Tour">
+      - Navigate to learn.aigurus.com
+      - Login with provided credentials
+      - Overview of dashboard: My Courses, Course Catalog, Navigation
+      - Show search functionality
+    </segment>
+
+    <segment time="1:30-3:00" title="Course Enrollment">
+      - Browse course catalog
+      - Click on a course to view details
+      - Review prerequisites, learning objectives, target audience
+      - Demonstrate prerequisite confirmation
+      - Click "Enroll Now" button
+      - Show enrollment confirmation
+    </segment>
+
+    <segment time="3:00-5:00" title="Student Workflow - Content &amp; Assignments">
+      - Access enrolled course
+      - Navigate through tabs: Overview, Content, Assignments, Discussions
+      - View course content (show different content types)
+      - Demonstrate embedded YouTube video
+      - Navigate to assignment
+      - Show assignment details (due date, max points, description)
+      - Submit assignment with text response
+      - Demonstrate file upload
+      - Show submission confirmation
+    </segment>
+
+    <segment time="5:00-7:00" title="Viewing Grades &amp; Discussions">
+      - Access gradebook (show how to navigate there)
+      - View assignment grades
+      - Click to see instructor feedback
+      - Show course GPA calculation
+      - Navigate to discussions
+      - Demonstrate creating a new discussion post
+      - Show how to reply to existing thread
+    </segment>
+
+    <segment time="7:00-8:30" title="Tips &amp; Best Practices">
+      - How to navigate efficiently using tabs
+      - Where to find help (support contact)
+      - Common workflows summary
+      - Keyboard shortcuts (if any)
+    </segment>
+
+    <segment time="8:30-10:00" title="Feedback &amp; Q&amp;A">
+      - Importance of your feedback for product improvement
+      - How to access feedback survey
+      - How to report bugs (include in survey or separate email)
+      - Contact information for questions
+      - Thank you message
+      - Encourage exploration and feedback
+    </segment>
+
+    <production-notes>
+      - Screen recording: Use Loom, OBS, or QuickTime
+      - Narration: Clear, professional, friendly tone
+      - Cursor highlighting: Enable for visibility
+      - Editing: Trim pauses, add captions if needed
+      - Upload: YouTube (unlisted) or Vimeo for easy sharing
+      - Thumbnail: Create engaging thumbnail with AI Gurus branding
+    </production-notes>
+  </video-walkthrough-script>
+
+  <feedback-survey-structure>
+    <section name="Section 1: Overall Satisfaction">
+      <question id="Q1" type="scale">
+        <text>Overall, how satisfied are you with AI Gurus LMS?</text>
+        <scale>1-5 (1 = Very Dissatisfied, 5 = Very Satisfied)</scale>
+      </question>
+      <question id="Q2" type="scale">
+        <text>How likely are you to recommend this platform to other SMEs?</text>
+        <scale>1-10 NPS scale (1 = Not at all likely, 10 = Extremely likely)</scale>
+      </question>
+    </section>
+
+    <section name="Section 2: Feature Usability">
+      <question id="Q3" type="scale">
+        <text>How easy was it to enroll in a course?</text>
+        <scale>1-5 (1 = Very Difficult, 5 = Very Easy)</scale>
+      </question>
+      <question id="Q4" type="scale">
+        <text>How easy was it to access course content?</text>
+        <scale>1-5 (1 = Very Difficult, 5 = Very Easy)</scale>
+      </question>
+      <question id="Q5" type="scale">
+        <text>How easy was it to submit assignments?</text>
+        <scale>1-5 (1 = Very Difficult, 5 = Very Easy)</scale>
+      </question>
+      <question id="Q6" type="scale">
+        <text>How easy was it to view grades and feedback?</text>
+        <scale>1-5 (1 = Very Difficult, 5 = Very Easy)</scale>
+      </question>
+      <question id="Q7" type="scale">
+        <text>How easy was it to participate in discussions?</text>
+        <scale>1-5 (1 = Very Difficult, 5 = Very Easy)</scale>
+      </question>
+    </section>
+
+    <section name="Section 3: Bug Reporting">
+      <question id="Q8" type="yes-no">
+        <text>Did you encounter any bugs or errors?</text>
+      </question>
+      <question id="Q9" type="long-text" conditional="Q8 = Yes">
+        <text>Please describe the issue(s) encountered:</text>
+        <hint>Include what you were trying to do when the error occurred</hint>
+      </question>
+      <question id="Q10" type="long-text" conditional="Q8 = Yes">
+        <text>Steps to reproduce the issue:</text>
+        <hint>Help us understand how to recreate the problem</hint>
+      </question>
+      <question id="Q11" type="multiple-choice" conditional="Q8 = Yes">
+        <text>How severe was the issue?</text>
+        <options>
+          <option>Critical - Prevented me from using the platform</option>
+          <option>Major - Significantly impacted my experience</option>
+          <option>Minor - Annoying but didn't block my work</option>
+        </options>
+      </question>
+    </section>
+
+    <section name="Section 4: Open Feedback">
+      <question id="Q12" type="long-text">
+        <text>What features did you find most useful?</text>
+        <hint>Tell us what worked well for you</hint>
+      </question>
+      <question id="Q13" type="long-text">
+        <text>What features need improvement?</text>
+        <hint>What could we do better?</hint>
+      </question>
+      <question id="Q14" type="long-text">
+        <text>What features are missing that you expected?</text>
+        <hint>What would make this platform more valuable for you?</hint>
+      </question>
+      <question id="Q15" type="long-text">
+        <text>Any additional comments or suggestions?</text>
+        <hint>Share any other thoughts or ideas</hint>
+      </question>
+    </section>
+
+    <platform-options>
+      <option name="Google Forms">
+        - Pros: Free, familiar, easy to create, exports to Sheets
+        - Cons: Basic design, limited customization
+      </option>
+      <option name="Typeform">
+        - Pros: Beautiful UI, better UX, one question at a time
+        - Cons: Free tier limits responses (10/month), paid plan needed
+      </option>
+      <recommendation>Google Forms for beta (sufficient for 1-10 testers, free)</recommendation>
+    </platform-options>
+  </feedback-survey-structure>
+
+  <beta-testing-checklist>
+    <workflow name="Enroll in Course">
+      <step>Navigate to course catalog</step>
+      <step>Search for "AI Fluency" or browse available courses</step>
+      <step>Click course card to view details</step>
+      <step>Review prerequisites (if present)</step>
+      <step>Confirm prerequisite checkbox (if required)</step>
+      <step>Click "Enroll Now" button</step>
+      <step>Verify enrollment confirmation message</step>
+      <step>Check course appears in "My Enrolled Courses"</step>
+      <acceptance>Course enrollment successful, course visible in dashboard</acceptance>
+    </workflow>
+
+    <workflow name="View Content (All Content Types)">
+      <step>Access enrolled course</step>
+      <step>Click "Content" tab</step>
+      <step>Test TEXT content: Read text content displayed inline</step>
+      <step>Test VIDEO content: Click download link or view video</step>
+      <step>Test YOUTUBE content: Watch embedded video, test fullscreen</step>
+      <step>Test DOCUMENT content: Download PDF or DOCX file</step>
+      <step>Test LINK content: Click external link, opens in new tab</step>
+      <step>Test SCORM content: Access interactive content (if available)</step>
+      <acceptance>All content types display correctly, media plays, downloads work</acceptance>
+    </workflow>
+
+    <workflow name="Submit Assignment (Text + File)">
+      <step>Navigate to "Assignments" tab</step>
+      <step>Click assignment to view details</step>
+      <step>Review assignment description, due date, max points</step>
+      <step>Enter text response in submission textarea (minimum 50 words)</step>
+      <step>Click file upload button</step>
+      <step>Select test file (PDF or DOCX, under 50MB)</step>
+      <step>Verify file name appears after selection</step>
+      <step>Click "Submit" button</step>
+      <step>Verify submission confirmation message</step>
+      <acceptance>Assignment submitted successfully, confirmation displayed</acceptance>
+    </workflow>
+
+    <workflow name="View Grades and Feedback">
+      <step>Wait for instructor to grade submission (coordinate timing)</step>
+      <step>Navigate to gradebook or assignment page</step>
+      <step>Locate graded assignment</step>
+      <step>Click grade to view details</step>
+      <step>Review points earned vs. max points</step>
+      <step>Read instructor feedback comments</step>
+      <step>Check course GPA calculation</step>
+      <step>Verify overall GPA (if enrolled in multiple courses)</step>
+      <acceptance>Grades visible, feedback readable, GPA calculated correctly</acceptance>
+    </workflow>
+
+    <workflow name="Post in Discussion Forum">
+      <step>Navigate to "Discussions" tab in course</step>
+      <step>Click "New Post" or "Create Discussion" button</step>
+      <step>Enter discussion title (e.g., "Testing Beta Platform")</step>
+      <step>Enter discussion content (minimum 25 words)</step>
+      <step>Click "Post" button</step>
+      <step>Verify post appears in discussion list</step>
+      <step>Click existing discussion post</step>
+      <step>Enter reply text in reply field</step>
+      <step>Click "Reply" button</step>
+      <step>Verify reply appears in thread</step>
+      <acceptance>Discussion post created, reply posted, nested display correct</acceptance>
+    </workflow>
+
+    <workflow name="Report Any Issues Encountered">
+      <instruction>Throughout testing, document any issues:</instruction>
+      <step>Take screenshots of errors or unexpected behavior</step>
+      <step>Note what you were doing when issue occurred</step>
+      <step>Record browser and device information</step>
+      <step>Document steps to reproduce the issue</step>
+      <step>Rate severity: Critical, Major, or Minor</step>
+      <step>Include in feedback survey or email directly to support</step>
+      <acceptance>Issues documented with sufficient detail for team to investigate</acceptance>
+    </workflow>
+
+    <optional-exploratory-testing>
+      <suggestion>Test edge cases: very long text, special characters, large files (near 50MB)</suggestion>
+      <suggestion>Test mobile responsiveness: access platform on phone/tablet</suggestion>
+      <suggestion>Test browser compatibility: try Chrome, Firefox, Safari</suggestion>
+      <suggestion>Test navigation: use breadcrumbs, back button, direct URLs</suggestion>
+      <suggestion>Test accessibility: try keyboard navigation (Tab, Enter, Escape)</suggestion>
+    </optional-exploratory-testing>
+  </beta-testing-checklist>
+
+  <deliverables>
+    <deliverable name="docs/beta-quick-start.md">
+      - Markdown format
+      - All sections from quick-start-guide-outline
+      - Professional tone for executive audience
+      - Clear, concise instructions
+      - Screenshots optional but recommended
+    </deliverable>
+
+    <deliverable name="Beta Welcome Email">
+      - Email template (plain text or HTML)
+      - Personalization fields: [Beta Tester Name], [Username], [Password]
+      - All URLs to be finalized before sending
+      - Attachments: Quick Start Guide PDF, Beta Testing Checklist
+    </deliverable>
+
+    <deliverable name="Video Walkthrough">
+      - 5-10 minute screen recording
+      - Follow video-walkthrough-script outline
+      - Upload to YouTube (unlisted) or Vimeo
+      - Generate shareable URL
+      - Optional: Captions for accessibility
+    </deliverable>
+
+    <deliverable name="Feedback Survey">
+      - Google Forms or Typeform
+      - All questions from feedback-survey-structure
+      - Configure to allow anonymous or identified responses
+      - Test submission flow before sharing
+      - Generate shareable survey URL
+    </deliverable>
+
+    <deliverable name="Beta Testing Checklist">
+      - Document format (Markdown, PDF, or Google Doc)
+      - All workflows from beta-testing-checklist
+      - Checkbox format for easy tracking
+      - Print-friendly design
+      - Include reporting instructions
+    </deliverable>
+  </deliverables>
+
+  <dependencies>
+    <dependency>Story 4.1: Production hosting operational (learn.aigurus.com accessible)</dependency>
+    <dependency>Story 4.2: Database backups configured (data safety assured)</dependency>
+    <dependency>Story 4.3: Error tracking live (Sentry capturing issues)</dependency>
+    <dependency>Story 4.4: Uptime monitoring active (Better Stack alerts configured)</dependency>
+    <dependency>All Epic 1-3 features complete and tested</dependency>
+  </dependencies>
+
+  <references>
+    <reference>
+      <name>PRD User Journey 1: SME Executive Student</name>
+      <location>docs/prd.md</location>
+      <relevance>Complete user flow for enrollment, content, assignments, discussions</relevance>
+    </reference>
+    <reference>
+      <name>Tech Spec Epic 4 Story 4.6</name>
+      <location>docs/tech-spec-epic-4.md</location>
+      <relevance>Detailed requirements, email template outline, survey structure</relevance>
+    </reference>
+    <reference>
+      <name>Architecture Document</name>
+      <location>docs/architecture.md</location>
+      <relevance>Platform technology stack, features, authentication</relevance>
+    </reference>
+    <reference>
+      <name>Course Catalog Page</name>
+      <location>src/app/courses/page.tsx</location>
+      <relevance>Enrollment UI, prerequisites display, confirmation workflow</relevance>
+    </reference>
+    <reference>
+      <name>Course Detail Page</name>
+      <location>src/app/courses/[id]/page.tsx</location>
+      <relevance>Course navigation tabs, content display, assignment access</relevance>
+    </reference>
+  </references>
+
+  <notes>
+    <note type="audience">
+      Beta testers are SME executives - materials must be professional, concise, and respectful of their time.
+      Avoid technical jargon, focus on business value and user experience.
+    </note>
+    <note type="scope">
+      This story is documentation and content creation - no code changes required.
+      All materials should reference existing production features from Epics 1-3.
+    </note>
+    <note type="timeline">
+      Complete before Story 4.7 (Production Launch) to allow stakeholder review and approval.
+      Video recording may take longest - prioritize script creation early.
+    </note>
+    <note type="support">
+      Ensure support contact information is finalized before distributing materials.
+      Coordinate with stakeholder on response time commitments.
+    </note>
+  </notes>
+</story-context>

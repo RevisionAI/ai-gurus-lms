@@ -1,0 +1,459 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context id="1-5-1-jest-testing-framework-setup" v="1.0">
+  <metadata>
+    <epicId>1.5</epicId>
+    <storyId>1</storyId>
+    <title>Jest Testing Framework Setup</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-11-26</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/1-5-1-jest-testing-framework-setup.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>developer</asA>
+    <iWant>Jest configured for unit and integration testing</iWant>
+    <soThat>I can write tests for business logic and API endpoints as features are developed</soThat>
+
+    <tasks>
+      <task id="1" title="Install Jest and Core Testing Dependencies">
+        <subtasks>
+          <subtask>Install Jest core packages: jest@^29.x, @types/jest@^29.x, ts-jest@^29.x</subtask>
+          <subtask>Install React Testing Library packages: @testing-library/react@^14.x, @testing-library/jest-dom@^6.x, @testing-library/user-event@^14.x</subtask>
+          <subtask>Install additional testing utilities: jest-mock-extended@^3.x, jest-environment-jsdom</subtask>
+          <subtask>Verify all packages installed correctly with npm list command</subtask>
+        </subtasks>
+      </task>
+
+      <task id="2" title="Configure Jest for Next.js 15 + TypeScript">
+        <subtasks>
+          <subtask>Create /jest.config.js with Next.js + TypeScript configuration</subtask>
+          <subtask>Create /__tests__/setup.ts for global test configuration</subtask>
+          <subtask>Update tsconfig.json to include test files with Jest types</subtask>
+          <subtask>Test configuration by running npx jest --showConfig</subtask>
+        </subtasks>
+      </task>
+
+      <task id="3" title="Create Test File Structure and Helpers">
+        <subtasks>
+          <subtask>Create test directory structure: __tests__/unit/, __tests__/integration/, __tests__/fixtures/, __tests__/helpers/</subtask>
+          <subtask>Create __tests__/helpers/prismaMock.ts for Prisma client mocking</subtask>
+          <subtask>Create __tests__/helpers/testUtils.tsx for React Testing Library utilities</subtask>
+          <subtask>Create __tests__/fixtures/users.ts with mockStudent, mockInstructor, mockAdmin objects</subtask>
+          <subtask>Create __tests__/fixtures/courses.ts with mockCourse object</subtask>
+        </subtasks>
+      </task>
+
+      <task id="4" title="Write Sample Unit Test (GPA Calculation)">
+        <subtasks>
+          <subtask>Create src/lib/gpa.ts with GPA calculation logic</subtask>
+          <subtask>Create __tests__/unit/lib/gpa.test.ts with test cases</subtask>
+          <subtask>Run test: npm test gpa.test.ts</subtask>
+          <subtask>Verify test passes and coverage includes GPA calculation logic</subtask>
+        </subtasks>
+      </task>
+
+      <task id="5" title="Write Sample Integration Test (Course Creation API)">
+        <subtasks>
+          <subtask>Ensure course creation API route exists at src/app/api/instructor/courses/route.ts</subtask>
+          <subtask>Create __tests__/integration/api/instructor/courses.test.ts with test cases</subtask>
+          <subtask>Run test: npm test courses.test.ts</subtask>
+          <subtask>Verify all test cases pass</subtask>
+        </subtasks>
+      </task>
+
+      <task id="6" title="Configure Test Coverage Reporting">
+        <subtasks>
+          <subtask>Update jest.config.js coverage configuration</subtask>
+          <subtask>Test coverage generation by running npm run test:coverage</subtask>
+          <subtask>Verify coverage report includes line, branch, function coverage percentages</subtask>
+        </subtasks>
+      </task>
+
+      <task id="7" title="Create NPM Test Scripts">
+        <subtasks>
+          <subtask>Add test scripts to package.json: test, test:watch, test:coverage, test:ci</subtask>
+          <subtask>Test each script to verify correct operation</subtask>
+        </subtasks>
+      </task>
+
+      <task id="8" title="Update .gitignore for Coverage Reports">
+        <subtasks>
+          <subtask>Open .gitignore file and add coverage-related exclusions</subtask>
+          <subtask>Verify coverage/ directory not tracked by Git</subtask>
+          <subtask>Commit .gitignore changes</subtask>
+        </subtasks>
+      </task>
+
+      <task id="9" title="Validation and Documentation">
+        <subtasks>
+          <subtask>Run complete test suite: npm test</subtask>
+          <subtask>Generate coverage report: npm run test:coverage</subtask>
+          <subtask>Test watch mode: npm run test:watch</subtask>
+          <subtask>Update project documentation with testing section</subtask>
+          <subtask>Verify all acceptance criteria met</subtask>
+        </subtasks>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC1">Jest installed and configured for Next.js 15 + TypeScript</criterion>
+    <criterion id="AC2">Testing environment setup with proper Next.js App Router mocks</criterion>
+    <criterion id="AC3">Test file structure established (__tests__/ directories or .test.ts co-location)</criterion>
+    <criterion id="AC4">React Testing Library integrated for component testing</criterion>
+    <criterion id="AC5">Sample unit test written and passing (e.g., GPA calculation utility)</criterion>
+    <criterion id="AC6">Sample integration test written and passing (e.g., course creation API endpoint)</criterion>
+    <criterion id="AC7">Test coverage reporting configured (Istanbul/nyc)</criterion>
+    <criterion id="AC8">NPM scripts created: npm test, npm run test:watch, npm run test:coverage</criterion>
+    <criterion id="AC9">.gitignore updated to exclude coverage reports</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/tech-spec-epic-1-5.md">
+        <section name="Overview">Establishes comprehensive testing framework BEFORE feature development begins in Epic 2 (shift-left testing approach)</section>
+        <section name="Detailed Design">
+          - Test helper interfaces (prismaMock, testUtils)
+          - Test fixtures schema (mockStudent, mockInstructor, mockCourse with complete model fields)
+        </section>
+        <section name="Sample Test Scenarios">
+          - Unit test example: GPA calculation with weighted grades
+          - Integration test example: Course creation API with Prisma mocking
+        </section>
+        <section name="NPM Dependencies">Jest 29.x, React Testing Library 14.x, jest-mock-extended 3.x versions</section>
+      </doc>
+
+      <doc path="docs/architecture.md">
+        <section name="Testing Strategy">
+          - Test pyramid: Unit (50-100 tests) → Integration (20-30 tests) → E2E (5-10 tests)
+          - Coverage targets: Business logic (80%+), API routes (70%+), UI components (50%+), Overall (70%+)
+          - Test file locations: __tests__/unit/, __tests__/integration/, __tests__/fixtures/, __tests__/helpers/
+        </section>
+        <section name="Project Structure">
+          - __tests__/unit/ - Business logic unit tests (mirror source directory structure)
+          - __tests__/integration/ - API route integration tests
+          - __tests__/fixtures/ - Test data fixtures organized by model type
+          - __tests__/helpers/ - Shared test utilities
+        </section>
+      </doc>
+
+      <doc path="docs/PRD.md">
+        <section name="FR024">System shall maintain automated test suite covering critical user flows with 70%+ code coverage, including accessibility tests</section>
+        <section name="NFR005">Codebase shall maintain 70%+ test coverage for critical paths with comprehensive documentation</section>
+      </doc>
+    </docs>
+
+    <code>
+      <file path="package.json" reason="Current dependencies - no testing packages installed yet. Will add Jest, React Testing Library, and testing utilities as devDependencies">
+        Current state: Zero testing infrastructure
+        Existing devDependencies: @types/node, @types/react, TypeScript, ESLint, Tailwind
+        Need to add: jest, @types/jest, ts-jest, @testing-library/react, @testing-library/jest-dom, @testing-library/user-event, jest-mock-extended, jest-environment-jsdom
+      </file>
+
+      <file path="tsconfig.json" reason="TypeScript configuration - needs update to include Jest types">
+        Current compilerOptions: target: ES2017, lib: dom/esnext, strict mode enabled
+        Path aliases: @/* → ./src/*
+        Need to add: "types": ["jest", "@testing-library/jest-dom"] to compilerOptions
+      </file>
+
+      <file path="next.config.js" reason="Next.js configuration for understanding App Router setup and webpack configuration that Jest will need to mock">
+        Current features: React strict mode, security headers, CSP configuration
+        Jest will need to mock: next/navigation, next/image for component tests
+      </file>
+
+      <file path="prisma/schema.prisma" reason="Database models for creating test fixtures with accurate field definitions">
+        10 Models: User, Course, Enrollment, Assignment, Submission, Grade, Discussion, DiscussionPost, Announcement, CourseContent
+        Key fields for fixtures:
+        - User: id (cuid), email, name, role (STUDENT/INSTRUCTOR/ADMIN), deletedAt
+        - Course: id, title, code, semester, year, isActive, instructorId, deletedAt
+        - Grade: id, points, feedback, assignmentId, studentId, gradedById
+      </file>
+
+      <file path="src/lib/prisma.ts" reason="Prisma client singleton pattern - tests will mock this with jest-mock-extended">
+        Exports: prisma (PrismaClient instance), connectionLimit
+        Connection pooling: DB_CONNECTION_LIMIT env var (default: 10)
+        Logging: error/warn in dev, error only in production
+      </file>
+
+      <file path="src/lib/validation.ts" reason="Zod validation utilities - can be unit tested for schema validation logic">
+        Key exports: validateRequest, validateData, emailSchema, cuidSchema, nonEmptyString
+        Common schemas: email validation, CUID format, string length constraints
+        Unit test candidates: formatZodErrors, custom validation helpers
+      </file>
+
+      <file path="src/app/api/instructor/courses/[id]/route.ts" reason="Existing API route that will be tested in integration tests">
+        Endpoints: GET, PUT, DELETE for course management
+        Authentication: Session-based with role checks (INSTRUCTOR required)
+        Database: Prisma queries with error handling
+        Test targets: Authorization, validation, database operations, error responses
+      </file>
+    </code>
+
+    <dependencies>
+      <package name="jest" version="^29.x" purpose="Core test runner for unit and integration tests">
+        Features: Parallel test execution, built-in mocking, snapshot testing
+        Configuration: jest.config.js with Next.js + TypeScript preset
+      </package>
+
+      <package name="@types/jest" version="^29.x" purpose="TypeScript type definitions for Jest">
+        Provides: Type safety for expect(), describe(), it(), test() functions
+        Required for: tsconfig.json types array
+      </package>
+
+      <package name="ts-jest" version="^29.x" purpose="TypeScript support for Jest without build step">
+        Features: Transform TypeScript files on-the-fly, source map support
+        Configuration: preset: 'ts-jest' in jest.config.js
+      </package>
+
+      <package name="@testing-library/react" version="^14.x" purpose="React component testing utilities">
+        Features: render(), screen queries, user interaction simulation
+        Best practices: Query priority (getByRole > getByLabelText > getByText > getByTestId)
+      </package>
+
+      <package name="@testing-library/jest-dom" version="^6.x" purpose="Custom Jest matchers for DOM assertions">
+        Matchers: toBeInTheDocument(), toHaveTextContent(), toBeVisible(), toHaveAttribute()
+        Setup: Import in __tests__/setup.ts for global availability
+      </package>
+
+      <package name="@testing-library/user-event" version="^14.x" purpose="User interaction simulation (better than fireEvent)">
+        Features: Realistic user events (click, type, tab), async operations
+        Usage: userEvent.click(), userEvent.type(), userEvent.keyboard()
+      </package>
+
+      <package name="jest-mock-extended" version="^3.x" purpose="Deep mocking for Prisma client">
+        Features: Type-safe mocks, deep object mocking, DeepMockProxy
+        Usage: mockDeep<PrismaClient>() for type-safe Prisma mocking
+      </package>
+
+      <package name="jest-environment-jsdom" purpose="JSDOM environment for React component tests">
+        Provides: Browser-like environment (window, document, DOM APIs)
+        Configuration: testEnvironment: 'jsdom' in jest.config.js
+      </package>
+
+      <package name="next" version="15.3.3" purpose="Next.js framework (already installed, used for App Router mocking)">
+        Mock targets: next/navigation (useRouter, usePathname), next/image
+      </package>
+
+      <package name="react" version="19.0.0" purpose="React library (already installed, needed for component tests)">
+        Testing: Component rendering, hooks, context providers
+      </package>
+
+      <package name="@prisma/client" version="6.9.0" purpose="Prisma client (already installed, will be mocked in tests)">
+        Mocking: jest-mock-extended creates DeepMockProxy<PrismaClient>
+      </package>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="technical">Jest must be configured for Next.js 15 with App Router (not Pages Router)</constraint>
+    <constraint type="technical">Use jest-environment-jsdom for React component tests (browser-like environment)</constraint>
+    <constraint type="technical">Mock next/navigation for App Router components (useRouter, usePathname, useSearchParams)</constraint>
+    <constraint type="technical">Mock next/image to avoid image optimization errors in tests</constraint>
+    <constraint type="technical">Use ts-jest for TypeScript support without separate build step</constraint>
+    <constraint type="pattern">Test file naming: *.test.ts or *.test.tsx (not *.spec.ts)</constraint>
+    <constraint type="pattern">Use __tests__/ directory structure (not co-located .test.ts files)</constraint>
+    <constraint type="pattern">AAA pattern for test structure: Arrange (setup) → Act (execute) → Assert (verify)</constraint>
+    <constraint type="mocking">Mock Prisma client at client level (not individual methods) using jest-mock-extended</constraint>
+    <constraint type="mocking">Reset mocks between tests with jest.clearAllMocks() or beforeEach</constraint>
+    <constraint type="coverage">Start with 50% coverage threshold, gradually increase to 70% for critical paths</constraint>
+    <constraint type="coverage">Focus on business logic (src/lib/), API routes (src/app/api/), exclude config files</constraint>
+    <constraint type="gitignore">Exclude coverage reports (/coverage/, *.lcov, .nyc_output/)</constraint>
+    <constraint type="npm-scripts">test: run all tests once, test:watch: watch mode, test:coverage: with coverage, test:ci: CI optimized</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="prismaMock" type="test-helper" location="__tests__/helpers/prismaMock.ts">
+      <description>Mocked Prisma client singleton for isolated database testing</description>
+      <exports>
+        <export name="MockPrismaClient" type="DeepMockProxy&lt;PrismaClient&gt;">Type-safe mock client</export>
+        <export name="prismaMock" type="MockPrismaClient">Mock instance for test imports</export>
+        <export name="resetPrismaMock" type="() =&gt; void">Cleanup function for beforeEach/afterEach</export>
+      </exports>
+      <usage>
+        import { prismaMock } from '../../helpers/prismaMock';
+        prismaMock.course.create.mockResolvedValue(mockCourse);
+      </usage>
+    </interface>
+
+    <interface name="testUtils" type="test-helper" location="__tests__/helpers/testUtils.tsx">
+      <description>React Testing Library custom render with providers</description>
+      <exports>
+        <export name="AllProviders">Wrapper component with SessionProvider and other context providers</export>
+        <export name="renderWithProviders">Custom render function that wraps components with AllProviders</export>
+      </exports>
+      <usage>
+        import { renderWithProviders } from '../../helpers/testUtils';
+        renderWithProviders(&lt;MyComponent /&gt;);
+      </usage>
+    </interface>
+
+    <interface name="test-fixtures" type="data-fixtures" location="__tests__/fixtures/">
+      <description>Mock data objects for test scenarios</description>
+      <files>
+        <file name="users.ts">mockStudent, mockInstructor, mockAdmin (User model fields)</file>
+        <file name="courses.ts">mockCourse (Course model fields with instructor relationship)</file>
+      </files>
+      <schema>
+        mockStudent: { id: 'student-1', email: 'student@test.com', name: 'Test Student', role: 'STUDENT', createdAt, updatedAt, deletedAt: null }
+        mockCourse: { id: 'course-1', title: 'Introduction to AI', code: 'AI101', instructorId: 'instructor-1', isActive: true, ... }
+      </schema>
+    </interface>
+
+    <interface name="jest.config.js" type="configuration" location="jest.config.js">
+      <description>Jest configuration for Next.js 15 + TypeScript</description>
+      <config>
+        <preset>ts-jest</preset>
+        <testEnvironment>jsdom</testEnvironment>
+        <moduleNameMapper>Handle @/ path aliases from tsconfig</moduleNameMapper>
+        <setupFilesAfterEnv>Point to __tests__/setup.ts</setupFilesAfterEnv>
+        <collectCoverageFrom>src/**/*.{ts,tsx}, exclude tests/config/types</collectCoverageFrom>
+        <coverageDirectory>coverage</coverageDirectory>
+        <coverageReporters>text, lcov, html, json</coverageReporters>
+      </config>
+    </interface>
+
+    <interface name="GPA calculation" type="business-logic" location="src/lib/gpa.ts">
+      <description>Calculate weighted GPA from grades array (sample unit test target)</description>
+      <signature>calculateGPA(grades: Grade[]): number | null</signature>
+      <algorithm>Sum(score × weight) / Sum(weights), convert to 4.0 scale</algorithm>
+      <edge-cases>
+        - Empty grades array → return null
+        - Partial grades (some assignments not graded) → skip ungraded in calculation
+        - Configurable grading scale (4.0 vs 5.0) via environment variable
+      </edge-cases>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      <standard name="Test Pyramid">
+        Unit tests (50-100): Business logic, utilities, calculations
+        Integration tests (20-30): API routes with mocked database
+        E2E tests (5-10): Full user journeys (deferred to Epic 1.5, Story 1.5.2)
+      </standard>
+
+      <standard name="Coverage Targets">
+        Business logic (src/lib/): 80%+
+        API routes (src/app/api/): 70%+
+        UI components: 50%+
+        Overall: 70%+ (PRD NFR005)
+      </standard>
+
+      <standard name="Test Structure">
+        AAA Pattern: Arrange (setup data) → Act (execute function) → Assert (verify result)
+        Naming: describe('functionName') → it('behavior expectation')
+        One assertion per test case (preferred, exceptions allowed for related checks)
+      </standard>
+
+      <standard name="Mocking Strategy">
+        Prisma: Mock at client level with jest-mock-extended (not individual methods)
+        Next.js: Mock next/navigation, next/image globally in __tests__/setup.ts
+        External APIs: Mock with jest.mock() or MSW (if needed in future)
+      </standard>
+
+      <standard name="Query Priority (React Testing Library)">
+        1. getByRole (best - accessibility)
+        2. getByLabelText (forms)
+        3. getByPlaceholderText (inputs)
+        4. getByText (content)
+        5. getByTestId (last resort)
+      </standard>
+    </standards>
+
+    <locations>
+      <location type="unit" path="__tests__/unit/">
+        Structure mirrors src/ directory
+        Example: src/lib/gpa.ts → __tests__/unit/lib/gpa.test.ts
+        Tests: Pure functions, business logic, utilities, calculations
+      </location>
+
+      <location type="integration" path="__tests__/integration/api/">
+        Structure mirrors src/app/api/ directory
+        Example: src/app/api/instructor/courses/route.ts → __tests__/integration/api/instructor/courses.test.ts
+        Tests: API route handlers with mocked Prisma, authentication, validation, error handling
+      </location>
+
+      <location type="fixtures" path="__tests__/fixtures/">
+        Organized by model type: users.ts, courses.ts, assignments.ts, etc.
+        Each file exports multiple mock objects: mockStudent, mockInstructor, mockAdmin
+        Include all required model fields from Prisma schema
+      </location>
+
+      <location type="helpers" path="__tests__/helpers/">
+        prismaMock.ts: Prisma client mock singleton
+        testUtils.tsx: React Testing Library custom render
+        setup.ts: Global test configuration (imported by jest.config.js)
+      </location>
+    </locations>
+
+    <ideas>
+      <idea ac="AC5" type="unit">
+        Test: GPA calculation with weighted grades
+        File: __tests__/unit/lib/gpa.test.ts
+        Cases:
+          - Calculates weighted GPA correctly (90*1 + 85*2) / (1+2) = 86.67 → 3.46 on 4.0 scale
+          - Returns null for empty grades array
+          - Handles partial grades (skips ungraded assignments)
+          - Respects grading scale configuration (4.0 vs 5.0)
+          - Uses toBeCloseTo() matcher for floating-point comparisons
+      </idea>
+
+      <idea ac="AC6" type="integration">
+        Test: Course creation API endpoint
+        File: __tests__/integration/api/instructor/courses.test.ts
+        Cases:
+          - Creates course successfully with valid data (201 status, returns course object)
+          - Returns 400 for invalid input (missing required fields, validation errors)
+          - Returns 401 if user not authenticated (no session)
+          - Returns 403 if user is not instructor (student/admin role)
+          - Mocks prismaMock.course.create() to return mockCourse
+          - Creates Request object with JSON body, calls POST handler
+      </idea>
+
+      <idea ac="AC1" type="unit">
+        Test: Jest configuration loads correctly
+        Command: npx jest --showConfig
+        Verify: preset: ts-jest, testEnvironment: jsdom, moduleNameMapper includes @/*, setupFilesAfterEnv points to setup.ts
+      </idea>
+
+      <idea ac="AC2" type="unit">
+        Test: Next.js mocks work correctly
+        File: __tests__/helpers/setup.ts
+        Mocks: next/navigation (useRouter, usePathname), next/image
+        Verify: Import these in component tests without errors
+      </idea>
+
+      <idea ac="AC3" type="validation">
+        Test: Directory structure exists
+        Paths: __tests__/unit/, __tests__/integration/, __tests__/fixtures/, __tests__/helpers/
+        Verify: Directories created, README or index files present
+      </idea>
+
+      <idea ac="AC4" type="unit">
+        Test: Component renders with providers
+        File: __tests__/helpers/testUtils.test.tsx
+        Component: Simple button component
+        Verify: renderWithProviders() wraps with SessionProvider, component renders without errors
+      </idea>
+
+      <idea ac="AC7" type="validation">
+        Test: Coverage report generated
+        Command: npm run test:coverage
+        Verify: coverage/ directory created, lcov-report/index.html exists, includes line/branch/function percentages
+      </idea>
+
+      <idea ac="AC8" type="validation">
+        Test: NPM scripts work
+        Commands: npm test, npm run test:watch, npm run test:coverage
+        Verify: Each script runs, outputs as expected, no errors
+      </idea>
+
+      <idea ac="AC9" type="validation">
+        Test: .gitignore excludes coverage
+        Command: git status (after running coverage)
+        Verify: coverage/ directory not listed in untracked files
+      </idea>
+    </ideas>
+  </tests>
+</story-context>

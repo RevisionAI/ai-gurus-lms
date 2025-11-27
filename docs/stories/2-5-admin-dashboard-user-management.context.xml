@@ -1,0 +1,1348 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>2.5</story-id>
+    <story-title>Admin Dashboard - User Management</story-title>
+    <epic>Epic 2: Feature Completion &amp; Admin Capabilities</epic>
+    <status>drafted</status>
+    <generated-date>2025-11-26</generated-date>
+  </metadata>
+
+  <story-summary>
+    <user-story>
+      As an administrator, I want comprehensive user management capabilities, so that I can create accounts, manage roles, and handle user issues efficiently.
+    </user-story>
+
+    <objective>
+      Implement a complete admin user management system with CRUD operations, role management, search/filtering, and soft delete functionality. This story establishes the admin dashboard foundation and provides essential user administration capabilities for production operations.
+    </objective>
+
+    <scope>
+      <in-scope>
+        - Admin user management UI (table view with filters)
+        - User CRUD operations (create, read, update, soft delete)
+        - Role management with confirmation dialogs for role changes
+        - Search and filter users by name, email, or role
+        - Password reset functionality for admins
+        - User activity log displaying recent actions
+        - Soft delete implementation for user deactivation
+        - Admin navigation and dashboard layout
+        - Rate limiting for admin endpoints
+        - Comprehensive error handling and logging
+      </in-scope>
+
+      <out-of-scope>
+        - Bulk user operations (deferred to post-MVP)
+        - User import/export CSV functionality (deferred to post-MVP)
+        - Email notifications for user actions (deferred to post-MVP)
+        - User profile photo management (deferred to post-MVP)
+        - Advanced user analytics dashboard (deferred to post-MVP)
+      </out-of-scope>
+    </scope>
+
+    <key-requirements>
+      - User list displays: name, email, role, registration date, last login, status
+      - Create user form with auto-generated password option
+      - Edit user with role change confirmation dialog
+      - Soft delete (sets deletedAt timestamp) for user deactivation
+      - Admin-only access with role verification on all endpoints
+      - Password reset generates secure random password (displayed once)
+      - User activity log shows recent logins, enrollments, submissions
+      - Pagination support (default 50 users per page)
+      - Real-time search with debouncing (300ms)
+      - Business rule: Cannot remove last ADMIN role from system
+      - Business rule: Cannot deactivate own admin account
+    </key-requirements>
+  </story-summary>
+
+  <acceptance-criteria>
+    <criterion id="AC-2.5.1">
+      <description>Admin dashboard displays user management interface</description>
+      <verification>Navigate to /admin/users and verify user management page renders with table, filters, and create button</verification>
+    </criterion>
+
+    <criterion id="AC-2.5.2">
+      <description>User list shows name, email, role, registration date, last login, status</description>
+      <verification>Verify UserTable displays all required columns with correct data formatting</verification>
+    </criterion>
+
+    <criterion id="AC-2.5.3">
+      <description>Search/filter users by name, email, or role</description>
+      <verification>Test search input filters users by name/email, role dropdown filters by role, filters update URL query parameters</verification>
+    </criterion>
+
+    <criterion id="AC-2.5.4">
+      <description>Create new user form with name, email, role, optional password</description>
+      <verification>Open create modal, fill form, verify auto-generate password checkbox, submit and verify user created</verification>
+    </criterion>
+
+    <criterion id="AC-2.5.5">
+      <description>Edit user allows updating name, email, role, active status</description>
+      <verification>Click edit on user row, modify fields, save and verify updates persisted</verification>
+    </criterion>
+
+    <criterion id="AC-2.5.6">
+      <description>Role change requires confirmation dialog</description>
+      <verification>Change user role in edit modal, verify confirmation dialog appears with "Change role from [old] to [new]?" message</verification>
+    </criterion>
+
+    <criterion id="AC-2.5.7">
+      <description>Deactivate user performs soft delete (sets deletedAt)</description>
+      <verification>Click deactivate, confirm dialog, verify user shows "Inactive" status and deletedAt is set in database</verification>
+    </criterion>
+
+    <criterion id="AC-2.5.8">
+      <description>Reset password capability available</description>
+      <verification>Click reset password, verify new password displayed in modal with copy button, confirm old password no longer works</verification>
+    </criterion>
+
+    <criterion id="AC-2.5.9">
+      <description>User activity log displays recent actions</description>
+      <verification>View user details, verify activity log shows recent logins, enrollments, submissions with timestamps</verification>
+    </criterion>
+
+    <criterion id="AC-2.5.10">
+      <description>Unit tests cover user management business logic</description>
+      <verification>Run unit tests for validation schemas, verify tests pass with 80%+ coverage</verification>
+    </criterion>
+
+    <criterion id="AC-2.5.11">
+      <description>Integration tests verify user CRUD endpoints</description>
+      <verification>Run integration tests for all admin user endpoints, verify authorization, validation, and data persistence</verification>
+    </criterion>
+
+    <criterion id="AC-2.5.12">
+      <description>E2E test validates admin creates, updates, deactivates user</description>
+      <verification>Run E2E test, verify complete user management workflow from admin perspective</verification>
+    </criterion>
+  </acceptance-criteria>
+
+  <technical-context>
+    <architecture-alignment>
+      <system-architecture>
+        <layer name="Frontend">
+          <location>/src/app/admin/users/page.tsx</location>
+          <description>Admin user management page with server-side rendering</description>
+          <technologies>Next.js 15 App Router, React 19, TypeScript</technologies>
+        </layer>
+
+        <layer name="UI Components">
+          <location>/src/components/admin/</location>
+          <components>
+            - UserTable.tsx: Sortable table with user rows and actions
+            - UserCreateModal.tsx: Dialog for creating new users
+            - UserEditModal.tsx: Dialog for editing existing users
+            - RoleChangeConfirmation.tsx: Confirmation dialog for role changes
+            - UserFilters.tsx: Search and filter controls
+            - UserActivityLog.tsx: Activity timeline component
+            - ResetPasswordModal.tsx: Password reset dialog with copy functionality
+          </components>
+          <technologies>Radix UI (Dialog, Dropdown), Tailwind CSS, Lucide Icons</technologies>
+        </layer>
+
+        <layer name="API Routes">
+          <location>/src/app/api/admin/users/</location>
+          <endpoints>
+            - GET /api/admin/users: List users with pagination, search, filtering
+            - POST /api/admin/users: Create new user with auto-generated password
+            - PUT /api/admin/users/[id]: Update user details and role
+            - DELETE /api/admin/users/[id]: Soft delete user
+            - POST /api/admin/users/[id]/reset-password: Generate new password
+            - GET /api/admin/users/[id]/activity: Fetch user activity log
+          </endpoints>
+          <authentication>NextAuth session with ADMIN role verification</authentication>
+          <authorization>All endpoints check session.user.role === 'ADMIN'</authorization>
+        </layer>
+
+        <layer name="Validation">
+          <location>/src/validators/user.ts</location>
+          <schemas>
+            - userCreateSchema: Validates name, email, role, optional password
+            - userUpdateSchema: Validates partial updates (name, email, role, isActive)
+            - userSearchSchema: Validates search, role, page, limit query parameters
+          </schemas>
+          <library>Zod (schema validation)</library>
+        </layer>
+
+        <layer name="Data Access">
+          <location>/src/lib/prisma.ts</location>
+          <description>Prisma client with connection pooling to Neon PostgreSQL</description>
+          <models>User model with deletedAt field for soft deletes</models>
+        </layer>
+
+        <layer name="Security">
+          <location>/src/lib/rate-limit.ts</location>
+          <description>Upstash rate limiter: 10 requests per minute for admin endpoints</description>
+          <middleware>/src/middleware.ts</middleware>
+        </layer>
+      </system-architecture>
+
+      <database-schema>
+        <model name="User">
+          <fields>
+            - id: String (cuid)
+            - email: String (unique)
+            - name: String
+            - surname: String
+            - password: String (bcrypt hashed)
+            - cellNumber: String
+            - company: String
+            - position: String
+            - workAddress: String
+            - role: UserRole (STUDENT, INSTRUCTOR, ADMIN)
+            - createdAt: DateTime
+            - updatedAt: DateTime
+            - deletedAt: DateTime? (soft delete timestamp)
+          </fields>
+          <indexes>
+            - deletedAt index for efficient soft delete filtering
+          </indexes>
+        </model>
+
+        <related-models>
+          - Session: For activity log (recent logins)
+          - Enrollment: For activity log (recent enrollments)
+          - Submission: For activity log (recent submissions)
+          - Grade: For activity log (grades as instructor)
+        </related-models>
+      </database-schema>
+
+      <integration-points>
+        <integration name="Authentication">
+          <service>NextAuth 4.24.11</service>
+          <usage>Session-based authentication, database sessions via Prisma adapter</usage>
+          <pattern>getServerSession(authOptions) in all API routes and protected pages</pattern>
+        </integration>
+
+        <integration name="Soft Delete">
+          <service>Custom soft delete utility</service>
+          <location>/src/lib/soft-delete.ts</location>
+          <functions>
+            - softDelete(prisma.user, userId): Sets deletedAt timestamp
+            - restore(prisma.user, userId): Clears deletedAt timestamp
+            - notDeleted: Where clause for filtering active users
+          </functions>
+        </integration>
+
+        <integration name="Rate Limiting">
+          <service>Upstash Rate Limit</service>
+          <location>/src/lib/rate-limit.ts</location>
+          <configuration>Stricter limits for admin endpoints (10 req/min vs 100 req/min for general API)</configuration>
+        </integration>
+
+        <integration name="Logging">
+          <service>Pino structured logging</service>
+          <location>/src/lib/logger.ts</location>
+          <events>
+            - user_created: Log user creation with admin ID
+            - user_updated: Log field changes with admin ID
+            - user_role_changed: Log role transitions with previous/new role
+            - user_deactivated: Log soft delete with admin ID
+            - password_reset: Log password reset with admin ID
+          </events>
+        </integration>
+      </integration-points>
+    </architecture-alignment>
+
+    <tech-stack>
+      <frontend>
+        - Next.js 15.3.3 (App Router, Server Components)
+        - React 19.0.0
+        - TypeScript 5.x
+        - Tailwind CSS 4.x
+        - Radix UI (Dialog, Dropdown Menu, Tabs)
+        - date-fns 4.1.0 (date formatting)
+        - react-hot-toast 2.5.2 (notifications)
+        - Lucide React 0.514.0 (icons)
+      </frontend>
+
+      <backend>
+        - Next.js API Routes
+        - Prisma 6.9.0 (ORM)
+        - Neon PostgreSQL (serverless database)
+        - NextAuth 4.24.11 (authentication)
+        - bcryptjs 3.0.2 (password hashing)
+        - crypto (Node.js built-in, random password generation)
+      </backend>
+
+      <validation>
+        - Zod 4.1.13 (schema validation)
+      </validation>
+
+      <security>
+        - Upstash Rate Limit 2.0.7 (rate limiting)
+        - Soft delete pattern (data retention)
+      </security>
+
+      <testing>
+        - Jest (unit and integration tests)
+        - Playwright (E2E tests)
+        - React Testing Library (component tests)
+      </testing>
+    </tech-stack>
+
+    <dependencies>
+      <prerequisite-stories>
+        - Story 1.9: Soft delete infrastructure (/src/lib/soft-delete.ts)
+        - Story 1.8: Zod validation patterns established
+        - Story 1.7: Rate limiting infrastructure (/src/lib/rate-limit.ts)
+        - Story 1.5.1: Jest testing framework configured
+      </prerequisite-stories>
+
+      <external-dependencies>
+        - NextAuth (already installed)
+        - Prisma (already configured)
+        - Zod (already installed)
+        - Radix UI (already installed)
+        - react-hot-toast (already installed)
+        - date-fns (already installed)
+        - bcryptjs (already installed)
+        - crypto (Node.js built-in)
+      </external-dependencies>
+
+      <data-model-dependencies>
+        - User model (existing): Leverages deletedAt field from Story 1.9
+        - Session model (existing): For activity log (recent logins)
+        - Enrollment model (existing): For activity log (recent enrollments)
+        - Submission model (existing): For activity log (recent submissions)
+      </data-model-dependencies>
+    </dependencies>
+  </technical-context>
+
+  <existing-code-context>
+    <admin-infrastructure>
+      <file path="/src/app/admin/deleted-records/page.tsx">
+        <description>Existing admin page for viewing and restoring soft-deleted records</description>
+        <patterns-to-reuse>
+          - Admin role verification: if (session.user.role !== 'ADMIN') redirect
+          - Loading states with spinner component
+          - Error handling with error state and display
+          - Tabbed navigation for different record types
+          - Restore functionality with confirmation dialogs
+          - Toast notifications for success/error feedback
+          - Optimistic UI updates after API calls
+        </patterns-to-reuse>
+      </file>
+
+      <file path="/src/app/api/admin/deleted-records/route.ts">
+        <description>Existing API for fetching soft-deleted records</description>
+        <patterns-to-reuse>
+          - Admin session verification pattern
+          - Error response format: { error: { code, message } }
+          - Success response format: { data: results }
+          - Use of soft-delete utility: getSoftDeletedRecords()
+        </patterns-to-reuse>
+      </file>
+
+      <file path="/src/app/api/admin/deleted-records/[id]/restore/route.ts">
+        <description>Existing API for restoring soft-deleted records</description>
+        <patterns-to-reuse>
+          - Admin authorization check
+          - Model type validation
+          - Use of restoreRecord() utility
+          - Transaction handling for cascade restores
+        </patterns-to-reuse>
+      </file>
+    </admin-infrastructure>
+
+    <soft-delete-implementation>
+      <file path="/src/lib/soft-delete.ts">
+        <key-functions>
+          <function name="notDeleted">
+            <signature>export const notDeleted = { deletedAt: null }</signature>
+            <usage>Use in all user queries to exclude soft-deleted users</usage>
+            <example>
+              await prisma.user.findMany({
+                where: { ...notDeleted, role: 'STUDENT' }
+              })
+            </example>
+          </function>
+
+          <function name="softDelete">
+            <signature>softDelete(model, id): Promise&lt;T&gt;</signature>
+            <usage>Soft delete a user by setting deletedAt timestamp</usage>
+            <example>await softDelete(prisma.user, userId)</example>
+          </function>
+
+          <function name="restore">
+            <signature>restore(model, id): Promise&lt;T&gt;</signature>
+            <usage>Restore a soft-deleted user by clearing deletedAt</usage>
+            <example>await restore(prisma.user, userId)</example>
+          </function>
+
+          <function name="onlyDeleted">
+            <signature>export const onlyDeleted = { deletedAt: { not: null } }</signature>
+            <usage>Query only soft-deleted records (admin views)</usage>
+            <example>
+              await prisma.user.findMany({
+                where: { ...onlyDeleted }
+              })
+            </example>
+          </function>
+        </key-functions>
+
+        <data-retention-policy>
+          Soft-deleted records retained for 1 year before eligible for permanent deletion (manual admin action only in MVP).
+        </data-retention-policy>
+      </file>
+    </soft-delete-implementation>
+
+    <user-model-schema>
+      <model name="User">
+        <location>prisma/schema.prisma</location>
+        <fields>
+          id: String @id @default(cuid())
+          email: String @unique
+          name: String
+          surname: String
+          password: String (bcrypt hashed)
+          cellNumber: String
+          company: String
+          position: String
+          workAddress: String
+          role: UserRole (enum: STUDENT, INSTRUCTOR, ADMIN)
+          createdAt: DateTime @default(now())
+          updatedAt: DateTime @updatedAt
+          deletedAt: DateTime? (soft delete timestamp)
+        </fields>
+
+        <relations>
+          - enrollments: Enrollment[]
+          - instructorCourses: Course[] @relation("InstructorCourses")
+          - assignments: Assignment[]
+          - submissions: Submission[]
+          - discussions: Discussion[]
+          - discussionPosts: DiscussionPost[]
+          - announcements: Announcement[]
+          - gradesReceived: Grade[] @relation("StudentGrades")
+          - gradesGiven: Grade[] @relation("GraderGrades")
+        </relations>
+
+        <indexes>
+          @@index([deletedAt])
+        </indexes>
+
+        <constraints>
+          - email must be unique (including soft-deleted users)
+          - Cannot remove last ADMIN role from system
+          - Cannot deactivate own admin account
+        </constraints>
+      </model>
+    </user-model-schema>
+
+    <authentication-patterns>
+      <server-components>
+        <code language="typescript">
+          import { getServerSession } from 'next-auth';
+          import { authOptions } from '@/lib/auth';
+
+          const session = await getServerSession(authOptions);
+          if (!session) {
+            redirect('/login');
+          }
+          if (session.user.role !== 'ADMIN') {
+            redirect('/dashboard');
+          }
+        </code>
+      </server-components>
+
+      <api-routes>
+        <code language="typescript">
+          import { getServerSession } from 'next-auth';
+
+          export async function POST(request: Request) {
+            const session = await getServerSession(authOptions);
+
+            if (!session || session.user.role !== 'ADMIN') {
+              return NextResponse.json(
+                { error: { code: 'FORBIDDEN', message: 'Admin access required' } },
+                { status: 403 }
+              );
+            }
+
+            // ... proceed with admin logic
+          }
+        </code>
+      </api-routes>
+
+      <client-components>
+        <code language="typescript">
+          'use client';
+          import { useSession } from 'next-auth/react';
+
+          const { data: session, status } = useSession();
+
+          if (status === 'loading') return &lt;Spinner /&gt;;
+          if (!session) redirect('/login');
+          if (session.user.role !== 'ADMIN') redirect('/dashboard');
+        </code>
+      </client-components>
+    </authentication-patterns>
+  </existing-code-context>
+
+  <implementation-guidance>
+    <file-structure>
+      <new-files>
+        /src/app/admin/users/page.tsx - Admin user management page
+        /src/app/admin/layout.tsx - Admin layout with navigation (if doesn't exist)
+        /src/app/admin/page.tsx - Admin dashboard home (if doesn't exist)
+        /src/app/api/admin/users/route.ts - GET (list) and POST (create)
+        /src/app/api/admin/users/[id]/route.ts - PUT (update) and DELETE (soft delete)
+        /src/app/api/admin/users/[id]/reset-password/route.ts - POST (reset password)
+        /src/app/api/admin/users/[id]/activity/route.ts - GET (activity log)
+        /src/components/admin/UserTable.tsx - User table component
+        /src/components/admin/UserCreateModal.tsx - Create user modal
+        /src/components/admin/UserEditModal.tsx - Edit user modal
+        /src/components/admin/RoleChangeConfirmation.tsx - Role change dialog
+        /src/components/admin/UserFilters.tsx - Search and filter controls
+        /src/components/admin/UserActivityLog.tsx - Activity timeline
+        /src/components/admin/ResetPasswordModal.tsx - Password reset dialog
+        /src/validators/user.ts - Zod validation schemas
+        __tests__/lib/validators/user.test.ts - Validation tests
+        __tests__/api/admin/users.test.ts - API integration tests
+        __tests__/e2e/admin-user-management.spec.ts - E2E tests
+      </new-files>
+
+      <existing-files-to-update>
+        /src/lib/auth.ts - May need to export authOptions if not already
+        /src/app/admin/deleted-records/page.tsx - May need to update navigation
+        /docs/api-contracts.md - Document new admin endpoints
+      </existing-files-to-update>
+    </file-structure>
+
+    <implementation-steps>
+      <step number="1" priority="high">
+        <title>Create Zod validation schemas</title>
+        <file>/src/validators/user.ts</file>
+        <details>
+          Define userCreateSchema, userUpdateSchema, userSearchSchema with proper validation rules.
+          Example: email format, password min length (8), role enum validation.
+        </details>
+      </step>
+
+      <step number="2" priority="high">
+        <title>Implement admin user API endpoints</title>
+        <files>
+          - /src/app/api/admin/users/route.ts
+          - /src/app/api/admin/users/[id]/route.ts
+        </files>
+        <details>
+          - GET /api/admin/users: Fetch paginated user list with search/filter
+          - POST /api/admin/users: Create user with auto-generated password
+          - PUT /api/admin/users/[id]: Update user with role change validation
+          - DELETE /api/admin/users/[id]: Soft delete using softDelete() utility
+          - All endpoints verify ADMIN role before processing
+          - Use Zod schemas for input validation
+          - Return consistent error/success response format
+        </details>
+        <business-rules>
+          - Cannot remove last ADMIN role from system (query count of active admins)
+          - Cannot deactivate own admin account (check session.user.id !== userId)
+          - Email must be unique when changed (Prisma unique constraint)
+          - Role changes require explicit confirmation (handled in UI)
+        </business-rules>
+      </step>
+
+      <step number="3" priority="high">
+        <title>Implement password reset endpoint</title>
+        <file>/src/app/api/admin/users/[id]/reset-password/route.ts</file>
+        <details>
+          - Generate secure random password: crypto.randomBytes(16).toString('base64')
+          - Hash with bcrypt: await bcrypt.hash(password, 10)
+          - Update user password in database
+          - Return plaintext password in response (one-time display)
+          - Log password reset action with admin ID
+          - Never log plaintext passwords in logs
+        </details>
+        <security>
+          Use crypto.randomBytes for cryptographically secure random generation.
+          Display generated password only once in UI, never log it.
+        </security>
+      </step>
+
+      <step number="4" priority="medium">
+        <title>Implement user activity log endpoint</title>
+        <file>/src/app/api/admin/users/[id]/activity/route.ts</file>
+        <details>
+          - Query Session model for recent logins (last 30 days)
+          - Query Enrollment model for recent course enrollments
+          - Query Submission model for recent assignment submissions
+          - Query Grade model for recent grades (if user is instructor)
+          - Aggregate all activities and sort by timestamp (descending)
+          - Return paginated results (default: 20 most recent)
+        </details>
+      </step>
+
+      <step number="5" priority="high">
+        <title>Create admin UI components</title>
+        <files>
+          - /src/components/admin/UserTable.tsx
+          - /src/components/admin/UserCreateModal.tsx
+          - /src/components/admin/UserEditModal.tsx
+          - /src/components/admin/RoleChangeConfirmation.tsx
+          - /src/components/admin/UserFilters.tsx
+          - /src/components/admin/UserActivityLog.tsx
+          - /src/components/admin/ResetPasswordModal.tsx
+        </files>
+        <ui-patterns>
+          UserTable:
+          - Display columns: Name, Email, Role, Registration Date, Last Login, Status
+          - Format dates using date-fns: format(date, 'MMM dd, yyyy')
+          - Status badge: Active (green) / Inactive (gray)
+          - Sortable column headers (click to sort)
+          - Row actions dropdown: Edit, Reset Password, Deactivate
+
+          UserCreateModal:
+          - Radix UI Dialog for modal
+          - Form fields: Name, Email, Role (dropdown), Optional Password
+          - Checkbox: "Generate random password" (default checked)
+          - Disable password field when auto-generate checked
+          - Validate on blur and submit
+          - Display inline validation errors
+
+          UserEditModal:
+          - Pre-populate with existing user data
+          - Allow editing: Name, Email, Role, Active Status
+          - Trigger RoleChangeConfirmation if role changes
+          - Only submit if role confirmation passed
+
+          RoleChangeConfirmation:
+          - Display: "Change role from [old] to [new]? This affects user permissions."
+          - Yes/Cancel buttons
+          - Return boolean for parent component to proceed
+
+          UserFilters:
+          - Search input (debounced 300ms)
+          - Role filter dropdown (All Roles, Students, Instructors, Admins)
+          - Update URL query parameters when filters change
+          - Clear filters button
+
+          ResetPasswordModal:
+          - Display new password in modal after reset
+          - Copy to clipboard button
+          - Security warning: "Save this password and share with user securely"
+          - Clear password from UI when modal closes
+        </ui-patterns>
+      </step>
+
+      <step number="6" priority="high">
+        <title>Create admin user management page</title>
+        <file>/src/app/admin/users/page.tsx</file>
+        <details>
+          - Check session and verify ADMIN role
+          - Redirect to /login if not authenticated
+          - Redirect to / with error toast if not admin
+          - Render UserFilters at top
+          - Render UserTable below filters
+          - Add "Create User" button (opens UserCreateModal)
+          - Fetch users from /api/admin/users on mount and when filters change
+          - Implement pagination controls (Previous/Next, page numbers)
+          - Display total count and current range (e.g., "Showing 1-50 of 247")
+          - Loading skeleton while fetching
+          - Handle empty states (no users, no search results)
+          - Optimistic UI updates for user actions
+          - Success/error toasts
+        </details>
+      </step>
+
+      <step number="7" priority="medium">
+        <title>Create admin navigation and layout</title>
+        <files>
+          - /src/app/admin/layout.tsx
+          - /src/app/admin/page.tsx
+        </files>
+        <details>
+          Admin Layout:
+          - Add admin navigation sidebar with links: Dashboard, Users, System Stats, Deleted Records
+          - Highlight active link based on current route
+          - Admin role check (redirect non-admins)
+
+          Admin Dashboard Home:
+          - Overview cards: Total Users, Active Courses, Recent Activity
+          - Quick links to User Management, System Stats, Deleted Records
+        </details>
+      </step>
+
+      <step number="8" priority="medium">
+        <title>Implement rate limiting for admin endpoints</title>
+        <file>/src/lib/rate-limit.ts</file>
+        <details>
+          - Add stricter rate limits for admin endpoints (10 requests per minute)
+          - Apply to: GET /api/admin/users, POST /api/admin/users, PUT /api/admin/users/[id], DELETE /api/admin/users/[id]
+          - Return 429 Too Many Requests when exceeded
+          - Include Retry-After header in 429 response
+        </details>
+      </step>
+
+      <step number="9" priority="high">
+        <title>Add comprehensive error handling and logging</title>
+        <files>All API routes and components</files>
+        <details>
+          Structured logging for all operations:
+          - user_created: { action, userId, role, createdBy }
+          - user_updated: { action, userId, changes, updatedBy }
+          - user_role_changed: { action, userId, previousRole, newRole, changedBy }
+          - user_deactivated: { action, userId, deactivatedBy }
+          - password_reset: { action, userId, resetBy }
+
+          Sentry error capture:
+          - Validation errors, authorization errors, database errors
+          - Include request context (admin ID, IP, timestamp)
+        </details>
+      </step>
+
+      <step number="10" priority="high">
+        <title>Write comprehensive tests</title>
+        <files>
+          - __tests__/lib/validators/user.test.ts
+          - __tests__/api/admin/users.test.ts
+          - __tests__/e2e/admin-user-management.spec.ts
+        </files>
+        <test-coverage>
+          Unit Tests:
+          - Test userCreateSchema with valid inputs
+          - Test invalid email, short password, invalid role
+          - Test userUpdateSchema with partial updates
+
+          Integration Tests:
+          - GET /api/admin/users returns paginated list
+          - GET with search filters by name/email
+          - GET with role filter returns only matching role
+          - POST creates user with generated password
+          - POST creates user with provided password
+          - POST rejects invalid email, duplicate email
+          - PUT updates name, email, role
+          - PUT prevents removing last admin role
+          - DELETE soft deletes user
+          - DELETE prevents deleting own admin account
+          - All endpoints return 403 for non-admin users
+          - Rate limiting triggers on excessive requests
+
+          E2E Tests:
+          - Admin logs in, navigates to user management
+          - Admin searches for user by name
+          - Admin filters users by role
+          - Admin creates new student user
+          - Admin edits user name and email
+          - Admin changes user role with confirmation
+          - Admin resets user password
+          - Admin deactivates user
+          - Admin views user activity log
+          - Pagination works correctly
+        </test-coverage>
+      </step>
+
+      <step number="11" priority="low">
+        <title>Update documentation</title>
+        <file>/docs/api-contracts.md</file>
+        <details>
+          Document all new admin endpoints:
+          - GET /api/admin/users (query params, response format)
+          - POST /api/admin/users (request body, response, error codes)
+          - PUT /api/admin/users/[id] (request body, response, error codes)
+          - DELETE /api/admin/users/[id] (soft delete behavior)
+          - POST /api/admin/users/[id]/reset-password (security notes)
+          - GET /api/admin/users/[id]/activity (response format)
+          - Authentication requirements (admin role)
+          - Rate limiting details (10 req/min)
+        </details>
+      </step>
+    </implementation-steps>
+
+    <code-patterns>
+      <pattern name="Admin Authorization">
+        <description>Verify admin role before processing requests</description>
+        <code language="typescript">
+          const session = await getServerSession(authOptions);
+
+          if (!session || session.user.role !== 'ADMIN') {
+            return NextResponse.json(
+              { error: { code: 'FORBIDDEN', message: 'Admin access required' } },
+              { status: 403 }
+            );
+          }
+        </code>
+      </pattern>
+
+      <pattern name="Soft Delete User">
+        <description>Use soft delete utility to deactivate user</description>
+        <code language="typescript">
+          import { softDelete } from '@/lib/soft-delete';
+
+          // Verify not deleting own account
+          if (userId === session.user.id) {
+            return NextResponse.json(
+              { error: { code: 'INVALID_ACTION', message: 'Cannot deactivate own admin account' } },
+              { status: 400 }
+            );
+          }
+
+          // Soft delete user
+          const deletedUser = await softDelete(prisma.user, userId);
+        </code>
+      </pattern>
+
+      <pattern name="Prevent Removing Last Admin">
+        <description>Validate at least one admin remains active</description>
+        <code language="typescript">
+          // When changing role from ADMIN to something else
+          if (currentUser.role === 'ADMIN' &amp;&amp; newRole !== 'ADMIN') {
+            const adminCount = await prisma.user.count({
+              where: {
+                role: 'ADMIN',
+                deletedAt: null,
+                id: { not: userId }
+              }
+            });
+
+            if (adminCount === 0) {
+              return NextResponse.json(
+                { error: { code: 'INVALID_ACTION', message: 'Cannot remove last admin role' } },
+                { status: 400 }
+              );
+            }
+          }
+        </code>
+      </pattern>
+
+      <pattern name="Generate Secure Random Password">
+        <description>Create cryptographically secure random password</description>
+        <code language="typescript">
+          import crypto from 'crypto';
+          import bcrypt from 'bcryptjs';
+
+          // Generate random password
+          const newPassword = crypto.randomBytes(16).toString('base64');
+
+          // Hash before storing
+          const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+          await prisma.user.update({
+            where: { id: userId },
+            data: { password: hashedPassword }
+          });
+
+          // Return plaintext password (one-time display)
+          return NextResponse.json({
+            data: { newPassword }  // NEVER log this
+          });
+        </code>
+      </pattern>
+
+      <pattern name="Pagination with Search">
+        <description>Paginate user list with search and filtering</description>
+        <code language="typescript">
+          import { notDeleted } from '@/lib/soft-delete';
+
+          const { searchParams } = new URL(request.url);
+          const search = searchParams.get('search') || '';
+          const role = searchParams.get('role') as UserRole | null;
+          const page = parseInt(searchParams.get('page') || '1');
+          const limit = parseInt(searchParams.get('limit') || '50');
+
+          const where = {
+            ...notDeleted,
+            ...(role &amp;&amp; { role }),
+            ...(search &amp;&amp; {
+              OR: [
+                { name: { contains: search, mode: 'insensitive' } },
+                { surname: { contains: search, mode: 'insensitive' } },
+                { email: { contains: search, mode: 'insensitive' } }
+              ]
+            })
+          };
+
+          const [users, total] = await Promise.all([
+            prisma.user.findMany({
+              where,
+              skip: (page - 1) * limit,
+              take: limit,
+              orderBy: { createdAt: 'desc' }
+            }),
+            prisma.user.count({ where })
+          ]);
+
+          return NextResponse.json({
+            data: users,
+            meta: {
+              total,
+              page,
+              pageSize: limit,
+              totalPages: Math.ceil(total / limit)
+            }
+          });
+        </code>
+      </pattern>
+
+      <pattern name="Optimistic UI Update">
+        <description>Update UI immediately, rollback on error</description>
+        <code language="typescript">
+          async function handleUpdateUser(data: UserUpdate) {
+            // 1. Optimistically update UI
+            setUsers(prev =&gt; updateUserOptimistic(prev, data));
+
+            try {
+              // 2. Call API
+              const response = await fetch(`/api/admin/users/${data.id}`, {
+                method: 'PUT',
+                body: JSON.stringify(data)
+              });
+
+              if (!response.ok) throw new Error(await response.text());
+
+              // 3. Confirm update
+              toast.success('User updated');
+
+            } catch (error) {
+              // 4. Rollback on failure
+              setUsers(prev =&gt; rollbackUser(prev, data));
+              toast.error('Failed to update user. Please try again.');
+            }
+          }
+        </code>
+      </pattern>
+    </code-patterns>
+
+    <api-response-formats>
+      <endpoint method="GET" path="/api/admin/users">
+        <success status="200">
+          <json>
+            {
+              "data": [
+                {
+                  "id": "abc123",
+                  "email": "student@example.com",
+                  "name": "John",
+                  "surname": "Doe",
+                  "role": "STUDENT",
+                  "createdAt": "2025-11-01T10:00:00Z",
+                  "deletedAt": null
+                }
+              ],
+              "meta": {
+                "total": 247,
+                "page": 1,
+                "pageSize": 50,
+                "totalPages": 5
+              }
+            }
+          </json>
+        </success>
+
+        <error status="403">
+          <json>
+            {
+              "error": {
+                "code": "FORBIDDEN",
+                "message": "Admin access required"
+              }
+            }
+          </json>
+        </error>
+      </endpoint>
+
+      <endpoint method="POST" path="/api/admin/users">
+        <request>
+          <json>
+            {
+              "name": "Jane",
+              "email": "jane@example.com",
+              "role": "INSTRUCTOR",
+              "password": "optional-password-or-omit-for-auto-gen"
+            }
+          </json>
+        </request>
+
+        <success status="201">
+          <json>
+            {
+              "data": {
+                "id": "xyz789",
+                "email": "jane@example.com",
+                "name": "Jane",
+                "role": "INSTRUCTOR",
+                "createdAt": "2025-11-26T14:30:00Z"
+              }
+            }
+          </json>
+        </success>
+
+        <error status="400">
+          <json>
+            {
+              "error": {
+                "code": "INVALID_INPUT",
+                "message": "Validation failed",
+                "details": [
+                  {
+                    "path": ["email"],
+                    "message": "Invalid email format"
+                  }
+                ]
+              }
+            }
+          </json>
+        </error>
+      </endpoint>
+
+      <endpoint method="POST" path="/api/admin/users/[id]/reset-password">
+        <success status="200">
+          <json>
+            {
+              "data": {
+                "newPassword": "aB3dF7kL9mN2pQ5rS8tU"
+              }
+            }
+          </json>
+        </success>
+      </endpoint>
+
+      <endpoint method="GET" path="/api/admin/users/[id]/activity">
+        <success status="200">
+          <json>
+            {
+              "data": [
+                {
+                  "type": "login",
+                  "description": "Logged in",
+                  "timestamp": "2025-11-26T08:15:00Z"
+                },
+                {
+                  "type": "enrollment",
+                  "description": "Enrolled in Introduction to AI",
+                  "timestamp": "2025-11-25T14:30:00Z"
+                },
+                {
+                  "type": "submission",
+                  "description": "Submitted Assignment 1: Getting Started",
+                  "timestamp": "2025-11-24T16:45:00Z"
+                }
+              ],
+              "meta": {
+                "page": 1,
+                "pageSize": 20
+              }
+            }
+          </json>
+        </success>
+      </endpoint>
+    </api-response-formats>
+  </implementation-guidance>
+
+  <testing-requirements>
+    <unit-tests>
+      <file path="__tests__/lib/validators/user.test.ts">
+        <test-cases>
+          - userCreateSchema validates valid input (name, email, role, optional password)
+          - userCreateSchema rejects invalid email format
+          - userCreateSchema rejects password shorter than 8 characters
+          - userCreateSchema rejects invalid role (not STUDENT, INSTRUCTOR, or ADMIN)
+          - userCreateSchema accepts missing password (auto-generate case)
+          - userUpdateSchema validates partial updates (all fields optional)
+          - userUpdateSchema accepts name only update
+          - userUpdateSchema accepts role only update
+          - userUpdateSchema rejects invalid role in update
+          - userSearchSchema validates query parameters
+          - userSearchSchema sets default page to 1 and limit to 50
+          - userSearchSchema coerces page and limit to integers
+          - userSearchSchema rejects page &lt; 1
+        </test-cases>
+      </file>
+
+      <coverage-target>80%+ for validation logic</coverage-target>
+    </unit-tests>
+
+    <integration-tests>
+      <file path="__tests__/api/admin/users.test.ts">
+        <test-cases>
+          User List (GET /api/admin/users):
+          - Returns paginated user list with correct structure
+          - Search query filters users by name (case insensitive)
+          - Search query filters users by email (case insensitive)
+          - Role filter returns only users with matching role
+          - Pagination works correctly (page 2 returns different users)
+          - Excludes soft-deleted users by default
+          - Returns 403 for non-admin users
+
+          User Create (POST /api/admin/users):
+          - Creates user with auto-generated password
+          - Creates user with provided password
+          - Hashes password before storing (bcrypt)
+          - Rejects invalid email format
+          - Rejects duplicate email
+          - Rejects invalid role
+          - Returns 403 for non-admin users
+
+          User Update (PUT /api/admin/users/[id]):
+          - Updates user name successfully
+          - Updates user email successfully
+          - Updates user role successfully
+          - Logs role change action when role changes
+          - Prevents removing last ADMIN role (returns 400)
+          - Validates email uniqueness when changed
+          - Returns 403 for non-admin users
+          - Returns 404 for non-existent user
+
+          User Delete (DELETE /api/admin/users/[id]):
+          - Soft deletes user (sets deletedAt)
+          - User excluded from default queries after deletion
+          - Prevents deleting own admin account (returns 400)
+          - Returns 403 for non-admin users
+
+          Password Reset (POST /api/admin/users/[id]/reset-password):
+          - Generates new secure random password
+          - Hashes password with bcrypt
+          - Returns plaintext password in response
+          - Old password no longer works after reset
+          - Logs password reset action
+          - Returns 403 for non-admin users
+
+          User Activity (GET /api/admin/users/[id]/activity):
+          - Returns recent login activity
+          - Returns recent enrollment activity
+          - Returns recent submission activity
+          - Sorts activities by timestamp (descending)
+          - Paginates results correctly
+          - Returns 403 for non-admin users
+
+          Rate Limiting:
+          - Rate limit triggers after 10 requests per minute
+          - Returns 429 Too Many Requests when exceeded
+          - Includes Retry-After header in 429 response
+        </test-cases>
+      </file>
+
+      <coverage-target>70%+ for API routes</coverage-target>
+    </integration-tests>
+
+    <e2e-tests>
+      <file path="__tests__/e2e/admin-user-management.spec.ts">
+        <test-scenarios>
+          Complete Admin User Management Workflow:
+          1. Admin logs in
+          2. Navigates to /admin/users
+          3. Sees user list with correct columns
+          4. Searches for user by name, verifies filtered results
+          5. Filters users by role (STUDENT), verifies results
+          6. Clicks "Create User" button
+          7. Fills form (name, email, role: STUDENT)
+          8. Checks "auto-generate password" checkbox
+          9. Submits form, sees success toast
+          10. Verifies new user appears in table
+          11. Clicks edit on user row
+          12. Changes user name and email
+          13. Saves, verifies updates persisted
+          14. Opens edit modal again
+          15. Changes role from STUDENT to INSTRUCTOR
+          16. Sees role change confirmation dialog
+          17. Confirms role change
+          18. Saves, sees success toast
+          19. Clicks "Reset Password" on user row
+          20. Sees new password in modal
+          21. Clicks "Copy to Clipboard"
+          22. Closes modal
+          23. Clicks "Deactivate" on user row
+          24. Confirms deactivation
+          25. Verifies user shows "Inactive" status
+          26. Clicks user row to view details
+          27. Sees user activity log with recent actions
+          28. Navigates to page 2 of user list
+          29. Verifies different users displayed
+          30. Clears all filters
+          31. Verifies full user list displayed
+
+          Non-Admin Access Prevention:
+          1. Log in as student user
+          2. Attempt to navigate to /admin/users
+          3. Verify redirected to /dashboard
+          4. Attempt direct API call to /api/admin/users
+          5. Verify 403 Forbidden response
+        </test-scenarios>
+      </file>
+
+      <critical-path-coverage>
+        Admin creates, updates, deactivates user workflow must pass
+      </critical-path-coverage>
+    </e2e-tests>
+  </testing-requirements>
+
+  <dependencies>
+    <story-dependencies>
+      <prerequisite story="1.9" title="Soft Deletes Implementation">
+        <requirement>Soft delete infrastructure (/src/lib/soft-delete.ts) must be implemented</requirement>
+        <verification>softDelete(), restore(), notDeleted utilities available</verification>
+      </prerequisite>
+
+      <prerequisite story="1.8" title="Input Validation with Zod">
+        <requirement>Zod validation patterns established</requirement>
+        <verification>Existing validation schemas in /src/validators/ to reference</verification>
+      </prerequisite>
+
+      <prerequisite story="1.7" title="Rate Limiting Implementation">
+        <requirement>Rate limiting infrastructure (/src/lib/rate-limit.ts) available</requirement>
+        <verification>ipRateLimit and userRateLimit functions exported</verification>
+      </prerequisite>
+
+      <prerequisite story="1.5.1" title="Jest Testing Framework">
+        <requirement>Jest configured for unit and integration tests</requirement>
+        <verification>jest.config.js exists, npm test works</verification>
+      </prerequisite>
+    </story-dependencies>
+
+    <external-service-dependencies>
+      <dependency name="NextAuth" version="4.24.11">
+        <usage>Session authentication for all admin endpoints</usage>
+        <configuration>/src/lib/auth.ts</configuration>
+      </dependency>
+
+      <dependency name="Prisma" version="6.9.0">
+        <usage>User model CRUD operations</usage>
+        <configuration>/src/lib/prisma.ts, prisma/schema.prisma</configuration>
+      </dependency>
+
+      <dependency name="Upstash Rate Limit" version="2.0.7">
+        <usage>Rate limiting for admin endpoints (10 req/min)</usage>
+        <configuration>/src/lib/rate-limit.ts</configuration>
+      </dependency>
+
+      <dependency name="Radix UI" version="Latest">
+        <usage>Dialog, Dropdown Menu, Tabs components for admin UI</usage>
+        <installation>Already installed</installation>
+      </dependency>
+
+      <dependency name="bcryptjs" version="3.0.2">
+        <usage>Password hashing for user creation and reset</usage>
+        <installation>Already installed</installation>
+      </dependency>
+
+      <dependency name="date-fns" version="4.1.0">
+        <usage>Date formatting in user table and activity log</usage>
+        <installation>Already installed</installation>
+      </dependency>
+    </external-service-dependencies>
+  </dependencies>
+
+  <risks-and-mitigations>
+    <risk id="R1" severity="high">
+      <description>Admin accidentally locks themselves out by removing last admin role</description>
+      <impact>System becomes inaccessible to all admins</impact>
+      <mitigation>
+        Implement business rule to prevent removing last ADMIN role.
+        Query active admin count before allowing role change.
+        Integration test verifies this protection.
+      </mitigation>
+    </risk>
+
+    <risk id="R2" severity="high">
+      <description>Password reset security vulnerability if new passwords logged or displayed insecurely</description>
+      <impact>Password compromise, unauthorized account access</impact>
+      <mitigation>
+        Never log plaintext passwords (use logger.redact for password fields).
+        Display generated password only once in modal with explicit security warning.
+        Clear password from UI when modal closes.
+        Code review verifies no password logging.
+      </mitigation>
+    </risk>
+
+    <risk id="R3" severity="medium">
+      <description>Multiple admins editing same user simultaneously causes conflicts</description>
+      <impact>Last-write-wins, potential data loss</impact>
+      <mitigation>
+        Use optimistic locking with updatedAt timestamp check (deferred to post-MVP if needed).
+        Beta phase has single admin, concurrent edits unlikely.
+        Display "last modified" timestamp in edit modal as awareness signal.
+      </mitigation>
+    </risk>
+
+    <risk id="R4" severity="low">
+      <description>Search performance degrades with large user databases (&gt;10,000 users)</description>
+      <impact>Slow search response times</impact>
+      <mitigation>
+        Implement database indexes on name, surname, email fields.
+        Use debounced search (300ms) to reduce query frequency.
+        Consider full-text search (PostgreSQL) if needed in future.
+      </mitigation>
+    </risk>
+  </risks-and-mitigations>
+
+  <assumptions>
+    <assumption id="A1">
+      <description>Admin users are trusted and don't need approval workflows for role changes</description>
+      <validation>Single admin for beta, confirmation dialog sufficient for MVP</validation>
+    </assumption>
+
+    <assumption id="A2">
+      <description>User activity log showing last 30 days is sufficient for admin oversight</description>
+      <validation>Confirm with product owner, can extend date range post-MVP if needed</validation>
+    </assumption>
+
+    <assumption id="A3">
+      <description>Password reset via admin is acceptable (no email verification required)</description>
+      <validation>Beta phase has manual admin-to-user password sharing, email workflow deferred</validation>
+    </assumption>
+
+    <assumption id="A4">
+      <description>50 users per page is optimal for user list pagination</description>
+      <validation>Can be made configurable via query parameter if needed</validation>
+    </assumption>
+  </assumptions>
+
+  <next-story-dependencies>
+    <story id="2.6" title="Admin Dashboard - System Statistics">
+      <benefits>
+        - Admin navigation and layout established (this story)
+        - Admin authentication patterns established (this story)
+        - Admin API endpoint patterns established (this story)
+      </benefits>
+    </story>
+
+    <story id="3.3" title="E2E Testing - Admin Journey">
+      <benefits>
+        - E2E testing patterns for admin workflows established (this story)
+        - Admin test fixtures and helpers created (this story)
+      </benefits>
+    </story>
+  </next-story-dependencies>
+
+  <references>
+    <reference>
+      <title>Tech Spec Epic 2: Admin Dashboard - User Management</title>
+      <location>docs/tech-spec-epic-2.md#Story-2.5</location>
+    </reference>
+
+    <reference>
+      <title>Tech Spec Epic 2: Admin User Management Flow</title>
+      <location>docs/tech-spec-epic-2.md#Workflows-and-Sequencing</location>
+    </reference>
+
+    <reference>
+      <title>Tech Spec Epic 2: Security Requirements</title>
+      <location>docs/tech-spec-epic-2.md#Security</location>
+    </reference>
+
+    <reference>
+      <title>Tech Spec Epic 2: API Endpoints</title>
+      <location>docs/tech-spec-epic-2.md#APIs-and-Interfaces</location>
+    </reference>
+
+    <reference>
+      <title>Story 1.9: Soft Deletes Implementation</title>
+      <location>docs/stories/1-9-soft-deletes-implementation.md</location>
+    </reference>
+
+    <reference>
+      <title>Story 1.8: Input Validation with Zod Schemas</title>
+      <location>docs/stories/1-8-input-validation-with-zod-schemas.md</location>
+    </reference>
+
+    <reference>
+      <title>Story 1.7: Rate Limiting Implementation</title>
+      <location>docs/stories/1-7-rate-limiting-implementation.md</location>
+    </reference>
+
+    <reference>
+      <title>Architecture Document</title>
+      <location>docs/architecture.md</location>
+    </reference>
+  </references>
+</story-context>

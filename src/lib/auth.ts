@@ -3,6 +3,7 @@ import CredentialsProvider from 'next-auth/providers/credentials'
 import { PrismaAdapter } from '@next-auth/prisma-adapter'
 import { prisma } from './prisma'
 import bcrypt from 'bcryptjs'
+import { checkLoginRateLimit, logRateLimitViolation } from './rate-limit'
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
@@ -16,6 +17,16 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
           return null
+        }
+
+        // Check login rate limit (5 attempts per 15 minutes per email)
+        const rateLimitResult = await checkLoginRateLimit(credentials.email)
+        if (rateLimitResult && !rateLimitResult.success) {
+          // Log the rate limit violation
+          logRateLimitViolation('login', credentials.email, '/api/auth/callback/credentials', rateLimitResult)
+
+          // Throw error with specific message that can be displayed to user
+          throw new Error('Too many failed login attempts. Please try again in 15 minutes.')
         }
 
         const user = await prisma.user.findUnique({

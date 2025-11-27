@@ -1,0 +1,539 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context id="1-5-2-playwright-e2e-testing-framework-setup" v="1.0">
+  <metadata>
+    <epicId>1.5</epicId>
+    <storyId>2</storyId>
+    <title>Playwright E2E Testing Framework Setup</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-11-26</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/1-5-2-playwright-e2e-testing-framework-setup.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>QA engineer</asA>
+    <iWant>Playwright configured for end-to-end testing</iWant>
+    <soThat>Critical user journeys can be validated automatically before deployment</soThat>
+
+    <tasks>
+      <task id="1" title="Install and Configure Playwright">
+        <subtasks>
+          <subtask>Install Playwright dependencies (@playwright/test, browsers)</subtask>
+          <subtask>Create playwright.config.ts with test directory, base URL, headless mode, browser projects, retries</subtask>
+          <subtask>Configure web server to start Next.js dev server</subtask>
+          <subtask>Update .gitignore to exclude Playwright artifacts</subtask>
+        </subtasks>
+        <validation>
+          <item>npx playwright test --version returns Playwright version</item>
+          <item>Playwright config loads without errors</item>
+          <item>Browsers installed successfully</item>
+        </validation>
+      </task>
+
+      <task id="2" title="Configure Test Database Environment">
+        <subtasks>
+          <subtask>Create test environment configuration (DATABASE_URL_TEST in .env.test.local)</subtask>
+          <subtask>Create test database setup script (__tests__/helpers/setupTestDb.ts)</subtask>
+          <subtask>Add global setup/teardown for Playwright (migrations, cleanup)</subtask>
+          <subtask>Update Playwright config with global setup/teardown paths</subtask>
+        </subtasks>
+        <validation>
+          <item>Test database connection successful</item>
+          <item>Prisma migrations run against test database</item>
+          <item>Test database isolated from development</item>
+        </validation>
+      </task>
+
+      <task id="3" title="Configure Browser Contexts and Screenshots">
+        <subtasks>
+          <subtask>Configure browser projects (Chromium primary, Firefox/WebKit optional)</subtask>
+          <subtask>Configure screenshot capture on failure</subtask>
+          <subtask>Configure video recording (optional, for debugging)</subtask>
+          <subtask>Set viewport sizes (1280x720)</subtask>
+        </subtasks>
+        <validation>
+          <item>All 3 browser projects configured</item>
+          <item>Screenshots captured on test failure</item>
+          <item>Trace collected on retry</item>
+        </validation>
+      </task>
+
+      <task id="4" title="Establish Page Object Model Pattern">
+        <subtasks>
+          <subtask>Create Page Object Model directory structure (__tests__/e2e/pages/)</subtask>
+          <subtask>Create base Page Object class (BasePage.ts)</subtask>
+          <subtask>Create sample Page Objects (LoginPage, DashboardPage, CourseDetailPage)</subtask>
+          <subtask>Document POM pattern in code comments</subtask>
+        </subtasks>
+        <validation>
+          <item>Page Object classes created and functional</item>
+          <item>Page Objects encapsulate page interactions</item>
+          <item>Code maintainability improved (no direct selectors in tests)</item>
+        </validation>
+      </task>
+
+      <task id="5" title="Create Test Data Seeding Scripts">
+        <subtasks>
+          <subtask>Create test fixtures directory (__tests__/fixtures/)</subtask>
+          <subtask>Create test data fixtures (testUsers.ts, testCourses.ts, testAssignments.ts)</subtask>
+          <subtask>Create database seeding script (seedTestData.ts)</subtask>
+          <subtask>Create cleanup script (cleanupTestData.ts)</subtask>
+          <subtask>Integrate seeding into Playwright global setup</subtask>
+        </subtasks>
+        <validation>
+          <item>Test data fixtures defined</item>
+          <item>Seeding script populates test database successfully</item>
+          <item>Cleanup script resets database to clean state</item>
+        </validation>
+      </task>
+
+      <task id="6" title="Write Sample E2E Test">
+        <subtasks>
+          <subtask>Create sample E2E test file (student-login-enrollment.spec.ts)</subtask>
+          <subtask>Write test: "Student can login and enroll in course"</subtask>
+          <subtask>Run test locally to verify passing</subtask>
+          <subtask>Verify test failure captures screenshot</subtask>
+        </subtasks>
+        <validation>
+          <item>Sample E2E test passes locally</item>
+          <item>Test uses Page Object Model pattern</item>
+          <item>Test validates critical user journey (login → enroll)</item>
+        </validation>
+      </task>
+
+      <task id="7" title="Create NPM Scripts">
+        <subtasks>
+          <subtask>Add Playwright scripts to package.json (test:e2e, test:e2e:ui, test:e2e:debug, test:e2e:headed, test:e2e:report)</subtask>
+          <subtask>Test all npm scripts locally</subtask>
+        </subtasks>
+        <validation>
+          <item>All npm scripts execute successfully</item>
+          <item>npm run test:e2e runs headless (CI-ready)</item>
+          <item>npm run test:e2e:ui opens Playwright UI</item>
+        </validation>
+      </task>
+
+      <task id="8" title="Verify Headless Mode for CI/CD">
+        <subtasks>
+          <subtask>Verify Playwright config enables headless mode</subtask>
+          <subtask>Test headless execution locally (npm run test:e2e)</subtask>
+          <subtask>Verify CI environment detection (retries, workers)</subtask>
+          <subtask>Document CI/CD execution in test guide</subtask>
+        </subtasks>
+        <validation>
+          <item>npm run test:e2e runs headless successfully</item>
+          <item>CI environment detection works</item>
+          <item>Retries configured for CI flakiness mitigation</item>
+        </validation>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC1">Playwright installed and configured for Next.js application</criterion>
+    <criterion id="AC2">Test environment setup with test database (isolated from development)</criterion>
+    <criterion id="AC3">Browser contexts configured (Chromium primary, Firefox/WebKit optional)</criterion>
+    <criterion id="AC4">Sample E2E test written and passing (e.g., student login and course enrollment flow)</criterion>
+    <criterion id="AC5">Page Object Model (POM) pattern established for test maintainability</criterion>
+    <criterion id="AC6">Test data seeding scripts created (populate test database with sample courses/users)</criterion>
+    <criterion id="AC7">NPM scripts created: npm run test:e2e, npm run test:e2e:ui (Playwright UI mode)</criterion>
+    <criterion id="AC8">Screenshots on failure configured (debugging aid)</criterion>
+    <criterion id="AC9">Headless mode working (for CI/CD execution)</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/tech-spec-epic-1-5.md" relevance="primary">
+        <section name="Story 1.5.2: Playwright E2E Testing Framework Setup" lines="316-327">
+          Technical specification for Playwright E2E testing framework setup with acceptance criteria and implementation guidance.
+        </section>
+        <section name="Detailed Design - Test Fixtures Schema" lines="79-131">
+          Mock user and course fixtures schemas that need to be replicated for E2E test data.
+        </section>
+        <section name="Test Strategy Summary" lines="402-478">
+          Test pyramid structure, coverage targets, and sample E2E test scenarios including student login flow example.
+        </section>
+      </doc>
+
+      <doc path="docs/architecture.md" relevance="primary">
+        <section name="Testing Strategy" lines="1418-1647">
+          Comprehensive testing strategy including E2E testing approach with Playwright, test pyramid structure, and sample E2E test code examples.
+        </section>
+        <section name="Project Structure - Testing" lines="360-396">
+          File organization for __tests__/ directory including e2e/, fixtures/, helpers/, and global setup/teardown patterns.
+        </section>
+        <section name="Epic 1.5 Mapping" lines="428-447">
+          Architectural boundaries and integration points for testing infrastructure including Playwright configuration and E2E test structure.
+        </section>
+      </doc>
+
+      <doc path="docs/PRD.md" relevance="secondary">
+        <section name="FR024: Testing & Quality Assurance" lines="68">
+          Functional requirement for automated test suite covering critical user flows with 70%+ code coverage and accessibility tests.
+        </section>
+        <section name="NFR005: Maintainability" lines="80">
+          Non-functional requirement for 70%+ test coverage for critical paths with comprehensive documentation.
+        </section>
+        <section name="User Journey 1: Student - Course Enrollment" lines="87-114">
+          Complete student user journey from login to assignment submission that should be covered by E2E tests.
+        </section>
+      </doc>
+
+      <doc path="docs/epics.md" relevance="secondary">
+        <section name="Epic 1.5 - Testing Infrastructure Setup">
+          High-level epic context explaining shift-left testing approach and rationale for establishing testing infrastructure before feature development.
+        </section>
+      </doc>
+    </docs>
+
+    <code>
+      <file path="prisma/schema.prisma" relevance="high">
+        Database schema defining all models (User, Course, Enrollment, Assignment, Submission, Grade, Discussion, etc.) that need to be seeded for E2E test data. Includes soft delete fields (deletedAt) and all relations.
+      </file>
+
+      <file path="src/lib/prisma.ts" relevance="high">
+        Prisma client singleton configuration that will be used in test database setup and seeding scripts. Shows connection pooling and logging configuration.
+      </file>
+
+      <file path="src/lib/auth.ts" relevance="high">
+        NextAuth configuration with credentials provider, JWT sessions, and rate limiting. E2E tests will need to authenticate using this auth flow.
+      </file>
+
+      <file path="src/app/login/page.tsx" relevance="medium">
+        Login page component that will be tested in E2E flows. Page Objects will need to interact with email/password form elements.
+      </file>
+
+      <file path="src/app/dashboard/page.tsx" relevance="medium">
+        Dashboard page that students see after login. Used to verify successful authentication in E2E tests.
+      </file>
+
+      <file path="src/app/courses/page.tsx" relevance="medium">
+        Course catalog page where students browse and enroll in courses. Part of enrollment user journey E2E test.
+      </file>
+
+      <file path="src/app/courses/[id]/page.tsx" relevance="medium">
+        Course detail page with enrollment functionality. Target page for course enrollment E2E test flow.
+      </file>
+
+      <file path="src/app/courses/[id]/assignments/[assignmentId]/page.tsx" relevance="medium">
+        Assignment submission page that will be tested in E2E student journey tests.
+      </file>
+
+      <file path="src/lib/rate-limit.ts" relevance="low">
+        Rate limiting configuration that may affect E2E test execution. Tests should be aware of rate limits.
+      </file>
+    </code>
+
+    <dependencies>
+      <dependency name="@playwright/test" version="latest" purpose="E2E browser testing framework - core test runner and browser automation">
+        npm install -D @playwright/test
+      </dependency>
+
+      <dependency name="@axe-core/playwright" version="^4.x" purpose="Accessibility testing integration (for future Epic 3 accessibility tests)">
+        npm install -D @axe-core/playwright
+      </dependency>
+
+      <existing-dependency name="next" version="15.3.3" purpose="Next.js framework - Playwright web server will start dev server for E2E tests" />
+
+      <existing-dependency name="prisma" version="^6.9.0" purpose="Database ORM - used for test database migrations and seeding" />
+
+      <existing-dependency name="@prisma/client" version="^6.9.0" purpose="Prisma client - used in test data seeding scripts" />
+
+      <existing-dependency name="next-auth" version="^4.24.11" purpose="Authentication - E2E tests will authenticate using credentials provider" />
+
+      <existing-dependency name="bcryptjs" version="^3.0.2" purpose="Password hashing - test user fixtures will need bcrypt-hashed passwords" />
+
+      <existing-dependency name="typescript" version="^5" purpose="TypeScript - playwright.config.ts and Page Objects written in TypeScript" />
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="technical">
+      Playwright must be configured for Next.js 15 App Router with proper base URL (http://localhost:3000) and web server auto-start.
+    </constraint>
+
+    <constraint type="technical">
+      Test database must be completely isolated from development database. Use DATABASE_URL_TEST environment variable or Neon database branch.
+    </constraint>
+
+    <constraint type="technical">
+      Page Object Model pattern is mandatory for all E2E tests. Direct selector usage in test files is prohibited to ensure maintainability.
+    </constraint>
+
+    <constraint type="technical">
+      Test data must be seeded in global setup and cleaned up in global teardown to ensure test isolation and repeatability.
+    </constraint>
+
+    <constraint type="technical">
+      Playwright must support headless execution for CI/CD pipeline. Browser contexts must be configured with proper retries (2 on CI, 0 locally) and workers (1 on CI, parallel locally).
+    </constraint>
+
+    <constraint type="security">
+      Test fixtures must not contain real PII. Use fake names, emails, and data consistent with test environment isolation.
+    </constraint>
+
+    <constraint type="dependency">
+      Story 1.5.1 (Jest setup) must be complete before starting this story to ensure testing foundation is established.
+    </constraint>
+
+    <constraint type="integration">
+      Playwright configuration must integrate with GitHub Actions CI/CD pipeline (Epic 1.5, Story 1.5.3) for automated test execution on PRs.
+    </constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="Playwright Configuration API" type="config">
+      playwright.config.ts must export defineConfig() with proper testDir, baseURL, use (screenshot, trace, video), projects (browsers), webServer, and retries/workers based on process.env.CI
+    </interface>
+
+    <interface name="Page Object Model Pattern" type="class">
+      All Page Objects must extend BasePage class and encapsulate page locators and interaction methods. Example:
+      class LoginPage extends BasePage {
+        private emailInput = this.page.locator('input[name="email"]');
+        async login(email: string, password: string) { ... }
+      }
+    </interface>
+
+    <interface name="Test Data Seeding API" type="function">
+      seedTestData() must populate test database with users (student, instructor, admin), courses, and assignments. Return seeded data IDs for test reference.
+    </interface>
+
+    <interface name="Test Database Setup API" type="function">
+      setupTestDb() must initialize Prisma client with DATABASE_URL_TEST, run migrations, and provide reset utilities.
+    </interface>
+
+    <interface name="Global Setup/Teardown" type="function">
+      global-setup.ts must apply migrations and seed data. global-teardown.ts must cleanup test database (optional based on strategy).
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      <standard>All E2E tests must use Page Object Model pattern - no direct selectors in test files</standard>
+      <standard>Test names must follow pattern: "User can [action] and [expected result]"</standard>
+      <standard>Tests must follow AAA pattern: Arrange (setup), Act (user actions), Assert (verify outcomes)</standard>
+      <standard>Tests must be idempotent - can run multiple times without side effects</standard>
+      <standard>Tests must reset database state between runs using seeding/cleanup scripts</standard>
+      <standard>Screenshots must be captured on failure with descriptive names</standard>
+      <standard>Trace must be collected on first retry for debugging</standard>
+      <standard>Tests must run in headless mode on CI with proper retries (2) and serial workers (1)</standard>
+    </standards>
+
+    <locations>
+      <location path="__tests__/e2e/" description="All E2E test spec files (*.spec.ts)">
+        <file>student-login-enrollment.spec.ts - Sample E2E test for student login and course enrollment flow</file>
+        <file>Future: student.spec.ts - Complete student journey tests (Epic 3)</file>
+        <file>Future: instructor.spec.ts - Instructor workflow tests (Epic 3)</file>
+        <file>Future: admin.spec.ts - Admin dashboard tests (Epic 3)</file>
+        <file>Future: accessibility.spec.ts - Accessibility compliance tests (Epic 3)</file>
+      </location>
+
+      <location path="__tests__/e2e/pages/" description="Page Object Model classes">
+        <file>BasePage.ts - Base class with common page methods (goto, waitFor)</file>
+        <file>LoginPage.ts - Login page object (login form interactions)</file>
+        <file>DashboardPage.ts - Dashboard page object (verify login success)</file>
+        <file>CourseDetailPage.ts - Course detail page object (enrollment actions)</file>
+      </location>
+
+      <location path="__tests__/fixtures/" description="Test data fixtures">
+        <file>testUsers.ts - Mock student, instructor, admin user data</file>
+        <file>testCourses.ts - Mock course data</file>
+        <file>testAssignments.ts - Mock assignment data</file>
+      </location>
+
+      <location path="__tests__/helpers/" description="Test utilities and setup">
+        <file>setupTestDb.ts - Test database initialization and reset utilities</file>
+        <file>seedTestData.ts - Database seeding script</file>
+        <file>cleanupTestData.ts - Database cleanup script</file>
+        <file>auth.ts - Authentication helpers for E2E tests</file>
+      </location>
+
+      <location path="__tests__/e2e/" description="Global setup and teardown">
+        <file>global-setup.ts - Playwright global setup (migrations, seeding)</file>
+        <file>global-teardown.ts - Playwright global teardown (optional cleanup)</file>
+      </location>
+
+      <location path="/" description="Configuration files">
+        <file>playwright.config.ts - Playwright configuration (browsers, retries, web server)</file>
+        <file>.env.test.local - Test environment variables (DATABASE_URL_TEST)</file>
+      </location>
+    </locations>
+
+    <ideas>
+      <idea ac="AC1,AC9" title="Playwright Installation and Configuration">
+        Test: Verify Playwright is installed and configured correctly
+        - npx playwright test --version returns version number
+        - playwright.config.ts loads without errors
+        - Chromium, Firefox, WebKit browsers installed successfully
+        - Headless mode enabled by default
+      </idea>
+
+      <idea ac="AC2" title="Test Database Isolation">
+        Test: Verify test database is isolated from development
+        - DATABASE_URL_TEST points to separate database instance
+        - Prisma migrations run against test database
+        - Test data does not appear in development database
+        - Test database resets between runs
+      </idea>
+
+      <idea ac="AC3,AC8" title="Browser Context and Failure Capture">
+        Test: Verify browser contexts and failure handling
+        - All 3 browser projects (Chromium, Firefox, WebKit) configured
+        - Screenshots captured automatically on test failure
+        - Trace collected on first retry for debugging
+        - Video recording available (if enabled)
+      </idea>
+
+      <idea ac="AC4,AC5,AC6" title="Sample E2E Test with POM">
+        Test: Student can login and enroll in course (sample E2E test)
+        Arrange:
+          - Test database seeded with student user and course
+          - LoginPage, DashboardPage, CourseDetailPage objects instantiated
+        Act:
+          - Navigate to login page
+          - Login as test student (student@test.com)
+          - Navigate to course catalog
+          - Click on test course
+          - Click "Enroll" button
+        Assert:
+          - Dashboard visible after login
+          - Course detail page displays correctly
+          - Enrollment confirmation message appears
+          - Enrollment record created in database
+      </idea>
+
+      <idea ac="AC5" title="Page Object Model Pattern">
+        Test: Verify Page Objects encapsulate interactions
+        - LoginPage.login() method hides email/password selector logic
+        - DashboardPage.expectVisible() verifies navigation success
+        - CourseDetailPage.clickEnroll() encapsulates enrollment action
+        - No raw page.locator() calls in test spec files
+      </idea>
+
+      <idea ac="AC6" title="Test Data Seeding">
+        Test: Verify test data seeding works correctly
+        - seedTestData() populates user, course, assignment records
+        - Test data includes student, instructor, admin users
+        - Test course has proper metadata (title, code, semester)
+        - Seeding is idempotent (can run multiple times)
+        - cleanupTestData() removes test records completely
+      </idea>
+
+      <idea ac="AC7" title="NPM Scripts">
+        Test: Verify all Playwright npm scripts work
+        - npm run test:e2e executes tests headless
+        - npm run test:e2e:ui opens Playwright UI mode
+        - npm run test:e2e:debug enables debugging mode
+        - npm run test:e2e:headed runs with browser visible
+        - npm run test:e2e:report shows HTML test report
+      </idea>
+
+      <idea ac="AC9" title="CI/CD Headless Execution">
+        Test: Verify CI environment configuration
+        - process.env.CI detection works correctly
+        - Retries set to 2 when CI=true, 0 otherwise
+        - Workers set to 1 when CI=true, parallel otherwise
+        - Headless mode always enabled
+        - Tests pass in CI environment simulation
+      </idea>
+    </ideas>
+  </tests>
+
+  <technicalGuidance>
+    <section name="Playwright Configuration Best Practices">
+      Use baseURL for relative navigation (e.g., page.goto('/login'))
+      Configure retries on CI (2 retries) to handle flaky tests
+      Use trace: 'on-first-retry' for debugging failures
+      Enable screenshot capture on failure for debugging
+      Configure web server to auto-start Next.js dev server
+      Set timeout appropriately (30s for actions, 60s for navigation)
+    </section>
+
+    <section name="Page Object Model Pattern">
+      Each page/component gets a dedicated Page Object class
+      Page Objects encapsulate locators and interactions
+      Tests use Page Objects instead of raw selectors
+      Improves maintainability (change selector once, not in every test)
+      Example: LoginPage.login() hides implementation details from tests
+    </section>
+
+    <section name="Test Database Isolation">
+      Use Neon database branch OR in-memory SQLite for isolation
+      Never run tests against development or production database
+      Reset database state between test runs (seed fresh data)
+      Use DATABASE_URL_TEST environment variable for test database
+      Apply Prisma migrations to test database in global setup
+    </section>
+
+    <section name="Test Data Fixtures">
+      Define reusable test data in __tests__/fixtures/
+      Use consistent IDs for test data (e.g., student-1, course-1)
+      Include all required fields to satisfy Prisma schema
+      Seed data in global setup, cleanup in global teardown
+      Passwords must be bcrypt hashed in seeding script
+    </section>
+
+    <section name="Handling Authentication">
+      Use Page Object Model for login flow
+      Store session state for reuse across tests (Playwright storage state)
+      Consider using Playwright auth helpers for fast authentication
+      Global setup can login once and save session to storageState.json
+      Tests can reuse saved session with test.use({ storageState: 'path' })
+    </section>
+
+    <section name="Project Structure">
+      playwright.config.ts - Playwright configuration at project root
+      __tests__/e2e/ - E2E test files (*.spec.ts)
+      __tests__/e2e/pages/ - Page Object Model classes
+      __tests__/e2e/fixtures/ - Test data fixtures
+      __tests__/e2e/helpers/ - Test utilities (auth, database setup)
+      __tests__/e2e/global-setup.ts - Playwright global setup
+      __tests__/e2e/global-teardown.ts - Playwright global teardown
+      .env.test.local - Test environment variables (gitignored)
+    </section>
+  </technicalGuidance>
+
+  <dependencies>
+    <prerequisite>
+      <story id="1.5.1" title="Jest Testing Framework Setup">
+        Jest setup must be complete first to establish testing foundation and directory structure.
+      </story>
+    </prerequisite>
+
+    <blocking>
+      <story id="1.5.3" title="CI/CD Pipeline with GitHub Actions">
+        CI/CD pipeline needs Playwright E2E tests configured to run automated tests on PRs.
+      </story>
+    </blocking>
+  </dependencies>
+
+  <notes>
+    <note type="implementation">
+      Start with Chromium browser only for MVP. Firefox and WebKit support can be added later based on beta feedback.
+    </note>
+
+    <note type="implementation">
+      Test database strategy decision: SQLite for speed vs. Neon branch for production parity. Recommend SQLite for MVP since it's faster and doesn't require Neon branch setup.
+    </note>
+
+    <note type="implementation">
+      Video recording is optional and creates large artifacts. Enable only for debugging difficult test failures, not by default.
+    </note>
+
+    <note type="implementation">
+      Authentication state caching (storageState.json) is a powerful optimization but can be implemented as enhancement after basic login flow works.
+    </note>
+
+    <note type="validation">
+      After implementation, run npm run test:e2e locally to verify all tests pass. Check playwright-report/ for HTML report with screenshots of any failures.
+    </note>
+
+    <note type="validation">
+      Verify test database isolation by checking that test data does not appear in development database after test runs.
+    </note>
+
+    <note type="documentation">
+      Document Playwright usage in docs/testing-guide.md (Story 1.5.4) including how to run tests, write new tests, and debug failures.
+    </note>
+  </notes>
+</story-context>

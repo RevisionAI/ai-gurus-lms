@@ -6,7 +6,8 @@ import { useSession } from 'next-auth/react'
 import Navbar from '@/components/Navbar'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import Breadcrumb, { generateBreadcrumbs } from '@/components/Breadcrumb'
-import { Calendar, Clock, FileText, Upload, CheckCircle, Paperclip, X, File } from 'lucide-react'
+import { Calendar, Clock, FileText, Upload, CheckCircle, Paperclip, X, File, Cloud } from 'lucide-react'
+import { uploadToS3 } from '@/hooks/useS3Upload'
 
 interface Assignment {
   id: string
@@ -98,23 +99,15 @@ export default function StudentAssignmentPage() {
     setError('')
 
     try {
-      const formData = new FormData()
-      formData.append('file', file)
-
-      const response = await fetch(`/api/student/assignments/${params.assignmentId}/upload`, {
-        method: 'POST',
-        body: formData,
+      // Upload to R2 via signed URL
+      const result = await uploadToS3(file, {
+        directory: 'submissions',
+        assignmentId: params.assignmentId,
+        isPublic: false,
       })
-
-      if (response.ok) {
-        const data = await response.json()
-        setUploadedFile({ url: data.url, filename: data.filename })
-      } else {
-        const data = await response.json()
-        setError(data.error || 'Failed to upload file')
-      }
+      setUploadedFile({ url: result.cdnUrl, filename: result.filename })
     } catch (error) {
-      setError('An error occurred while uploading the file')
+      setError(error instanceof Error ? error.message : 'An error occurred while uploading the file')
     } finally {
       setIsUploading(false)
     }
@@ -322,6 +315,12 @@ export default function StudentAssignmentPage() {
                             <div className="flex items-center">
                               <File className="h-5 w-5 text-gray-400 mr-2" />
                               <span className="text-sm text-gray-900">{uploadedFile.filename}</span>
+                              {uploadedFile.url.includes('r2.cloudflarestorage') && (
+                                <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                  <Cloud className="h-3 w-3 mr-1" />
+                                  R2
+                                </span>
+                              )}
                             </div>
                             <button
                               type="button"

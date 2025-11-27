@@ -1,0 +1,520 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context id="1-10-security-audit-preparation" v="1.0">
+
+  <metadata>
+    <epicId>1</epicId>
+    <storyId>1.10</storyId>
+    <title>Security Audit Preparation</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-11-25</generatedAt>
+    <generator>Claude Code - Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/1-10-security-audit-preparation.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>security engineer</asA>
+    <iWant>the codebase prepared for external security audit</iWant>
+    <soThat>vulnerabilities can be identified and remediated before public launch</soThat>
+    <tasks>
+      <task id="1" ac="1">Complete OWASP Top 10 Security Review</task>
+      <task id="2" ac="2">Identify and Document P0/P1 Security Gaps</task>
+      <task id="3" ac="3">Prepare Security Audit Scope Document</task>
+      <task id="4" ac="4">Review Authentication and Authorization Code</task>
+      <task id="5" ac="5">Conduct Secrets Audit</task>
+      <task id="6" ac="6">Validate HTTPS Enforcement</task>
+      <task id="7" ac="7">Configure Content Security Policy (CSP) Headers</task>
+      <task id="8" ac="8">Select and Schedule Security Audit</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="1">Security checklist completed - OWASP Top 10 review conducted and documented</criterion>
+    <criterion id="2">All P0/P1 security gaps identified and documented - Gap analysis document created with severity ratings</criterion>
+    <criterion id="3">Security audit scope document prepared - Endpoints, auth flows, file uploads documented for external auditor</criterion>
+    <criterion id="4">Code review completed for authentication and authorization logic - Auth/authz flows reviewed and validated</criterion>
+    <criterion id="5">Secrets audit completed - No hardcoded credentials; API keys in environment variables only</criterion>
+    <criterion id="6">HTTPS enforcement validated - All HTTP requests redirect to HTTPS in production</criterion>
+    <criterion id="7">Content Security Policy (CSP) headers configured - CSP headers implemented in next.config.js</criterion>
+    <criterion id="8">Security audit vendor selected and scheduled - External audit planned or internal audit scheduled</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Security Architecture</title>
+        <section>Security Architecture (Section 8)</section>
+        <snippet>
+**Authentication & Authorization**
+- NextAuth 4.24.11 with database sessions (Prisma adapter)
+- Session duration: 30 days, Idle timeout: 7 days
+- Role-Based Access Control (Student, Instructor, Admin)
+
+**Input Validation (Epic 1, Story 1.8)**
+- Zod schemas on all POST/PUT/DELETE endpoints
+- XSS prevention via React escaping + sanitization
+- SQL Injection prevention via Prisma parameterized queries
+
+**Rate Limiting (Epic 1, Story 1.7)**
+- Per-IP limit: 100 requests/minute
+- Per-user limit: 200 requests/minute
+- Login endpoint: 5 failed attempts → 15-minute lockout
+
+**Soft Deletes & Audit Trail (Epic 1, Story 1.9)**
+- User, Course, Assignment, Grade, Discussion models
+- Data retention: 1 year for soft-deleted records
+
+**Security Headers (Vercel Configuration)**
+- Strict-Transport-Security (HSTS)
+- X-Frame-Options: SAMEORIGIN
+- X-Content-Type-Options: nosniff
+- X-XSS-Protection: 1; mode=block
+- Content-Security-Policy (to be configured in Story 1.10)
+        </snippet>
+      </doc>
+
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Security Implementation Details</title>
+        <section>Non-Functional Requirements - Security (Lines 435-464)</section>
+        <snippet>
+**OWASP Top 10 (2021) Implementation:**
+1. A01: Broken Access Control - RBAC via NextAuth, role checks in API routes
+2. A02: Cryptographic Failures - TLS 1.3 (Vercel), bcrypt password hashing, Neon SSL connections
+3. A03: Injection - Prisma parameterized queries, Zod validation, React XSS protection
+4. A04: Insecure Design - Rate limiting, file size limits, session timeout
+5. A05: Security Misconfiguration - CSP headers, security headers, error message sanitization
+6. A06: Vulnerable Components - npm audit, dependency review
+7. A07: Auth Failures - Password strength, login rate limiting, secure session management
+8. A08: Data Integrity - Prisma migrations, file checksums, CSP blocks unsigned scripts
+9. A09: Logging Failures - Soft deletes, Pino logging, Sentry error tracking (Epic 4)
+10. A10: SSRF - No user-controlled backend requests, signed URLs only
+
+**Critical Security Controls:**
+- Rate Limiting: Prevents brute force and DoS attacks (Story 1.7)
+- Input Validation: Prevents injection attacks (Story 1.8)
+- Soft Deletes: Maintains audit trail for compliance (Story 1.9)
+- HTTPS Enforcement: Protects data in transit
+- CSP Headers: Prevents XSS and code injection attacks
+        </snippet>
+      </doc>
+
+      <doc>
+        <path>docs/PRD.md</path>
+        <title>Security Requirements</title>
+        <section>Non-Functional Requirements - NFR004</section>
+        <snippet>
+NFR004: Security
+- System shall pass external security audit with all P0/P1 vulnerabilities remediated
+- OWASP Top 10 protections implemented
+- Encryption for data at rest and in transit
+
+Functional Requirements - Security:
+- FR005: Rate limiting (100 req/min per IP, 200 req/min per user)
+- FR006: Input validation using Zod schemas
+- FR007: Soft deletes with audit trail
+- FR008: File validation (MIME type, size limits, malware scanning)
+- FR009: Role-based access control (Student, Instructor, Admin)
+        </snippet>
+      </doc>
+
+      <doc>
+        <path>docs/epics.md</path>
+        <title>Story 1.10 Definition</title>
+        <section>Story 1.10: Security Audit Preparation (Lines 217-233)</section>
+        <snippet>
+As a security engineer,
+I want the codebase prepared for external security audit,
+So that vulnerabilities can be identified and remediated before public launch.
+
+Acceptance Criteria:
+1. Security checklist completed (OWASP Top 10 review)
+2. All P0/P1 security gaps identified and documented
+3. Security audit scope document prepared (endpoints, auth flows, file uploads)
+4. Code review completed for authentication and authorization logic
+5. Secrets audit: No hardcoded credentials, API keys in environment variables only
+6. HTTPS enforcement validated (all HTTP requests redirect to HTTPS)
+7. Content Security Policy (CSP) headers configured
+8. Security audit vendor selected and scheduled (or internal audit planned)
+
+Prerequisites: Stories 1.7, 1.8, 1.9 complete (security foundations in place)
+        </snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <file>
+        <path>src/lib/auth.ts</path>
+        <kind>authentication-config</kind>
+        <symbol>authOptions</symbol>
+        <lines>1-70</lines>
+        <reason>NextAuth configuration with JWT sessions, bcrypt password hashing - AC4 code review target</reason>
+        <snippet>
+export const authOptions: NextAuthOptions = {
+  adapter: PrismaAdapter(prisma),
+  providers: [
+    CredentialsProvider({
+      credentials: { email, password },
+      async authorize(credentials) {
+        // Password validation with bcrypt
+        const isPasswordValid = await bcrypt.compare(credentials.password, user.password)
+      }
+    })
+  ],
+  session: { strategy: 'jwt' },
+  callbacks: {
+    jwt: async ({ token, user }) => { /* role assignment */ },
+    session: async ({ session, token }) => { /* role propagation */ }
+  }
+}
+        </snippet>
+      </file>
+
+      <file>
+        <path>prisma/schema.prisma</path>
+        <kind>database-schema</kind>
+        <symbol>User, Course, Assignment, Grade, Discussion models</symbol>
+        <lines>10-212</lines>
+        <reason>Database schema with role-based access control (UserRole enum) and data models - AC3 audit scope</reason>
+        <snippet>
+model User {
+  role UserRole @default(STUDENT)
+  password String // bcrypt hashed
+  enrollments Enrollment[]
+  gradesReceived Grade[] @relation("StudentGrades")
+  gradesGiven Grade[] @relation("GraderGrades")
+}
+
+enum UserRole {
+  STUDENT
+  INSTRUCTOR
+  ADMIN
+}
+
+// Note: No deletedAt fields yet (Story 1.9 adds these)
+        </snippet>
+      </file>
+
+      <file>
+        <path>next.config.ts</path>
+        <kind>configuration</kind>
+        <symbol>nextConfig</symbol>
+        <lines>1-8</lines>
+        <reason>Next.js configuration - AC7 requires adding CSP headers here</reason>
+        <snippet>
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  /* config options here */
+  // AC7: Add async headers() function for CSP and security headers
+};
+
+export default nextConfig;
+        </snippet>
+      </file>
+
+      <file>
+        <path>src/app/api/auth/[...nextauth]/route.ts</path>
+        <kind>api-route</kind>
+        <symbol>NextAuth handler</symbol>
+        <lines>N/A</lines>
+        <reason>NextAuth API route handler - AC3 authentication flow documentation, AC4 code review</reason>
+      </file>
+
+      <file>
+        <path>src/app/api/auth/register/route.ts</path>
+        <kind>api-route</kind>
+        <symbol>POST /api/auth/register</symbol>
+        <lines>N/A</lines>
+        <reason>User registration endpoint - AC3 authentication flow, AC5 secrets audit (password handling)</reason>
+      </file>
+
+      <file>
+        <path>src/app/api/student/*/route.ts</path>
+        <kind>api-routes</kind>
+        <symbol>Student role-protected endpoints</symbol>
+        <lines>N/A</lines>
+        <reason>42+ API endpoints requiring role-based authorization checks - AC3 audit scope, AC4 authz review</reason>
+      </file>
+
+      <file>
+        <path>src/app/api/instructor/*/route.ts</path>
+        <kind>api-routes</kind>
+        <symbol>Instructor role-protected endpoints</symbol>
+        <lines>N/A</lines>
+        <reason>Instructor-only endpoints - AC3 audit scope, AC4 authorization validation</reason>
+      </file>
+
+      <file>
+        <path>src/app/api/admin/*/route.ts</path>
+        <kind>api-routes</kind>
+        <symbol>Admin role-protected endpoints</symbol>
+        <lines>N/A</lines>
+        <reason>Admin-only endpoints - AC3 audit scope, AC4 highest-privilege authorization review</reason>
+      </file>
+    </code>
+
+    <dependencies>
+      <package name="next-auth" version="4.24.11" relevance="Authentication library - AC4 code review target">
+        Used for session management, JWT tokens, credential providers
+      </package>
+
+      <package name="bcryptjs" version="3.0.2" relevance="Password hashing - AC4 cryptographic review, OWASP A02">
+        Minimum 10 salt rounds for password hashing (verify in code review)
+      </package>
+
+      <package name="@prisma/client" version="6.9.0" relevance="Database ORM - OWASP A03 injection prevention">
+        Parameterized queries prevent SQL injection
+      </package>
+
+      <package name="@next-auth/prisma-adapter" version="1.0.7" relevance="NextAuth database session storage">
+        Stores sessions in PostgreSQL (Epic 1, Story 1.1-1.3)
+      </package>
+
+      <package name="zod" version="TBD" relevance="Input validation - OWASP A03 injection prevention (Story 1.8)">
+        To be installed in Story 1.8 for schema validation
+      </package>
+
+      <package name="@upstash/ratelimit" version="TBD" relevance="Rate limiting - OWASP A04, A07 (Story 1.7)">
+        To be installed in Story 1.7 for DoS prevention
+      </package>
+
+      <package name="security-tools" version="N/A" relevance="AC5 secrets audit tools">
+        TruffleHog, GitGuardian, or equivalent for scanning hardcoded credentials
+      </package>
+
+      <package name="npm-audit" version="built-in" relevance="OWASP A06 vulnerable components">
+        Run `npm audit` to check for known vulnerabilities
+      </package>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>Story 1.7 (Rate Limiting) must be complete before this story - rate limiting protections reviewed in OWASP A04/A07</constraint>
+    <constraint>Story 1.8 (Input Validation) must be complete before this story - Zod schemas reviewed in OWASP A03</constraint>
+    <constraint>Story 1.9 (Soft Deletes) must be complete before this story - audit trail reviewed in OWASP A09</constraint>
+    <constraint>No P0 (critical) vulnerabilities blocking beta launch - all P0 issues must be remediated before Epic 4</constraint>
+    <constraint>CSP headers must allow TinyMCE (rich text editor), YouTube embeds, and R2 CDN - required for existing functionality</constraint>
+    <constraint>Manual review and documentation task - limited automated testing available for security audit preparation</constraint>
+    <constraint>Environment variables only for secrets - no hardcoded credentials in codebase or git history</constraint>
+    <constraint>HTTPS enforcement handled by Vercel (automatic) - validate in production environment (Epic 4)</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>OWASP Top 10 Checklist</name>
+      <type>document</type>
+      <location>docs/security-owasp-top-10.md</location>
+      <purpose>AC1 - Comprehensive checklist of OWASP Top 10 review findings</purpose>
+      <structure>
+        - A01-A10 sections with sub-checks
+        - Pass/Fail status for each item
+        - Notes on findings and remediation
+        - Test scenarios executed
+      </structure>
+    </interface>
+
+    <interface>
+      <name>Security Gap Analysis</name>
+      <type>document</type>
+      <location>docs/security-gap-analysis.md</location>
+      <purpose>AC2 - P0/P1 security vulnerabilities with severity ratings</purpose>
+      <structure>
+        - Vulnerability description
+        - Severity rating (P0/P1/P2/P3)
+        - Affected components/endpoints
+        - Exploit scenario
+        - Remediation recommendation
+        - Effort estimate
+      </structure>
+    </interface>
+
+    <interface>
+      <name>Security Audit Scope</name>
+      <type>document</type>
+      <location>docs/security-audit-scope.md</location>
+      <purpose>AC3 - Comprehensive scope document for external auditor</purpose>
+      <structure>
+        - All API endpoints (42+)
+        - Authentication flows (registration, login, session refresh, password reset)
+        - Authorization patterns (RBAC, route protection, API permission checks)
+        - File upload workflows (R2 signed URLs, validation)
+        - Rate limiting configuration
+        - Data protection measures
+      </structure>
+    </interface>
+
+    <interface>
+      <name>Authentication/Authorization Code Review</name>
+      <type>document</type>
+      <location>docs/security-auth-review.md</location>
+      <purpose>AC4 - Code review notes for auth/authz logic</purpose>
+      <structure>
+        - NextAuth configuration review
+        - Session strategy validation
+        - Password hashing verification
+        - Role-based route protection analysis
+        - Authorization bypass checks
+      </structure>
+    </interface>
+
+    <interface>
+      <name>Secrets Audit Report</name>
+      <type>document</type>
+      <location>docs/security-secrets-audit.md</location>
+      <purpose>AC5 - Secrets management validation</purpose>
+      <structure>
+        - Automated scan results (TruffleHog/GitGuardian)
+        - Manual grep patterns checked
+        - All environment variables documented
+        - .gitignore verification
+        - Secrets management practices
+      </structure>
+    </interface>
+
+    <interface>
+      <name>HTTPS Enforcement Validation</name>
+      <type>document</type>
+      <location>docs/security-https-enforcement.md</location>
+      <purpose>AC6 - HTTPS configuration documentation</purpose>
+      <structure>
+        - Vercel automatic redirect configuration
+        - HSTS header configuration
+        - SSL certificate validation
+        - Test results (HTTP → HTTPS redirect)
+      </structure>
+    </interface>
+
+    <interface>
+      <name>CSP Headers Configuration</name>
+      <type>document</type>
+      <location>docs/security-csp-headers.md</location>
+      <purpose>AC7 - Content Security Policy rationale and configuration</purpose>
+      <structure>
+        - CSP directives explanation
+        - TinyMCE requirements (unsafe-eval, unsafe-inline)
+        - YouTube embed requirements (frame-src)
+        - R2 CDN requirements (media-src, img-src)
+        - Test results (browser console validation)
+      </structure>
+    </interface>
+
+    <interface>
+      <name>Security Audit Plan</name>
+      <type>document</type>
+      <location>docs/security-audit-plan.md</location>
+      <purpose>AC8 - External or internal audit scheduling</purpose>
+      <structure>
+        - Audit approach (external vendor or internal)
+        - Vendor/reviewer name
+        - Scheduled dates
+        - Audit scope and focus areas
+        - Expected deliverables
+      </structure>
+    </interface>
+
+    <interface>
+      <name>CSP Headers in Next.js</name>
+      <type>code</type>
+      <location>next.config.ts</location>
+      <purpose>AC7 - CSP and security headers implementation</purpose>
+      <structure>
+        async headers() {
+          return [{
+            source: '/:path*',
+            headers: [
+              { key: 'Content-Security-Policy', value: '...' },
+              { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+              { key: 'X-Content-Type-Options', value: 'nosniff' },
+              { key: 'X-XSS-Protection', value: '1; mode=block' },
+              { key: 'Referrer-Policy', value: 'origin-when-cross-origin' },
+              { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' }
+            ]
+          }]
+        }
+      </structure>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      <standard>Manual review required for OWASP Top 10 checklist - no automated tests available</standard>
+      <standard>Integration tests for CSP headers - verify headers present in HTTP response</standard>
+      <standard>Manual penetration testing for OWASP validation - SQL injection, XSS, SSRF attempts</standard>
+      <standard>Automated secrets scanning using TruffleHog or GitGuardian - zero hardcoded credentials</standard>
+      <standard>Manual code review for authentication/authorization logic - documented in security-auth-review.md</standard>
+      <standard>HTTPS enforcement validated in production environment (Epic 4) - HTTP → HTTPS redirect test</standard>
+    </standards>
+
+    <locations>
+      <location>docs/security-*.md - All security documentation created in this story</location>
+      <location>next.config.ts - CSP headers configuration added</location>
+      <location>No automated test files for this story - manual review and documentation focus</location>
+    </locations>
+
+    <ideas>
+      <idea ac="1">
+        OWASP A01 Test: Attempt to access /api/admin/* as student role, expect 403 Forbidden
+        OWASP A02 Test: Attempt HTTP connection to production URL, expect 301/308 redirect to HTTPS
+        OWASP A03 Test: POST SQL injection string `'; DROP TABLE users;--` to user creation endpoint, expect 400 validation error
+        OWASP A04 Test: Upload 100MB file, expect 400 error (size limit enforcement)
+        OWASP A05 Test: Check response headers include CSP, X-Frame-Options, HSTS
+        OWASP A06 Test: Run `npm audit --audit-level=moderate`, expect zero vulnerabilities
+        OWASP A07 Test: 6 failed login attempts, expect 429 on 6th attempt (15-minute lockout)
+        OWASP A08 Test: Check CSP blocks eval() and inline scripts
+        OWASP A09 Test: Failed login logged with user email (hashed or redacted)
+        OWASP A10 Test: Attempt to upload file with malicious URL, expect rejection
+      </idea>
+
+      <idea ac="2">
+        Severity Classification: P0 (critical) blocks beta launch, P1 (high) should be fixed before beta, P2/P3 deferred
+        Gap Analysis Document: For each finding, document vulnerability description, exploit scenario, affected components, remediation recommendation, effort estimate
+      </idea>
+
+      <idea ac="3">
+        Audit Scope: 42+ API endpoints documented with authentication requirements, authorization rules, input validation
+        Authentication Flows: Registration, login, session refresh (30-day max, 7-day idle timeout), password reset (if implemented)
+        Authorization Patterns: RBAC (Student, Instructor, Admin), route protection middleware, API endpoint permission checks
+        File Upload Workflows: Direct upload to Cloudflare R2 (Story 1.5), signed URL generation, MIME type and size validation
+        Rate Limiting: IP-based (100 req/min), user-based (200 req/min), login (5 attempts → 15-min lockout)
+        Data Protection: Database encryption at rest (Neon PostgreSQL), TLS 1.3 for data in transit (Vercel), bcrypt password hashing, soft deletes for audit trail
+      </idea>
+
+      <idea ac="4">
+        NextAuth Configuration Review: Verify session strategy (JWT), session duration (30 days max, 7 days idle), password hashing (bcrypt with 10+ salt rounds), JWT secrets properly configured
+        Authentication Middleware: Check server-side session validation (getServerSession()), client-side session hooks (useSession()), unauthenticated requests return 401
+        Authorization Checks: Check role-based route protection, API endpoint permission validation, instructor routes block student access, admin routes block instructor/student access
+        Protected Route Patterns: Server Components use getServerSession(), Client Components use useSession() hook with redirect, API Routes check session at start of handler
+      </idea>
+
+      <idea ac="5">
+        Automated Secrets Scan: Use TruffleHog, GitGuardian, or similar tool to scan codebase for hardcoded credentials
+        Manual Grep Patterns: password, secret, api_key, token - check for hardcoded values
+        Environment Variables Verified: DATABASE_URL, DIRECT_URL, NEXTAUTH_SECRET, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
+        .gitignore Verification: Check .env.local is gitignored, check git history for accidentally committed .env files (rotate credentials if found)
+        .env.example Validation: Ensure no real credentials (only placeholders)
+      </idea>
+
+      <idea ac="6">
+        Vercel HTTPS Enforcement: Vercel automatically redirects HTTP → HTTPS (default behavior), verify custom domain uses HTTPS (if configured), verify SSL certificate valid (Vercel auto-provisions Let's Encrypt)
+        HSTS Header: Check next.config.js includes Strict-Transport-Security header with includeSubDomains and preload directives
+        HTTP → HTTPS Redirect Test: Attempt HTTP request to production URL, verify 301/308 redirect to HTTPS, verify HSTS header present in response
+      </idea>
+
+      <idea ac="7">
+        CSP Header Configuration: Add CSP headers to next.config.js async headers() function
+        CSP Directives: default-src 'self', script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdn.tiny.cloud (TinyMCE), style-src 'self' 'unsafe-inline', img-src 'self' data: https: blob:, connect-src 'self' https://*.neon.tech https://*.r2.cloudflarestorage.com https://*.upstash.io, frame-src 'self' https://www.youtube.com (YouTube embeds), media-src 'self' https://*.r2.dev (R2 CDN), object-src 'none', upgrade-insecure-requests
+        Additional Security Headers: X-Frame-Options: SAMEORIGIN, X-Content-Type-Options: nosniff, X-XSS-Protection: 1; mode=block, Referrer-Policy: origin-when-cross-origin, Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
+        CSP Testing: Load application in browser, check console for CSP violations, test TinyMCE rich text editor loads correctly, test YouTube embed loads correctly, test file uploads/downloads work correctly
+      </idea>
+
+      <idea ac="8">
+        Audit Approach Decision: External security audit vendor (recommended for production launch) vs. Internal security review by team member with security expertise
+        External Audit: Research vendors (experience with Next.js/React, reasonable pricing), request quotes from 2-3 vendors, select vendor based on expertise/cost/timeline, schedule audit for post-Epic 3 (after E2E testing), provide audit scope document
+        Internal Audit: Identify internal security expert or senior developer, schedule internal security review (2-3 days), provide audit scope document and OWASP checklist
+        Audit Plan Document: Vendor/reviewer name, scheduled dates, audit scope and focus areas, expected deliverables (audit report, remediation recommendations)
+      </idea>
+    </ideas>
+  </tests>
+
+</story-context>

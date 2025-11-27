@@ -1,0 +1,450 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context id="1-5-4-test-documentation-guidelines" v="1.0">
+  <metadata>
+    <epicId>1.5</epicId>
+    <storyId>4</storyId>
+    <title>Test Documentation and Guidelines</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-11-26</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/1-5-4-test-documentation-guidelines.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>new developer joining the project</asA>
+    <iWant>clear documentation on testing practices and guidelines</iWant>
+    <soThat>I can write consistent, high-quality tests following established patterns</soThat>
+
+    <tasks>
+      <task id="1" title="Create Testing Guide Structure">
+        <subtasks>
+          <subtask>Create docs/testing-guide.md file</subtask>
+          <subtask>Define document structure with clear sections (Introduction, Getting Started, Running Tests Locally, Writing Tests, Testing Strategy, Best Practices, Accessibility Testing, CI/CD Integration, Debugging and Troubleshooting)</subtask>
+          <subtask>Add table of contents with anchor links</subtask>
+          <subtask>Include document metadata (author, date, version)</subtask>
+        </subtasks>
+      </task>
+
+      <task id="2" title="Document Test Execution">
+        <subtasks>
+          <subtask>Document unit test execution (npm test, npm run test:watch, npm run test:coverage, running specific test files)</subtask>
+          <subtask>Document integration test execution (explain integration tests run with unit tests, filtering by test pattern)</subtask>
+          <subtask>Document E2E test execution (npm run test:e2e, npm run test:e2e:ui, npm run test:e2e:debug)</subtask>
+          <subtask>Document CI/CD test workflow (GitHub Actions workflow overview, when tests run, viewing results, handling failures)</subtask>
+        </subtasks>
+      </task>
+
+      <task id="3" title="Write Unit Test Examples">
+        <subtasks>
+          <subtask>Document unit testing approach (AAA pattern, co-location strategy, naming conventions)</subtask>
+          <subtask>Provide example: Testing utility functions (GPA calculation test)</subtask>
+          <subtask>Provide example: Testing React components (Button component test)</subtask>
+          <subtask>Provide example: Testing with React Testing Library (user event simulation, async testing patterns, custom render helpers)</subtask>
+        </subtasks>
+      </task>
+
+      <task id="4" title="Write Integration Test Examples">
+        <subtasks>
+          <subtask>Document integration testing approach (testing API routes end-to-end, mocking Prisma client, testing with authentication context)</subtask>
+          <subtask>Provide example: Testing POST endpoint (course creation API test)</subtask>
+          <subtask>Provide example: Testing with authentication (mocking NextAuth session, testing authorization checks)</subtask>
+          <subtask>Provide example: Testing validation errors (invalid input scenarios, error response format verification)</subtask>
+        </subtasks>
+      </task>
+
+      <task id="5" title="Write E2E Test Examples with Page Object Model">
+        <subtasks>
+          <subtask>Document E2E testing approach (purpose of E2E tests, when to write E2E vs unit/integration)</subtask>
+          <subtask>Document Page Object Model pattern (create page objects for reusability, encapsulate page interactions, benefits)</subtask>
+          <subtask>Provide example: Page Object class (LoginPage object)</subtask>
+          <subtask>Provide example: E2E test using page objects (student enrollment flow)</subtask>
+          <subtask>Provide example: Handling async operations (waiting for network requests, elements to appear, Playwright auto-waiting features)</subtask>
+        </subtasks>
+      </task>
+
+      <task id="6" title="Document Testing Decision Framework">
+        <subtasks>
+          <subtask>Create decision tree: When to write each test type (Unit: business logic, Integration: API routes, E2E: critical user journeys)</subtask>
+          <subtask>Provide guidelines for test coverage (critical paths 70%+, business logic 80%+, UI components 50%+, overall 70%+)</subtask>
+          <subtask>Document test pyramid approach (many unit tests, moderate integration tests, few E2E tests)</subtask>
+          <subtask>Provide examples of each test type for common scenarios (user registration, assignment submission, gradebook)</subtask>
+        </subtasks>
+      </task>
+
+      <task id="7" title="Document Best Practices and Patterns">
+        <subtasks>
+          <subtask>Document AAA pattern (Arrange, Act, Assert with example implementation)</subtask>
+          <subtask>Document mocking strategies (when to mock, Prisma client mocking with jest-mock-extended, NextAuth session mocking, file upload mocking)</subtask>
+          <subtask>Document test data management (test fixtures in __tests__/fixtures/, examples: mockStudent, mockCourse, mockAssignment)</subtask>
+          <subtask>Document test isolation (each test independent, reset mocks between tests with beforeEach/afterEach, avoid shared state)</subtask>
+          <subtask>Document async testing patterns (use async/await consistently, handle promises correctly, test loading and error states)</subtask>
+        </subtasks>
+      </task>
+
+      <task id="8" title="Document Accessibility Testing Guidelines">
+        <subtasks>
+          <subtask>Document accessibility testing approach (WCAG 2.1 AA compliance target, automated testing with axe-core/Playwright, manual testing with keyboard navigation, screen reader compatibility)</subtask>
+          <subtask>Provide example: Automated accessibility tests with axe-core</subtask>
+          <subtask>Document keyboard navigation testing (tab order validation, focus indicators visible, all interactive elements keyboard-accessible, Escape key closes modals, Enter key submits forms)</subtask>
+          <subtask>Document screen reader testing guidelines (test with NVDA/VoiceOver, verify ARIA labels, landmarks, dynamic content announced)</subtask>
+          <subtask>Provide checklist for accessibility validation (color contrast ratios 4.5:1, form labels properly associated, alt text for images, heading hierarchy logical, no keyboard traps)</subtask>
+        </subtasks>
+      </task>
+
+      <task id="9" title="Document Debugging and Troubleshooting">
+        <subtasks>
+          <subtask>Document common test failures and solutions (timeout errors, flaky tests, mock not working, database errors)</subtask>
+          <subtask>Document debugging techniques for unit tests (test.only(), console.log(), VS Code debugger with breakpoints, check coverage report)</subtask>
+          <subtask>Document debugging techniques for E2E tests (run in UI mode, view screenshots on failure, use page.pause(), view trace files)</subtask>
+          <subtask>Document CI/CD troubleshooting (view full logs in GitHub Actions, check environment variables, verify test database accessible, check for timeouts)</subtask>
+          <subtask>Provide debugging workflow (identify failing test, run test locally in isolation, add console.log or breakpoints, check mocks and test data, verify test setup/teardown, fix issue and verify locally, push and verify in CI)</subtask>
+        </subtasks>
+      </task>
+
+      <task id="10" title="Add Code Examples for Common Scenarios">
+        <subtasks>
+          <subtask>Create comprehensive examples section (testing authentication flows, file uploads, forms with validation, data tables with sorting/filtering, modal dialogs, API error handling)</subtask>
+          <subtask>For each example, provide: scenario description, complete working code, expected behavior, common pitfalls to avoid</subtask>
+          <subtask>Link examples to actual test files in codebase (reference Stories 1.5.1 and 1.5.2 sample tests, point to __tests__/ directory structure)</subtask>
+        </subtasks>
+      </task>
+
+      <task id="11" title="Document CI/CD Workflow Details">
+        <subtasks>
+          <subtask>Document GitHub Actions workflow (location: .github/workflows/ci.yml, triggers: PR and push to main, steps: Install → Lint → Test → Build)</subtask>
+          <subtask>Document test execution in CI (parallelization strategy, timeout configuration with retries for E2E, test results reporting)</subtask>
+          <subtask>Document coverage reporting (coverage report uploaded to Codecov, coverage visible in PR comments, coverage trends tracked over time)</subtask>
+          <subtask>Document required status checks (tests must pass before merge, coverage threshold enforced 70%+, linting must pass)</subtask>
+          <subtask>Provide visual diagram of CI/CD flow (PR Created → GitHub Actions Triggered → Install Dependencies → Run Linter → Run Unit Tests → Run Integration Tests → Run E2E Tests → Upload Coverage Report → Tests Pass/Fail → Allow/Block Merge)</subtask>
+        </subtasks>
+      </task>
+
+      <task id="12" title="Review and Validation">
+        <subtasks>
+          <subtask>Review complete testing guide for clarity and readability, completeness (all ACs covered), code examples are accurate and working, links and cross-references correct</subtask>
+          <subtask>Validate examples by running them (unit test examples execute successfully, integration test examples execute successfully, E2E test examples execute successfully)</subtask>
+          <subtask>Test accessibility testing examples (verify axe-core integration works, confirm keyboard navigation examples accurate)</subtask>
+          <subtask>Peer review with team (gather feedback on documentation clarity, identify missing scenarios or examples, incorporate feedback and revisions)</subtask>
+          <subtask>Create index entry in docs/index.md (link to testing guide, brief description of contents)</subtask>
+        </subtasks>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="1">Testing guide document created (docs/testing-guide.md)</criterion>
+    <criterion id="2">Documentation includes:
+      - How to run tests locally (unit, integration, E2E)
+      - How to write new tests (examples for each type)
+      - Testing patterns and best practices (AAA pattern, mocking strategies)
+      - Page Object Model usage for E2E tests
+      - When to write unit vs integration vs E2E tests
+      - Test coverage expectations (70%+ for critical paths)
+      - Debugging failed tests (common issues and solutions)</criterion>
+    <criterion id="3">Code examples provided for common testing scenarios</criterion>
+    <criterion id="4">Accessibility testing guidelines included (keyboard navigation, screen readers)</criterion>
+    <criterion id="5">CI/CD workflow documented (how automated testing works)</criterion>
+    <criterion id="6">Troubleshooting section (common CI/CD failures and fixes)</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/tech-spec-epic-1-5.md" relevance="primary">
+        <description>Epic 1.5 technical specification - provides complete testing infrastructure overview</description>
+        <keySection>Test Strategy Summary (lines 402-479)</keySection>
+        <keySection>Testing Tools and Libraries (lines 426-432)</keySection>
+        <keySection>Key Testing Patterns (lines 434-439)</keySection>
+        <keySection>Test File Structure (lines 441-465)</keySection>
+        <keySection>Sample Test Examples (lines 467-476)</keySection>
+        <keySection>CI/CD Test Pipeline (lines 509-531)</keySection>
+        <keySection>Accessibility Testing Requirements (lines 533-537)</keySection>
+        <keySection>Performance Targets for Tests (lines 539-543)</keySection>
+        <keySection>Common Testing Scenarios to Document (lines 545-553)</keySection>
+      </doc>
+
+      <doc path="docs/architecture.md" relevance="primary">
+        <description>Architecture document - Testing Strategy section provides detailed testing approach</description>
+        <keySection>Testing Strategy (lines 1417-1711)</keySection>
+        <keySection>Test Pyramid (lines 1421-1434)</keySection>
+        <keySection>Unit Tests with Jest (lines 1436-1479)</keySection>
+        <keySection>Integration Tests (lines 1481-1529)</keySection>
+        <keySection>End-to-End Tests with Playwright (lines 1531-1647)</keySection>
+        <keySection>CI/CD Integration (lines 1649-1711)</keySection>
+      </doc>
+
+      <doc path="docs/PRD.md" relevance="secondary">
+        <description>Product Requirements Document - testing and quality requirements</description>
+        <keySection>FR024: Automated test suite requirements (line 68)</keySection>
+        <keySection>NFR005: Test coverage requirements (line 80)</keySection>
+        <keySection>NFR006: Accessibility testing requirements (line 81)</keySection>
+      </doc>
+
+      <doc path="docs/epics.md" relevance="secondary">
+        <description>Epic breakdown - Story 1.5.4 acceptance criteria and context</description>
+        <keySection>Story 1.5.4 acceptance criteria (lines 316-338)</keySection>
+        <keySection>Epic 1.5 overview (lines 220-246)</keySection>
+      </doc>
+    </docs>
+
+    <code>
+      <file path="package.json" relevance="primary">
+        <description>NPM scripts for test execution to document in guide</description>
+        <keyContent>Test scripts: npm test, npm run test:watch, npm run test:coverage, npm run test:e2e, npm run test:e2e:ui, npm run test:e2e:debug</keyContent>
+      </file>
+
+      <file path="src/validators/index.ts" relevance="reference">
+        <description>Example of validation schemas to reference in testing examples</description>
+        <usage>Reference for testing input validation scenarios</usage>
+      </file>
+
+      <file path="src/lib/prisma.ts" relevance="reference">
+        <description>Prisma client configuration to reference for mocking in tests</description>
+        <usage>Example for documenting Prisma mock setup</usage>
+      </file>
+
+      <file path="src/lib/auth.ts" relevance="reference">
+        <description>NextAuth configuration to reference for session mocking in tests</description>
+        <usage>Example for documenting authentication test setup</usage>
+      </file>
+
+      <file path="src/lib/r2.ts" relevance="reference">
+        <description>R2 file storage client to reference for file upload testing</description>
+        <usage>Example for documenting file upload test scenarios</usage>
+      </file>
+
+      <file path="src/lib/rate-limit.ts" relevance="reference">
+        <description>Rate limiting implementation to reference for testing rate-limited endpoints</description>
+        <usage>Example for documenting rate limit test scenarios</usage>
+      </file>
+    </code>
+
+    <dependencies>
+      <dependency name="jest" version="^29.x" purpose="Unit/integration test runner">
+        <documentation>https://jestjs.io/docs/getting-started</documentation>
+        <usage>Core testing framework for unit and integration tests</usage>
+      </dependency>
+
+      <dependency name="@testing-library/react" version="^14.x" purpose="React component testing">
+        <documentation>https://testing-library.com/docs/react-testing-library/intro</documentation>
+        <usage>Testing React components with user-centric queries</usage>
+      </dependency>
+
+      <dependency name="@testing-library/jest-dom" version="^6.x" purpose="DOM matchers for Jest">
+        <documentation>https://github.com/testing-library/jest-dom</documentation>
+        <usage>Custom Jest matchers for DOM assertions</usage>
+      </dependency>
+
+      <dependency name="@testing-library/user-event" version="^14.x" purpose="User interaction simulation">
+        <documentation>https://testing-library.com/docs/user-event/intro</documentation>
+        <usage>Simulating user interactions in component tests</usage>
+      </dependency>
+
+      <dependency name="jest-mock-extended" version="^3.x" purpose="Deep mocking for Prisma">
+        <documentation>https://github.com/marchaos/jest-mock-extended</documentation>
+        <usage>Mocking Prisma client for isolated database testing</usage>
+      </dependency>
+
+      <dependency name="@playwright/test" version="^1.40.x" purpose="E2E browser testing">
+        <documentation>https://playwright.dev/docs/intro</documentation>
+        <usage>End-to-end browser testing with Page Object Model</usage>
+      </dependency>
+
+      <dependency name="@axe-core/playwright" version="^4.x" purpose="Accessibility testing">
+        <documentation>https://github.com/dequelabs/axe-core-npm/tree/develop/packages/playwright</documentation>
+        <usage>Automated accessibility testing integration with Playwright</usage>
+      </dependency>
+    </dependencies>
+
+    <testInfrastructure>
+      <directory path="__tests__/" status="to-be-created">
+        <description>Test directory structure to document in guide</description>
+        <structure>
+          __tests__/
+          ├── unit/                    # Business logic tests
+          │   ├── lib/
+          │   │   ├── gpa.test.ts
+          │   │   └── validation.test.ts
+          │   └── validators/
+          ├── integration/             # API route tests
+          │   └── api/
+          │       ├── instructor/
+          │       │   └── courses.test.ts
+          │       └── student/
+          ├── e2e/                     # End-to-end tests
+          │   ├── student.spec.ts
+          │   ├── instructor.spec.ts
+          │   ├── admin.spec.ts
+          │   └── accessibility.spec.ts
+          ├── fixtures/                # Test data
+          │   ├── users.ts
+          │   └── courses.ts
+          └── helpers/
+              ├── prismaMock.ts
+              └── testUtils.tsx
+        </structure>
+      </directory>
+
+      <configFile path="jest.config.js" status="to-be-created">
+        <description>Jest configuration for Next.js + TypeScript to document</description>
+      </configFile>
+
+      <configFile path="playwright.config.ts" status="to-be-created">
+        <description>Playwright configuration to document</description>
+      </configFile>
+
+      <configFile path=".github/workflows/ci.yml" status="to-be-created">
+        <description>CI/CD workflow to document in guide</description>
+      </configFile>
+    </testInfrastructure>
+  </artifacts>
+
+  <constraints>
+    <constraint type="documentation-format">
+      <description>Use Markdown formatting consistently with syntax highlighting for code blocks</description>
+      <requirement>All code examples must use ```typescript or appropriate language tags</requirement>
+    </constraint>
+
+    <constraint type="documentation-structure">
+      <description>Include table of contents with anchor links for easy navigation</description>
+      <requirement>All major sections must have anchor links for direct access</requirement>
+    </constraint>
+
+    <constraint type="code-examples">
+      <description>All code examples must be copy-paste ready and executable</description>
+      <requirement>Examples should run without modification when copied from documentation</requirement>
+    </constraint>
+
+    <constraint type="documentation-style">
+      <description>Follow established documentation patterns from existing docs/</description>
+      <requirement>Use numbered lists for sequential steps, bullet points for non-sequential items</requirement>
+    </constraint>
+
+    <constraint type="coverage-standards">
+      <description>Documentation must align with PRD NFR005 coverage requirements</description>
+      <requirement>Critical paths: 70%+, Business logic: 80%+, UI components: 50%+, Overall: 70%+</requirement>
+    </constraint>
+
+    <constraint type="accessibility-standards">
+      <description>Accessibility testing must target WCAG 2.1 AA compliance</description>
+      <requirement>Document automated testing (axe-core) and manual testing (keyboard nav, screen readers)</requirement>
+    </constraint>
+
+    <constraint type="test-pyramid">
+      <description>Documentation must reinforce test pyramid approach</description>
+      <requirement>Many unit tests (fast, isolated), moderate integration tests (API validation), few E2E tests (critical flows only)</requirement>
+    </constraint>
+  </constraints>
+
+  <interfaces>
+    <testingGuideStructure>
+      <section id="1" title="Introduction">
+        <content>Purpose and goals of testing in AI Gurus LMS</content>
+        <content>Overview of testing philosophy (shift-left, test-driven development)</content>
+        <content>Testing infrastructure overview (Jest, Playwright, CI/CD)</content>
+      </section>
+
+      <section id="2" title="Getting Started">
+        <content>Prerequisites (Node.js, npm, test database setup)</content>
+        <content>Installing dependencies (npm install)</content>
+        <content>First test execution (npm test)</content>
+      </section>
+
+      <section id="3" title="Running Tests Locally">
+        <content>Unit test execution (npm test, npm run test:watch, npm run test:coverage)</content>
+        <content>Integration test execution (included in npm test, filtering patterns)</content>
+        <content>E2E test execution (npm run test:e2e, npm run test:e2e:ui, npm run test:e2e:debug)</content>
+        <content>Running specific test files or suites</content>
+      </section>
+
+      <section id="4" title="Writing Tests">
+        <content>Unit test examples (utility functions, React components)</content>
+        <content>Integration test examples (API routes, authentication)</content>
+        <content>E2E test examples (user flows with Page Object Model)</content>
+        <content>Common testing scenarios (authentication, file uploads, forms, tables, modals)</content>
+      </section>
+
+      <section id="5" title="Testing Strategy">
+        <content>Test pyramid approach (unit > integration > E2E)</content>
+        <content>When to write unit vs integration vs E2E tests</content>
+        <content>Coverage targets by component type</content>
+        <content>Decision framework for test type selection</content>
+      </section>
+
+      <section id="6" title="Best Practices and Patterns">
+        <content>AAA pattern (Arrange, Act, Assert)</content>
+        <content>Mocking strategies (Prisma, NextAuth, file uploads)</content>
+        <content>Test data management (fixtures, test helpers)</content>
+        <content>Test isolation (independent tests, reset mocks)</content>
+        <content>Async testing patterns (async/await, promises, loading states)</content>
+      </section>
+
+      <section id="7" title="Accessibility Testing">
+        <content>WCAG 2.1 AA compliance approach</content>
+        <content>Automated testing with axe-core</content>
+        <content>Keyboard navigation testing</content>
+        <content>Screen reader testing guidelines</content>
+        <content>Accessibility validation checklist</content>
+      </section>
+
+      <section id="8" title="CI/CD Integration">
+        <content>GitHub Actions workflow overview</content>
+        <content>Test execution in CI (triggers, steps, results)</content>
+        <content>Coverage reporting (Codecov integration)</content>
+        <content>Required status checks (tests must pass before merge)</content>
+        <content>Visual workflow diagram</content>
+      </section>
+
+      <section id="9" title="Debugging and Troubleshooting">
+        <content>Common test failures and solutions</content>
+        <content>Debugging techniques for unit tests</content>
+        <content>Debugging techniques for E2E tests</content>
+        <content>CI/CD troubleshooting</content>
+        <content>Debugging workflow</content>
+      </section>
+
+      <section id="10" title="External Resources">
+        <content>Jest documentation links</content>
+        <content>React Testing Library documentation links</content>
+        <content>Playwright documentation links</content>
+        <content>Accessibility testing resources (WCAG guidelines, axe-core, screen readers)</content>
+      </section>
+    </testingGuideStructure>
+
+    <documentationFormat>
+      <format>Markdown (.md)</format>
+      <codeHighlighting>TypeScript (```typescript), JavaScript (```javascript), Bash (```bash), YAML (```yaml)</codeHighlighting>
+      <linkingStrategy>Relative links to other docs/ files, absolute URLs for external resources</linkingStrategy>
+      <metadata>Include document title, author, date, version at top of file</metadata>
+    </documentationFormat>
+  </interfaces>
+
+  <tests>
+    <standards>
+      <standard>All code examples in documentation must be syntactically correct</standard>
+      <standard>All code examples must be executable without modification</standard>
+      <standard>All examples must align with actual testing infrastructure (Jest, Playwright configs)</standard>
+      <standard>Documentation must be comprehensive enough for new developer to write first test</standard>
+      <standard>All acceptance criteria must be traceable to specific documentation sections</standard>
+      <standard>Documentation quality validated by peer review before story completion</standard>
+    </standards>
+
+    <locations>
+      <primary>docs/testing-guide.md - Main testing documentation deliverable</primary>
+      <index>docs/index.md - Add link to testing guide with brief description</index>
+      <reference>Reference existing docs (tech-spec-epic-1-5.md, architecture.md) for technical accuracy</reference>
+    </locations>
+
+    <ideas>
+      <validation id="1">Verify all code examples execute successfully (run each example to validate)</validation>
+      <validation id="2">Confirm all NPM scripts documented match package.json scripts</validation>
+      <validation id="3">Validate accessibility testing examples with actual axe-core integration</validation>
+      <validation id="4">Ensure keyboard navigation examples align with WCAG 2.1 AA standards</validation>
+      <validation id="5">Verify CI/CD workflow diagram matches actual .github/workflows/ci.yml structure</validation>
+      <validation id="6">Confirm coverage targets documented match PRD NFR005 requirements</validation>
+      <validation id="7">Validate test file structure matches architecture.md specifications</validation>
+      <validation id="8">Ensure all external documentation links are valid and current</validation>
+      <validation id="9">Verify Page Object Model examples follow Playwright best practices</validation>
+      <validation id="10">Confirm troubleshooting section covers common CI/CD failure scenarios</validation>
+    </ideas>
+  </tests>
+</story-context>

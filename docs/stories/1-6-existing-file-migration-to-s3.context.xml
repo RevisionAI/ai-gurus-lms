@@ -1,0 +1,527 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context id="1-6-existing-file-migration-to-s3" v="1.0">
+  <metadata>
+    <epicId>epic-1</epicId>
+    <epicTitle>Infrastructure Foundation and Security Hardening</epicTitle>
+    <storyId>1-6-existing-file-migration-to-s3</storyId>
+    <title>Existing File Migration to S3</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-11-25</generatedAt>
+    <generator>story-context workflow (BMM Method)</generator>
+    <sourceStoryPath>docs/stories/1-6-existing-file-migration-to-s3.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>administrator</asA>
+    <iWant>all existing locally-stored files migrated to S3</iWant>
+    <soThat>no files are lost during infrastructure transition</soThat>
+
+    <tasks>
+      <task id="1" ac="1" status="pending">
+        <description>Create file migration script</description>
+        <subtasks>
+          <subtask>Create /scripts/migrate-files-to-r2.ts with TypeScript configuration</subtask>
+          <subtask>Implement local file scanning (recursively traverse uploads directory)</subtask>
+          <subtask>Add progress tracking (count total files, log upload progress percentage)</subtask>
+          <subtask>Implement R2 upload logic using S3 client from Story 1.5</subtask>
+          <subtask>Add multipart upload support for files greater than 5MB (improves reliability)</subtask>
+          <subtask>Implement retry logic (3 retries with exponential backoff for network failures)</subtask>
+          <subtask>Add dry-run mode for testing without actual uploads (--dry-run flag)</subtask>
+          <subtask>Testing: Unit test verifies file scanning logic finds all files</subtask>
+        </subtasks>
+      </task>
+
+      <task id="2" ac="2" status="pending">
+        <description>Implement checksum validation</description>
+        <subtasks>
+          <subtask>Calculate MD5 checksum for each local file before upload</subtask>
+          <subtask>Verify R2 ETag matches local MD5 after upload (integrity validation)</subtask>
+          <subtask>Log checksum mismatches to error file for investigation</subtask>
+          <subtask>Halt migration if checksum failures exceed threshold (5% of files)</subtask>
+          <subtask>Generate integrity report: total files, successful uploads, failed uploads, checksum mismatches</subtask>
+          <subtask>Testing: Integration test uploads file with known MD5, verifies ETag match</subtask>
+        </subtasks>
+      </task>
+
+      <task id="3" ac="3" status="pending">
+        <description>Update database records with S3 keys</description>
+        <subtasks>
+          <subtask>Identify models storing file references: CourseContent (fileUrl, thumbnailUrl), Submission (fileUrl)</subtask>
+          <subtask>Create database update function: map local file path to S3 key</subtask>
+          <subtask>Update CourseContent records with R2 keys and CDN URLs</subtask>
+          <subtask>Update Submission records with R2 keys and CDN URLs</subtask>
+          <subtask>Add transaction support (rollback all DB updates if migration fails)</subtask>
+          <subtask>Log database update progress (records updated, records skipped)</subtask>
+          <subtask>Testing: Integration test verifies database records updated correctly after upload</subtask>
+        </subtasks>
+      </task>
+
+      <task id="4" ac="4" status="pending">
+        <description>Update file retrieval logic in application</description>
+        <subtasks>
+          <subtask>Audit codebase for local file path references (grep for /uploads/, public/uploads/)</subtask>
+          <subtask>Update course content display components to use CDN URLs</subtask>
+          <subtask>Update assignment submission download logic to use signed URLs (private files)</subtask>
+          <subtask>Add fallback logic: if R2 key present, use CDN; otherwise use local path (backward compatibility during migration)</subtask>
+          <subtask>Test file retrieval in all contexts: course content preview, assignment submission download, thumbnail display</subtask>
+          <subtask>Testing: E2E test verifies files accessible via CDN URLs in application</subtask>
+        </subtasks>
+      </task>
+
+      <task id="5" ac="5" status="pending">
+        <description>Archive local files</description>
+        <subtasks>
+          <subtask>Create archive directory: /uploads_archive_{timestamp}/</subtask>
+          <subtask>Move successfully uploaded files to archive (preserve directory structure)</subtask>
+          <subtask>Keep files with upload failures in original location for retry</subtask>
+          <subtask>Document 30-day retention policy: manual deletion after 30 days if no rollback needed</subtask>
+          <subtask>Add archive size reporting (total GB archived)</subtask>
+          <subtask>Testing: Manual verification confirms files moved to archive directory</subtask>
+        </subtasks>
+      </task>
+
+      <task id="6" ac="6" status="pending">
+        <description>Comprehensive verification</description>
+        <subtasks>
+          <subtask>Generate list of all files from database records (CourseContent + Submission)</subtask>
+          <subtask>Test each CDN URL via HTTP HEAD request (verify 200 response)</subtask>
+          <subtask>Log inaccessible files for investigation</subtask>
+          <subtask>Generate verification report: total files, accessible files, inaccessible files</subtask>
+          <subtask>Test file downloads in application (spot check 10 random files)</subtask>
+          <subtask>Testing: Integration test verifies all migrated files return 200 from CDN</subtask>
+        </subtasks>
+      </task>
+
+      <task id="7" ac="7" status="pending">
+        <description>Create rollback script</description>
+        <subtasks>
+          <subtask>Create /scripts/rollback-r2-migration.ts to restore files from S3 to local</subtask>
+          <subtask>Implement S3 download logic (inverse of migration script)</subtask>
+          <subtask>Download all files from R2 to original local paths</subtask>
+          <subtask>Verify checksums after download (ensure integrity)</subtask>
+          <subtask>Revert database records to local file paths</subtask>
+          <subtask>Test rollback script on staging data (verify complete restoration)</subtask>
+          <subtask>Document rollback procedure in /docs/file-migration-rollback.md</subtask>
+          <subtask>Testing: Integration test executes rollback, verifies files restored locally</subtask>
+        </subtasks>
+      </task>
+
+      <task id="8" ac="6,7" status="pending">
+        <description>Create migration documentation</description>
+        <subtasks>
+          <subtask>Document migration script usage: command syntax, flags, expected output</subtask>
+          <subtask>Document pre-migration checklist: backup database, verify R2 credentials, test upload</subtask>
+          <subtask>Document post-migration validation steps: verification report review, spot checks</subtask>
+          <subtask>Document rollback procedure: when to rollback, how to execute, validation steps</subtask>
+          <subtask>Include troubleshooting section: common errors (network timeout, permission denied), solutions</subtask>
+          <subtask>Save to /docs/file-migration-guide.md</subtask>
+          <subtask>Testing: Manual review confirms documentation completeness</subtask>
+        </subtasks>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC1" priority="must">
+      <description>File migration script created - Script scans local uploads directory and uploads files to Cloudflare R2 with progress tracking</description>
+      <validation>Manual: Verify /scripts/migrate-files-to-r2.ts exists with file scanning and progress tracking</validation>
+    </criterion>
+
+    <criterion id="AC2" priority="must">
+      <description>All existing files migrated with integrity validation - Checksum validation ensures zero data loss during transfer</description>
+      <validation>Integration test: Run migration script on test data, verify all checksums match (MD5 local == R2 ETag)</validation>
+    </criterion>
+
+    <criterion id="AC3" priority="must">
+      <description>Database records updated with S3 keys - All CourseContent and Submission records reference R2 storage keys</description>
+      <validation>Integration test: Verify all fileUrl fields in CourseContent and Submission contain R2 keys after migration</validation>
+    </criterion>
+
+    <criterion id="AC4" priority="must">
+      <description>File retrieval URLs updated - Application retrieves files via CDN URLs instead of local filesystem paths</description>
+      <validation>E2E test: Load course content page, verify images/videos load from CDN domain (not localhost)</validation>
+    </criterion>
+
+    <criterion id="AC5" priority="must">
+      <description>Local files archived as backup - Original files moved to archive directory with 30-day retention policy</description>
+      <validation>Manual: Verify /uploads_archive_{timestamp}/ directory exists with all original files preserved</validation>
+    </criterion>
+
+    <criterion id="AC6" priority="must">
+      <description>Verification completed - All course content and assignment files accessible via new CDN URLs</description>
+      <validation>Integration test: Generate list of all file URLs from database, verify each returns HTTP 200</validation>
+    </criterion>
+
+    <criterion id="AC7" priority="must">
+      <description>Rollback capability implemented - Script to restore files from S3 to local filesystem if migration issues detected</description>
+      <validation>Integration test: Run rollback script, verify all files restored to original local paths and database updated</validation>
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture Document</title>
+        <section>File Storage Architecture</section>
+        <snippet>
+**Storage Provider: Cloudflare R2**
+
+**Why Cloudflare R2:**
+- Zero egress fees (unlimited downloads at no extra cost)
+- S3-compatible API (easy migration if needed)
+- Generous free tier (10GB storage, 1M Class A operations/month)
+- Global CDN included automatically
+- Cost-effective scaling ($0.015/GB vs $0.023/GB for alternatives)
+
+**Storage Strategy:**
+
+**Public Bucket** (Course content, thumbnails):
+- Purpose: Publicly accessible course materials
+- CDN: Enabled for fast global delivery
+- Access: Public read, signed write
+- Example URLs: https://pub-xxxxx.r2.dev/courses/cs101/intro-video.mp4
+
+**Private Bucket** (Assignment submissions, sensitive files):
+- Purpose: Student submissions, instructor files
+- CDN: Disabled (sensitive content)
+- Access: Signed URLs only (time-limited)
+- Expiry: 1 hour for signed URLs
+
+**File Migration (Epic 1, Story 1.6)**
+
+**Migration Script:** /scripts/migrate-files-to-r2.ts
+
+**Migration strategy:**
+1. Scan local uploads directory
+2. For each file:
+   - Upload to appropriate R2 bucket (public/private)
+   - Verify upload integrity (checksum)
+   - Update database record with R2 key
+   - Move local file to archive directory
+3. Validation:
+   - Verify all database records have R2 keys
+   - Test file retrieval via signed URLs
+4. Rollback capability:
+   - Keep local files archived for 30 days
+   - Script to restore from R2 to local if needed
+        </snippet>
+      </doc>
+
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Epic 1 Technical Specification</title>
+        <section>Workflows and Sequencing - File Storage Migration</section>
+        <snippet>
+**File Storage Migration Workflow (Stories 1.4-1.6):**
+
+3. Story 1.6: Existing File Migration
+   - Create file migration script (scripts/migrate-files-to-r2.ts)
+   - Scan local uploads directory
+   - Upload files to R2 with progress tracking
+   - Update database file references
+   - Verify all files accessible via CDN URLs
+   - Archive local files as backup
+   - Test file retrieval in application
+
+**Migration Strategy:**
+- For each file:
+  - Upload to appropriate R2 bucket (public/private)
+  - Verify upload integrity (checksum)
+  - Update database record with R2 key
+  - Move local file to archive directory
+        </snippet>
+      </doc>
+
+      <doc>
+        <path>docs/epics.md</path>
+        <title>Epic Breakdown</title>
+        <section>Story 1.6: Existing File Migration to S3</section>
+        <snippet>
+**As an** administrator,
+**I want** all existing locally-stored files migrated to S3,
+**So that** no files are lost during infrastructure transition.
+
+**Acceptance Criteria:**
+1. File migration script created (scans local uploads, uploads to S3)
+2. All existing files migrated with integrity validation (checksums)
+3. Database records updated with S3 keys for migrated files
+4. File retrieval URLs updated to use CDN URLs
+5. Local files archived as backup (retained for 30 days post-migration)
+6. Verification: All course content and assignment files accessible via new URLs
+7. Rollback capability: Script to restore files from S3 to local if needed
+
+**Prerequisites:** Story 1.5 complete
+        </snippet>
+      </doc>
+
+      <doc>
+        <path>docs/PRD.md</path>
+        <title>Product Requirements Document</title>
+        <section>Functional Requirements - Infrastructure and Data Management</section>
+        <snippet>
+FR002: System shall store all uploaded files (course content, assignments, submissions) in S3-compatible cloud storage with CDN delivery
+FR003: System shall implement automated daily database backups with 7-day retention and validated restore procedures
+
+**Non-Functional Requirements:**
+NFR002: Reliability - System shall maintain 99.5%+ uptime during production operation with automated monitoring and alerting for critical errors
+NFR004: Security - System shall pass external security audit with all P0/P1 vulnerabilities remediated, implementing OWASP Top 10 protections and encryption for data at rest and in transit
+        </snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <file>
+        <path>prisma/schema.prisma</path>
+        <kind>data-model</kind>
+        <symbol>CourseContent</symbol>
+        <lines>181-197</lines>
+        <reason>CourseContent model stores file references in fileUrl and thumbnailUrl fields that need migration to R2 keys</reason>
+        <snippet>
+model CourseContent {
+  id          String      @id @default(cuid())
+  title       String
+  type        ContentType
+  content     String?
+  fileUrl     String?        # Local path OR R2 key
+  thumbnailUrl String?       # Local path OR R2 key
+  orderIndex  Int
+  isPublished Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@map("course_content")
+}
+        </snippet>
+      </file>
+
+      <file>
+        <path>prisma/schema.prisma</path>
+        <kind>data-model</kind>
+        <symbol>Submission</symbol>
+        <lines>96-110</lines>
+        <reason>Submission model stores file references in fileUrl field that need migration to R2 keys</reason>
+        <snippet>
+model Submission {
+  id          String   @id @default(cuid())
+  content     String?
+  fileUrl     String?      # Local path OR R2 key
+  submittedAt DateTime @default(now())
+
+  assignmentId String
+  studentId    String
+  assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  student      User       @relation(fields: [studentId], references: [id])
+
+  @@unique([assignmentId, studentId])
+  @@map("submissions")
+}
+        </snippet>
+      </file>
+
+      <file>
+        <path>src/lib/prisma.ts</path>
+        <kind>utility</kind>
+        <symbol>prisma</symbol>
+        <lines>1-9</lines>
+        <reason>Prisma client singleton for database operations in migration script</reason>
+        <snippet>
+import { PrismaClient } from '@prisma/client'
+
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined
+}
+
+export const prisma = globalForPrisma.prisma ?? new PrismaClient()
+
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+        </snippet>
+      </file>
+    </code>
+
+    <dependencies>
+      <dependency>
+        <name>@aws-sdk/client-s3</name>
+        <version>^3.700.0</version>
+        <purpose>S3-compatible client for Cloudflare R2 operations (upload, download, signed URLs)</purpose>
+        <usage>Import S3Client, PutObjectCommand, GetObjectCommand for R2 file operations</usage>
+      </dependency>
+
+      <dependency>
+        <name>@aws-sdk/lib-storage</name>
+        <version>^3.700.0</version>
+        <purpose>Multipart upload support for files greater than 5MB</purpose>
+        <usage>Import Upload class for efficient large file transfers with automatic part management</usage>
+      </dependency>
+
+      <dependency>
+        <name>@aws-sdk/s3-request-presigner</name>
+        <version>^3.700.0</version>
+        <purpose>Generate signed URLs for secure file downloads from private bucket</purpose>
+        <usage>Import getSignedUrl for creating time-limited download URLs</usage>
+      </dependency>
+
+      <dependency>
+        <name>@prisma/client</name>
+        <version>^6.9.0</version>
+        <purpose>Database client for querying and updating file references</purpose>
+        <usage>Query CourseContent and Submission models, update fileUrl fields with R2 keys</usage>
+      </dependency>
+
+      <dependency>
+        <name>Node.js built-ins</name>
+        <version>20.x</version>
+        <purpose>File system operations and checksum calculation</purpose>
+        <usage>fs/promises for file operations, crypto for MD5 checksum calculation, path for directory traversal</usage>
+      </dependency>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="technical">
+      <description>Preserve existing file directory structure during migration and archival</description>
+      <rationale>Enables easier manual verification and potential rollback operations</rationale>
+    </constraint>
+
+    <constraint type="technical">
+      <description>Implement idempotent migration script that can be safely re-run</description>
+      <rationale>Network failures or interruptions should not corrupt data; script can resume from last successful upload</rationale>
+    </constraint>
+
+    <constraint type="operational">
+      <description>30-day retention policy for archived local files</description>
+      <rationale>Provides sufficient rollback window while managing storage costs</rationale>
+    </constraint>
+
+    <constraint type="data-integrity">
+      <description>100% checksum validation required before marking migration complete</description>
+      <rationale>Zero data loss tolerance for production migration; any checksum mismatch halts process</rationale>
+    </constraint>
+
+    <constraint type="performance">
+      <description>Support multipart uploads for files greater than 5MB</description>
+      <rationale>Improves reliability for large video files; reduces memory footprint during uploads</rationale>
+    </constraint>
+
+    <constraint type="dependency">
+      <description>Story 1.5 (File Upload API Migration) must be complete</description>
+      <rationale>R2 client library and upload utilities must be operational before migrating existing files</rationale>
+    </constraint>
+
+    <constraint type="deployment">
+      <description>Migration script run during maintenance window with low traffic</description>
+      <rationale>Minimizes risk of user accessing files during migration transition period</rationale>
+    </constraint>
+  </constraints>
+
+  <interfaces>
+    <interface type="api">
+      <name>Cloudflare R2 S3-Compatible API</name>
+      <description>S3-compatible object storage API for file upload, download, and metadata operations</description>
+      <endpoints>
+        <endpoint>PUT /{bucket}/{key} - Upload file to R2 bucket</endpoint>
+        <endpoint>GET /{bucket}/{key} - Download file from R2 bucket</endpoint>
+        <endpoint>HEAD /{bucket}/{key} - Get file metadata (ETag for checksum validation)</endpoint>
+      </endpoints>
+      <authentication>AWS Signature Version 4 using R2 access key ID and secret access key</authentication>
+    </interface>
+
+    <interface type="database">
+      <name>Prisma ORM Database Interface</name>
+      <description>Type-safe database queries for file reference updates</description>
+      <operations>
+        <operation>prisma.courseContent.findMany() - Query all course content with file URLs</operation>
+        <operation>prisma.courseContent.update() - Update fileUrl and thumbnailUrl with R2 keys</operation>
+        <operation>prisma.submission.findMany() - Query all submissions with file URLs</operation>
+        <operation>prisma.submission.update() - Update fileUrl with R2 keys</operation>
+        <operation>prisma.$transaction() - Wrap database updates in transaction for rollback capability</operation>
+      </operations>
+    </interface>
+
+    <interface type="filesystem">
+      <name>Node.js File System API</name>
+      <description>Local file system operations for scanning, reading, and archiving files</description>
+      <operations>
+        <operation>fs.readdir() - Recursively scan uploads directory</operation>
+        <operation>fs.readFile() - Read file contents for upload</operation>
+        <operation>fs.rename() - Move files to archive directory</operation>
+        <operation>crypto.createHash('md5') - Calculate MD5 checksums for integrity validation</operation>
+      </operations>
+    </interface>
+
+    <interface type="cli">
+      <name>Migration Script CLI</name>
+      <description>Command-line interface for migration script execution</description>
+      <usage>node scripts/migrate-files-to-r2.ts [options]</usage>
+      <options>
+        <option>--dry-run - Preview migration without uploading files</option>
+        <option>--batch-size - Number of files to process concurrently (default: 10)</option>
+        <option>--public-bucket - Name of public R2 bucket for course content</option>
+        <option>--private-bucket - Name of private R2 bucket for submissions</option>
+      </options>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      <standard>Unit tests for file scanning and checksum calculation logic (Jest)</standard>
+      <standard>Integration tests for R2 upload with checksum validation (Jest with actual R2 test bucket)</standard>
+      <standard>Integration tests for database record updates with transaction rollback (Jest with test database)</standard>
+      <standard>Integration tests for HTTP HEAD requests verifying CDN accessibility (Jest)</standard>
+      <standard>Integration tests for rollback script restoration (Jest)</standard>
+      <standard>Manual verification of archive directory structure and retention policy documentation</standard>
+    </standards>
+
+    <locations>
+      <location>__tests__/unit/scripts/migrate-files-to-r2.test.ts - Unit tests for file scanning logic</location>
+      <location>__tests__/integration/scripts/migrate-files-to-r2.test.ts - Integration tests for upload and checksum validation</location>
+      <location>__tests__/integration/scripts/rollback-r2-migration.test.ts - Integration tests for rollback script</location>
+    </locations>
+
+    <ideas>
+      <idea criterion="AC1">
+        <test>Unit test: scanLocalFiles() function returns array of all file paths in uploads directory</test>
+        <test>Unit test: calculateMD5() function returns correct checksum for known test file</test>
+        <test>Unit test: generateS3Key() function creates correct R2 key format (course-content/{id}/ or submissions/{id}/)</test>
+      </idea>
+
+      <idea criterion="AC2">
+        <test>Integration test: Upload test file to R2, verify ETag matches local MD5 checksum</test>
+        <test>Integration test: Simulate checksum mismatch, verify migration halts with error logged</test>
+        <test>Integration test: Verify integrity report contains correct counts (total, success, failures)</test>
+      </idea>
+
+      <idea criterion="AC3">
+        <test>Integration test: Run migration on test data, verify all CourseContent.fileUrl fields updated with R2 keys</test>
+        <test>Integration test: Run migration on test data, verify all Submission.fileUrl fields updated with R2 keys</test>
+        <test>Integration test: Simulate database update failure, verify transaction rollback restores original values</test>
+      </idea>
+
+      <idea criterion="AC4">
+        <test>E2E test: Navigate to course content page, verify images load from CDN domain (not localhost)</test>
+        <test>E2E test: Download assignment submission file, verify URL contains R2 domain</test>
+        <test>E2E test: Test fallback logic - verify local files still load if R2 key missing during migration</test>
+      </idea>
+
+      <idea criterion="AC5">
+        <test>Manual verification: Check /uploads_archive_{timestamp}/ directory exists</test>
+        <test>Manual verification: Verify archived files preserve original directory structure</test>
+        <test>Manual verification: Confirm 30-day retention policy documented in /docs/file-migration-guide.md</test>
+      </idea>
+
+      <idea criterion="AC6">
+        <test>Integration test: Query all CourseContent and Submission records, verify each fileUrl returns HTTP 200</test>
+        <test>Integration test: Generate verification report, verify counts match expected values</test>
+        <test>Manual spot check: Download 10 random files via CDN URLs, verify content intact</test>
+      </idea>
+
+      <idea criterion="AC7">
+        <test>Integration test: Run rollback script, verify all files restored to original local paths</test>
+        <test>Integration test: Run rollback script, verify all database records reverted to local file paths</test>
+        <test>Integration test: Verify rollback checksums match original files (data integrity preserved)</test>
+      </idea>
+    </ideas>
+  </tests>
+</story-context>

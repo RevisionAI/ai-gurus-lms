@@ -4,6 +4,8 @@ import { useSession } from 'next-auth/react'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { BookOpen, ClipboardList, MessageSquare, GraduationCap } from 'lucide-react'
+import { useGPA, CourseGPAData } from '@/hooks/useGPA'
+import GPASummary from '@/components/gpa/GPASummary'
 
 interface Course {
   id: string
@@ -28,12 +30,34 @@ interface Announcement {
   author: { name: string }
 }
 
+/**
+ * Get GPA color class for display
+ */
+function getGPAColorClass(letterGrade: string): string {
+  if (letterGrade.startsWith('A')) return 'text-green-400'
+  if (letterGrade.startsWith('B')) return 'text-blue-400'
+  if (letterGrade.startsWith('C')) return 'text-yellow-400'
+  if (letterGrade.startsWith('D')) return 'text-orange-400'
+  if (letterGrade === 'F') return 'text-red-400'
+  return 'text-white'
+}
+
+/**
+ * Find course GPA from the courseGPAs array
+ */
+function findCourseGPA(courseGPAs: CourseGPAData[], courseId: string): CourseGPAData | undefined {
+  return courseGPAs.find(c => c.courseId === courseId)
+}
+
 export default function StudentDashboard() {
   const { data: session } = useSession()
   const [courses, setCourses] = useState<Course[]>([])
   const [upcomingAssignments, setUpcomingAssignments] = useState<Assignment[]>([])
   const [recentAnnouncements, setRecentAnnouncements] = useState<Announcement[]>([])
   const [loading, setLoading] = useState(true)
+
+  // Fetch GPA data using custom hook
+  const { data: gpaData, isLoading: gpaLoading, error: gpaError, refetch: refetchGPA } = useGPA()
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -76,6 +100,15 @@ export default function StudentDashboard() {
     )
   }
 
+  // Format GPA display value
+  const overallGPADisplay = gpaLoading
+    ? '...'
+    : gpaData?.overallGPA !== null && gpaData?.overallGPA !== undefined
+      ? gpaData.overallGPA.toFixed(2)
+      : 'N/A'
+
+  const overallLetterGrade = gpaData?.letterGrade || 'N/A'
+
   return (
     <div className="space-y-6">
       <div className="bg-card-bg overflow-hidden shadow rounded-lg">
@@ -92,7 +125,7 @@ export default function StudentDashboard() {
           <div className="p-5">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <BookOpen className="h-6 w-6 text-white" />
+                <BookOpen className="h-6 w-6 text-white" aria-hidden="true" />
               </div>
               <div className="ml-5 w-0 flex-1">
                 <dl>
@@ -108,7 +141,7 @@ export default function StudentDashboard() {
           <div className="p-5">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <ClipboardList className="h-6 w-6 text-white" />
+                <ClipboardList className="h-6 w-6 text-white" aria-hidden="true" />
               </div>
               <div className="ml-5 w-0 flex-1">
                 <dl>
@@ -124,7 +157,7 @@ export default function StudentDashboard() {
           <div className="p-5">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <MessageSquare className="h-6 w-6 text-white" />
+                <MessageSquare className="h-6 w-6 text-white" aria-hidden="true" />
               </div>
               <div className="ml-5 w-0 flex-1">
                 <dl>
@@ -136,16 +169,27 @@ export default function StudentDashboard() {
           </div>
         </div>
 
-        <div className="bg-button-gradient text-text-on-dark-bg overflow-hidden shadow rounded-lg">
+        <div
+          className="bg-button-gradient text-text-on-dark-bg overflow-hidden shadow rounded-lg"
+          role="region"
+          aria-label={`Overall GPA: ${overallGPADisplay} ${overallLetterGrade !== 'N/A' ? `(${overallLetterGrade})` : ''}`}
+        >
           <div className="p-5">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <GraduationCap className="h-6 w-6 text-white" />
+                <GraduationCap className="h-6 w-6 text-white" aria-hidden="true" />
               </div>
               <div className="ml-5 w-0 flex-1">
                 <dl>
                   <dt className="text-sm font-medium text-white/80 truncate">Overall GPA</dt>
-                  <dd className="text-lg font-medium text-white">--</dd>
+                  <dd className="flex items-center gap-2">
+                    <span className="text-lg font-bold text-white">{overallGPADisplay}</span>
+                    {overallLetterGrade !== 'N/A' && !gpaLoading && (
+                      <span className={`text-sm font-semibold ${getGPAColorClass(overallLetterGrade)} bg-black/20 px-2 py-0.5 rounded`}>
+                        {overallLetterGrade}
+                      </span>
+                    )}
+                  </dd>
                 </dl>
               </div>
             </div>
@@ -161,21 +205,40 @@ export default function StudentDashboard() {
               <p className="text-white">You are not enrolled in any courses yet.</p>
             ) : (
               <div className="space-y-3">
-                {courses.map((course) => (
-                  <Link
-                    key={course.id}
-                    href={`/courses/${course.id}`}
-                    className="block p-3 border border-pink-100 dark:border-purple-800/30 rounded-lg hover:bg-bg-content transition-colors"
-                  >
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h4 className="font-medium text-white">{course.title}</h4>
-                        <p className="text-sm text-white">{course.code}</p>
-                        <p className="text-sm text-white">Instructor: {course.instructor.name}</p>
+                {courses.map((course) => {
+                  const courseGPA = gpaData?.courseGPAs ? findCourseGPA(gpaData.courseGPAs, course.id) : undefined
+                  return (
+                    <Link
+                      key={course.id}
+                      href={`/courses/${course.id}`}
+                      className="block p-3 border border-pink-100 dark:border-purple-800/30 rounded-lg hover:bg-bg-content transition-colors"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-medium text-white truncate">{course.title}</h4>
+                          <p className="text-sm text-white">{course.code}</p>
+                          <p className="text-sm text-white">Instructor: {course.instructor.name}</p>
+                        </div>
+                        {/* Course GPA Badge */}
+                        {!gpaLoading && courseGPA && (
+                          <div className="ml-3 text-right flex-shrink-0">
+                            <div className={`text-lg font-bold ${getGPAColorClass(courseGPA.letterGrade)}`}>
+                              {courseGPA.gpa !== null ? courseGPA.gpa.toFixed(2) : 'N/A'}
+                            </div>
+                            {courseGPA.letterGrade !== 'N/A' && (
+                              <div className="text-xs text-white/60">{courseGPA.letterGrade}</div>
+                            )}
+                          </div>
+                        )}
+                        {gpaLoading && (
+                          <div className="ml-3 text-right flex-shrink-0">
+                            <div className="h-6 w-12 bg-white/20 rounded animate-pulse"></div>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  </Link>
-                ))}
+                    </Link>
+                  )
+                })}
               </div>
             )}
           </div>
@@ -211,6 +274,19 @@ export default function StudentDashboard() {
           </div>
         </div>
       </div>
+
+      {/* GPA Summary Section */}
+      {gpaData && gpaData.courseGPAs.length > 0 && (
+        <GPASummary
+          overallGPA={gpaData.overallGPA}
+          overallPercentage={gpaData.percentage}
+          overallLetterGrade={gpaData.letterGrade}
+          courseGPAs={gpaData.courseGPAs}
+          isLoading={gpaLoading}
+          error={gpaError}
+          onRetry={refetchGPA}
+        />
+      )}
 
       <div className="bg-card-bg shadow rounded-lg">
         <div className="px-4 py-5 sm:p-6">

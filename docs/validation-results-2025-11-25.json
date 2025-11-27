@@ -1,0 +1,212 @@
+{
+  "timestamp": "2025-11-25T06:59:35.360Z",
+  "sqliteUrl": "file:./backups/sample-sqlite-2025-11-25.db",
+  "postgresUrl": "postgresql://neondb_owner:***@ep-old-breeze-ah5my5ad-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require",
+  "results": [
+    {
+      "model": "user",
+      "sqliteCount": 0,
+      "postgresCount": 5,
+      "countMatch": true,
+      "checksumMatch": null,
+      "foreignKeyIntegrity": true,
+      "errors": []
+    },
+    {
+      "model": "course",
+      "sqliteCount": 0,
+      "postgresCount": 3,
+      "countMatch": true,
+      "checksumMatch": null,
+      "foreignKeyIntegrity": true,
+      "errors": []
+    },
+    {
+      "model": "enrollment",
+      "sqliteCount": 0,
+      "postgresCount": 3,
+      "countMatch": true,
+      "checksumMatch": null,
+      "foreignKeyIntegrity": true,
+      "errors": []
+    },
+    {
+      "model": "assignment",
+      "sqliteCount": 0,
+      "postgresCount": 10,
+      "countMatch": true,
+      "checksumMatch": null,
+      "foreignKeyIntegrity": true,
+      "errors": []
+    },
+    {
+      "model": "submission",
+      "sqliteCount": 0,
+      "postgresCount": 12,
+      "countMatch": true,
+      "checksumMatch": null,
+      "foreignKeyIntegrity": true,
+      "errors": []
+    },
+    {
+      "model": "grade",
+      "sqliteCount": 0,
+      "postgresCount": 10,
+      "countMatch": true,
+      "checksumMatch": null,
+      "foreignKeyIntegrity": true,
+      "errors": []
+    },
+    {
+      "model": "discussion",
+      "sqliteCount": 0,
+      "postgresCount": 3,
+      "countMatch": true,
+      "checksumMatch": null,
+      "foreignKeyIntegrity": true,
+      "errors": []
+    },
+    {
+      "model": "discussionPost",
+      "sqliteCount": 0,
+      "postgresCount": 7,
+      "countMatch": true,
+      "checksumMatch": null,
+      "foreignKeyIntegrity": true,
+      "errors": []
+    },
+    {
+      "model": "announcement",
+      "sqliteCount": 0,
+      "postgresCount": 3,
+      "countMatch": true,
+      "checksumMatch": null,
+      "foreignKeyIntegrity": true,
+      "errors": []
+    },
+    {
+      "model": "courseContent",
+      "sqliteCount": 0,
+      "postgresCount": 7,
+      "countMatch": true,
+      "checksumMatch": null,
+      "foreignKeyIntegrity": true,
+      "errors": []
+    }
+  ],
+  "foreignKeyValidation": {
+    "passed": true,
+    "checks": [
+      {
+        "relation": "Enrollment → User",
+        "description": "Enrollments with non-existent userId",
+        "orphanedCount": 0,
+        "passed": true
+      },
+      {
+        "relation": "Enrollment → Course",
+        "description": "Enrollments with non-existent courseId",
+        "orphanedCount": 0,
+        "passed": true
+      },
+      {
+        "relation": "Course → Instructor",
+        "description": "Courses with non-existent instructorId",
+        "orphanedCount": 0,
+        "passed": true
+      },
+      {
+        "relation": "Assignment → Course",
+        "description": "Assignments with non-existent courseId",
+        "orphanedCount": 0,
+        "passed": true
+      },
+      {
+        "relation": "Assignment → CreatedBy",
+        "description": "Assignments with non-existent createdById",
+        "orphanedCount": 0,
+        "passed": true
+      },
+      {
+        "relation": "Submission → Assignment",
+        "description": "Submissions with non-existent assignmentId",
+        "orphanedCount": 0,
+        "passed": true
+      },
+      {
+        "relation": "Submission → Student",
+        "description": "Submissions with non-existent studentId",
+        "orphanedCount": 0,
+        "passed": true
+      },
+      {
+        "relation": "Grade → Assignment",
+        "description": "Grades with non-existent assignmentId",
+        "orphanedCount": 0,
+        "passed": true
+      },
+      {
+        "relation": "Grade → Student",
+        "description": "Grades with non-existent studentId",
+        "orphanedCount": 0,
+        "passed": true
+      },
+      {
+        "relation": "Grade → GradedBy",
+        "description": "Grades with non-existent gradedById",
+        "orphanedCount": 0,
+        "passed": true
+      },
+      {
+        "relation": "Discussion → Course",
+        "description": "Discussions with non-existent courseId",
+        "orphanedCount": 0,
+        "passed": true
+      },
+      {
+        "relation": "Discussion → Author",
+        "description": "Discussions with non-existent createdBy",
+        "orphanedCount": 0,
+        "passed": true
+      },
+      {
+        "relation": "DiscussionPost → Discussion",
+        "description": "Discussion posts with non-existent discussionId",
+        "orphanedCount": 0,
+        "passed": true
+      },
+      {
+        "relation": "DiscussionPost → Author",
+        "description": "Discussion posts with non-existent authorId",
+        "orphanedCount": 0,
+        "passed": true
+      },
+      {
+        "relation": "Announcement → Course",
+        "description": "Announcements with non-existent courseId",
+        "orphanedCount": 0,
+        "passed": true
+      },
+      {
+        "relation": "Announcement → Author",
+        "description": "Announcements with non-existent authorId",
+        "orphanedCount": 0,
+        "passed": true
+      },
+      {
+        "relation": "CourseContent → Course",
+        "description": "Course content with non-existent courseId",
+        "orphanedCount": 0,
+        "passed": true
+      }
+    ]
+  },
+  "allPassed": true,
+  "summary": {
+    "totalModels": 10,
+    "passedModels": 10,
+    "failedModels": 0,
+    "totalSqliteRows": 0,
+    "totalPostgresRows": 63
+  }
+}

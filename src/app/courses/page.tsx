@@ -20,6 +20,7 @@ interface Course {
   _count?: {
     enrollments: number
   }
+  prerequisites: string | null
 }
 
 export default function CoursesPage() {
@@ -30,6 +31,7 @@ export default function CoursesPage() {
   const [loading, setLoading] = useState(true)
   const [enrolling, setEnrolling] = useState<string | null>(null)
   const [enrollmentError, setEnrollmentError] = useState<string | null>(null)
+  const [prerequisiteConfirmed, setPrerequisiteConfirmed] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -97,9 +99,10 @@ export default function CoursesPage() {
         setCourses(prevCourses => [...prevCourses, enrolledCourse])
         setAvailableCourses(prevCourses => prevCourses.filter(course => course.id !== courseId))
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error enrolling in course:', error)
-      setEnrollmentError(error.message)
+      const errorMessage = error instanceof Error ? error.message : 'Failed to enroll in course'
+      setEnrollmentError(errorMessage)
     } finally {
       setEnrolling(null)
     }
@@ -243,7 +246,10 @@ export default function CoursesPage() {
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                      {filteredAvailableCourses.map((course) => (
+                      {filteredAvailableCourses.map((course) => {
+                        const hasPrerequisites = !!course.prerequisites
+                        const isConfirmed = !hasPrerequisites || prerequisiteConfirmed[course.id]
+                        return (
                         <div
                           key={course.id}
                           className="block bg-card-bg border border-green-100 dark:border-purple-800/30 rounded-lg shadow-sm hover:shadow-md transition-shadow"
@@ -257,17 +263,17 @@ export default function CoursesPage() {
                                 {course.semester} {course.year}
                               </span>
                             </div>
-                            
+
                             <h3 className="text-lg font-medium text-white mb-2">
                               {course.title}
                             </h3>
-                            
+
                             {course.description && (
                               <p className="text-sm text-white/80 mb-3 line-clamp-2">
                                 {course.description}
                               </p>
                             )}
-                            
+
                             <div className="flex items-center justify-between text-sm text-white/90 mb-4">
                               <div className="flex items-center">
                                 <Users className="h-4 w-4 mr-1" />
@@ -280,26 +286,62 @@ export default function CoursesPage() {
                                 </div>
                               )}
                             </div>
-                            
+
+                            {/* Prerequisites Warning */}
+                            {hasPrerequisites && (
+                              <div className="mb-4 p-3 bg-yellow-900/30 border border-yellow-600/50 rounded-lg">
+                                <div className="flex items-start">
+                                  <svg className="h-5 w-5 text-yellow-400 mt-0.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                  </svg>
+                                  <div className="ml-2">
+                                    <h4 className="text-sm font-medium text-yellow-300">Prerequisites Required</h4>
+                                    <p className="mt-1 text-sm text-yellow-100/80 whitespace-pre-wrap">{course.prerequisites}</p>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Prerequisites Confirmation Checkbox */}
+                            {hasPrerequisites && (
+                              <div className="mb-4">
+                                <label className="flex items-start cursor-pointer group">
+                                  <input
+                                    type="checkbox"
+                                    checked={prerequisiteConfirmed[course.id] || false}
+                                    onChange={(e) => setPrerequisiteConfirmed(prev => ({
+                                      ...prev,
+                                      [course.id]: e.target.checked
+                                    }))}
+                                    className="mt-1 h-4 w-4 text-pink-500 focus:ring-pink-500 border-gray-500 rounded bg-gray-700"
+                                  />
+                                  <span className="ml-2 text-sm text-white/80 group-hover:text-white">
+                                    I confirm that I meet the prerequisites for this course
+                                  </span>
+                                </label>
+                              </div>
+                            )}
+
                             <div className="text-right">
                               {enrollmentError && enrolling === course.id && (
                                 <p className="text-sm text-red-400 mb-2">{enrollmentError}</p>
                               )}
                               <button
-                                onClick={() => handleEnroll(course.id)} 
-                                disabled={enrolling === course.id}
+                                onClick={() => handleEnroll(course.id)}
+                                disabled={enrolling === course.id || !isConfirmed}
                                 className={`inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
-                                  enrolling === course.id
-                                  ? 'bg-purple-400 cursor-not-allowed'
+                                  enrolling === course.id || !isConfirmed
+                                  ? 'bg-purple-400/50 cursor-not-allowed'
                                   : 'bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 hover:opacity-90'
                                 }`}
+                                title={!isConfirmed ? 'Please confirm you meet the prerequisites' : ''}
                               >
                                 {enrolling === course.id ? 'Enrolling...' : 'Enroll Now'}
                               </button>
                             </div>
                           </div>
                         </div>
-                      ))}
+                      )})}
                     </div>
                   )}
                 </>

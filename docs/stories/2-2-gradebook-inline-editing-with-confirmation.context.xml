@@ -1,0 +1,1258 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>2.2</story-id>
+    <story-key>2-2-gradebook-inline-editing-with-confirmation</story-key>
+    <story-title>Gradebook Inline Editing with Confirmation</story-title>
+    <epic>2 - Feature Completion & Admin Capabilities</epic>
+    <generated-date>2025-11-26</generated-date>
+    <status>drafted</status>
+    <prerequisites>
+      <prerequisite>Story 2.1: Gradebook Grid View with Filtering</prerequisite>
+    </prerequisites>
+  </metadata>
+
+  <!-- ========================================
+       STORY SUMMARY
+       ======================================== -->
+  <story-summary>
+    <user-story>
+      As an instructor,
+      I want to edit grades directly in the grid view with confirmation dialogs,
+      So that I can quickly update multiple grades while preventing accidental changes.
+    </user-story>
+
+    <business-value>
+      This story enables instructors to efficiently grade assignments by allowing inline editing directly within the gradebook grid, reducing the number of clicks and page loads required. The confirmation dialog prevents accidental changes, improving data integrity and instructor confidence.
+    </business-value>
+
+    <technical-summary>
+      Implements inline editing for grade cells in the gradebook grid using an optimistic UI pattern. When instructors edit a grade, the UI updates immediately while making an API call to persist the change. If the API call fails, the change is rolled back and an error is displayed. All grade updates go through a confirmation dialog to prevent accidental modifications. Input validation is performed both client-side and server-side using Zod schemas.
+    </technical-summary>
+  </story-summary>
+
+  <!-- ========================================
+       ACCEPTANCE CRITERIA
+       ======================================== -->
+  <acceptance-criteria>
+    <criterion id="AC-2.2.1">
+      <description>Double-click cell enters edit mode with input field</description>
+      <verification>User can double-click any grade cell to enter edit mode showing an input field</verification>
+      <test-type>E2E</test-type>
+    </criterion>
+
+    <criterion id="AC-2.2.2">
+      <description>Enter or click outside cell triggers confirmation dialog</description>
+      <verification>Pressing Enter key or clicking outside the cell triggers a confirmation dialog</verification>
+      <test-type>E2E</test-type>
+    </criterion>
+
+    <criterion id="AC-2.2.3">
+      <description>Confirmation dialog shows "Update grade from [old] to [new]?" with Yes/Cancel</description>
+      <verification>Dialog displays old and new grade values with Yes and Cancel buttons</verification>
+      <test-type>E2E</test-type>
+    </criterion>
+
+    <criterion id="AC-2.2.4">
+      <description>Cancel discards edit and reverts cell to original value</description>
+      <verification>Clicking Cancel reverts the cell to its original value without saving</verification>
+      <test-type>Unit, E2E</test-type>
+    </criterion>
+
+    <criterion id="AC-2.2.5">
+      <description>Yes triggers optimistic UI update followed by API call</description>
+      <verification>Clicking Yes immediately updates the UI and then calls the API in the background</verification>
+      <test-type>Integration, E2E</test-type>
+    </criterion>
+
+    <criterion id="AC-2.2.6">
+      <description>Invalid input (non-numeric, negative, exceeds max) rejected with error tooltip</description>
+      <verification>Invalid input displays an inline error tooltip and prevents submission</verification>
+      <test-type>Unit, E2E</test-type>
+    </criterion>
+
+    <criterion id="AC-2.2.7">
+      <description>API failure triggers rollback and error toast</description>
+      <verification>If API call fails, UI reverts to original value and shows error toast</verification>
+      <test-type>Integration, E2E</test-type>
+    </criterion>
+
+    <criterion id="AC-2.2.8">
+      <description>Tab/Shift+Tab enables keyboard navigation between cells</description>
+      <verification>Tab moves to next cell, Shift+Tab moves to previous cell, saving current edit</verification>
+      <test-type>E2E</test-type>
+    </criterion>
+
+    <criterion id="AC-2.2.9">
+      <description>Unit tests cover grade validation logic</description>
+      <verification>Zod schema validation tested with valid, invalid, and boundary inputs</verification>
+      <test-type>Unit</test-type>
+    </criterion>
+
+    <criterion id="AC-2.2.10">
+      <description>Integration tests verify grade update API with valid/invalid/boundary inputs</description>
+      <verification>API endpoint tested with successful updates, validation errors, and authorization checks</verification>
+      <test-type>Integration</test-type>
+    </criterion>
+
+    <criterion id="AC-2.2.11">
+      <description>E2E test validates grade edit, confirm, and persistence</description>
+      <verification>Full user flow tested including edit, confirm, and reload to verify persistence</verification>
+      <test-type>E2E</test-type>
+    </criterion>
+  </acceptance-criteria>
+
+  <!-- ========================================
+       TECHNICAL CONTEXT
+       ======================================== -->
+  <technical-context>
+    <architecture>
+      <pattern name="Optimistic UI Updates">
+        <description>
+          The gradebook uses optimistic UI updates to provide immediate feedback to instructors.
+          When a grade is updated, the UI reflects the change immediately before the API call completes.
+          If the API call fails, the UI rolls back to the original value and displays an error toast.
+        </description>
+        <implementation>
+          Use React useState to manage local grade state. On confirmation, immediately update local state,
+          then make API call. On API success, keep updated state. On API failure, revert to original state
+          and show error toast using react-hot-toast.
+        </implementation>
+      </pattern>
+
+      <pattern name="Confirmation Dialog">
+        <description>
+          All grade updates require confirmation through a modal dialog to prevent accidental changes.
+          The dialog shows the old and new values before the update is applied.
+        </description>
+        <implementation>
+          Use @radix-ui/react-dialog for accessible modal implementation. Dialog appears after Enter key
+          or blur event from input field. Includes keyboard navigation (Enter to confirm, Escape to cancel).
+        </implementation>
+      </pattern>
+
+      <pattern name="Input Validation">
+        <description>
+          Grade inputs are validated both client-side (immediate feedback) and server-side (data integrity).
+          Validation checks: numeric type, non-negative, within assignment max points range.
+        </description>
+        <implementation>
+          Client-side: Validate on input change and show inline error tooltip immediately.
+          Server-side: Zod schema validates request body in API route. Return 400 with error details on failure.
+        </implementation>
+      </pattern>
+
+      <pattern name="Keyboard Navigation">
+        <description>
+          Instructors can navigate between cells using Tab/Shift+Tab for efficient bulk grading.
+          Navigation triggers save of current cell before moving to next/previous cell.
+        </description>
+        <implementation>
+          Track focused cell index. On Tab key, trigger save flow for current cell, then focus next cell.
+          On Shift+Tab, trigger save flow for current cell, then focus previous cell.
+          Handle row wrapping (move to next/previous row when at row end/start).
+        </implementation>
+      </pattern>
+    </architecture>
+
+    <api-endpoint>
+      <method>PUT</method>
+      <path>/api/instructor/gradebook/[courseId]/grade</path>
+      <description>Updates a single grade for a student submission</description>
+
+      <request-body>
+        <field name="submissionId" type="string" required="true">
+          CUID of the submission to grade
+        </field>
+        <field name="grade" type="number" required="true">
+          Numeric grade value (must be >= 0 and <= assignment maxPoints)
+        </field>
+      </request-body>
+
+      <response-success status="200">
+        <field name="success" type="boolean">Always true on success</field>
+        <field name="submission" type="AssignmentSubmission">Updated submission with new grade</field>
+      </response-success>
+
+      <response-error status="400">
+        <description>Validation error (invalid grade value, exceeds max points, etc.)</description>
+      </response-error>
+
+      <response-error status="403">
+        <description>Authorization error (instructor doesn't own the course)</description>
+      </response-error>
+
+      <response-error status="404">
+        <description>Submission not found or doesn't belong to course</description>
+      </response-error>
+
+      <response-error status="429">
+        <description>Rate limit exceeded (30 requests per minute per instructor)</description>
+      </response-error>
+
+      <response-error status="500">
+        <description>Internal server error</description>
+      </response-error>
+    </api-endpoint>
+
+    <validation-schema name="gradeUpdateSchema">
+      <location>src/validators/gradebook.ts</location>
+      <description>Zod schema for validating grade update requests</description>
+
+      <fields>
+        <field name="submissionId" type="string">
+          Must be valid CUID format
+        </field>
+        <field name="grade" type="number">
+          Must be numeric, >= 0, and <= assignment.maxPoints (validated via database lookup)
+        </field>
+      </fields>
+
+      <custom-validation>
+        After basic validation, check that grade does not exceed assignment's maxPoints.
+        This requires looking up the assignment associated with the submission.
+      </custom-validation>
+    </validation-schema>
+
+    <components>
+      <component name="EditableGradeCell">
+        <location>src/components/gradebook/EditableGradeCell.tsx</location>
+        <description>Reusable cell component with inline editing capability</description>
+
+        <props>
+          <prop name="initialValue" type="number | null" required="true">
+            Current grade value (null if not graded yet)
+          </prop>
+          <prop name="maxPoints" type="number" required="true">
+            Maximum points for the assignment (for validation)
+          </prop>
+          <prop name="onSave" type="(newValue: number) => Promise<void>" required="true">
+            Callback to save grade (handles API call and optimistic update)
+          </prop>
+          <prop name="onCancel" type="() => void" required="true">
+            Callback when edit is cancelled
+          </prop>
+        </props>
+
+        <states>
+          <state name="view">Default state showing grade value</state>
+          <state name="edit">Active editing with input field visible</state>
+          <state name="loading">Saving in progress (API call pending)</state>
+          <state name="error">Validation error or API error</state>
+        </states>
+
+        <keyboard-interactions>
+          <key name="Enter">Save current value and trigger confirmation dialog</key>
+          <key name="Escape">Cancel edit and revert to original value</key>
+          <key name="Tab">Save current value and move to next cell</key>
+          <key name="Shift+Tab">Save current value and move to previous cell</key>
+        </keyboard-interactions>
+      </component>
+
+      <component name="GradeUpdateConfirmDialog">
+        <location>src/components/gradebook/GradeUpdateConfirmDialog.tsx</location>
+        <description>Confirmation dialog for grade updates</description>
+
+        <props>
+          <prop name="isOpen" type="boolean" required="true">
+            Whether dialog is visible
+          </prop>
+          <prop name="oldGrade" type="number | null" required="true">
+            Previous grade value (null if not graded)
+          </prop>
+          <prop name="newGrade" type="number" required="true">
+            New grade value to be saved
+          </prop>
+          <prop name="onConfirm" type="() => void" required="true">
+            Callback when user clicks Yes
+          </prop>
+          <prop name="onCancel" type="() => void" required="true">
+            Callback when user clicks Cancel or closes dialog
+          </prop>
+        </props>
+
+        <ui-framework>@radix-ui/react-dialog</ui-framework>
+      </component>
+    </components>
+
+    <custom-hook name="useOptimisticGradeUpdate">
+      <location>src/hooks/useOptimisticGradeUpdate.ts</location>
+      <description>Manages optimistic UI updates with rollback on failure</description>
+
+      <parameters>
+        <param name="courseId" type="string">Course ID for API endpoint</param>
+        <param name="submissionId" type="string">Submission ID to update</param>
+        <param name="originalGrade" type="number | null">Original grade value for rollback</param>
+      </parameters>
+
+      <returns>
+        <field name="updateGrade" type="(newGrade: number) => Promise<void>">
+          Function to update grade with optimistic UI
+        </field>
+        <field name="isLoading" type="boolean">
+          Whether API call is in progress
+        </field>
+        <field name="error" type="Error | null">
+          Error object if API call failed
+        </field>
+      </returns>
+
+      <flow>
+        1. Immediately update local state with new grade (optimistic update)
+        2. Make API call to PUT /api/instructor/gradebook/[courseId]/grade
+        3. On success: Keep updated state, show success toast
+        4. On failure: Rollback to original grade, show error toast, set error state
+      </flow>
+    </custom-hook>
+  </technical-context>
+
+  <!-- ========================================
+       EXISTING CODE CONTEXT
+       ======================================== -->
+  <existing-code-context>
+    <database-models>
+      <model name="Grade">
+        <location>prisma/schema.prisma</location>
+        <description>Stores assignment grades for students</description>
+
+        <fields>
+          <field name="id" type="String" primary-key="true">CUID identifier</field>
+          <field name="points" type="Float">Grade points earned</field>
+          <field name="feedback" type="String" nullable="true">Instructor feedback</field>
+          <field name="gradedAt" type="DateTime">When grade was assigned</field>
+          <field name="deletedAt" type="DateTime" nullable="true">Soft delete timestamp</field>
+          <field name="assignmentId" type="String">Foreign key to Assignment</field>
+          <field name="studentId" type="String">Foreign key to User (student)</field>
+          <field name="gradedById" type="String">Foreign key to User (grader)</field>
+        </fields>
+
+        <relations>
+          <relation name="assignment" type="Assignment">Assignment being graded</relation>
+          <relation name="student" type="User">Student receiving grade</relation>
+          <relation name="gradedBy" type="User">Instructor who assigned grade</relation>
+        </relations>
+
+        <constraints>
+          <unique-constraint fields="assignmentId, studentId">
+            One grade per student per assignment
+          </unique-constraint>
+        </constraints>
+      </model>
+
+      <model name="Assignment">
+        <location>prisma/schema.prisma</location>
+        <description>Course assignments</description>
+
+        <fields>
+          <field name="id" type="String" primary-key="true">CUID identifier</field>
+          <field name="title" type="String">Assignment title</field>
+          <field name="maxPoints" type="Int">Maximum points (default 100)</field>
+          <field name="dueDate" type="DateTime" nullable="true">Due date</field>
+          <field name="courseId" type="String">Foreign key to Course</field>
+        </fields>
+
+        <note>
+          maxPoints is critical for grade validation. The gradeUpdateSchema must ensure
+          that the new grade does not exceed assignment.maxPoints.
+        </note>
+      </model>
+
+      <model name="Submission">
+        <location>prisma/schema.prisma</location>
+        <description>Student assignment submissions</description>
+
+        <fields>
+          <field name="id" type="String" primary-key="true">CUID identifier</field>
+          <field name="content" type="String" nullable="true">Text submission</field>
+          <field name="fileUrl" type="String" nullable="true">File submission URL</field>
+          <field name="submittedAt" type="DateTime">Submission timestamp</field>
+          <field name="assignmentId" type="String">Foreign key to Assignment</field>
+          <field name="studentId" type="String">Foreign key to User</field>
+        </fields>
+
+        <note>
+          The gradeUpdateSchema takes submissionId as input. The API must verify that
+          the submission belongs to an assignment in the instructor's course before allowing update.
+        </note>
+      </model>
+    </database-models>
+
+    <existing-validators>
+      <validator name="gradeSubmissionSchema">
+        <location>src/validators/grade.ts</location>
+        <description>Existing validator for grading submissions (different from inline editing)</description>
+
+        <note>
+          This schema is for the full submission grading flow (includes feedback).
+          For inline editing, create a new simpler schema (gradeUpdateSchema) that only validates
+          submissionId and grade value. The inline editing flow doesn't include feedback editing.
+        </note>
+      </validator>
+
+      <validator-utilities>
+        <location>src/lib/validation.ts</location>
+        <description>Reusable validation utilities</description>
+
+        <utilities>
+          <utility name="cuidSchema">Validates CUID format strings</utility>
+          <utility name="stringWithLength">Validates string length with custom error messages</utility>
+          <utility name="positiveIntSchema">Validates positive integers</utility>
+        </utilities>
+
+        <note>
+          Use cuidSchema for submissionId validation in gradeUpdateSchema.
+          Create custom validation for grade value that checks >= 0 and <= maxPoints.
+        </note>
+      </validator-utilities>
+    </existing-validators>
+
+    <ui-patterns>
+      <pattern name="Error Display">
+        <reference>src/components/upload/UploadError.tsx</reference>
+        <description>Pattern for displaying errors with user-friendly messages</description>
+
+        <key-elements>
+          <element>AlertCircle icon from lucide-react</element>
+          <element>Red background (bg-red-50, bg-red-100)</element>
+          <element>User-friendly error message with technical details collapsible</element>
+          <element>Retry button for retryable errors</element>
+          <element>Dismiss button</element>
+        </key-elements>
+
+        <application>
+          Use similar pattern for inline error tooltips in EditableGradeCell.
+          Show inline error below input field when validation fails.
+          For API errors, use react-hot-toast for toast notifications.
+        </application>
+      </pattern>
+
+      <pattern name="Tailwind CSS Styling">
+        <description>Project uses Tailwind CSS 4 for styling</description>
+
+        <common-classes>
+          <class name="rounded-md">Rounded corners</class>
+          <class name="px-3 py-1.5">Standard button padding</class>
+          <class name="text-sm font-medium">Standard text styling</class>
+          <class name="border border-transparent">Borderless buttons</class>
+          <class name="focus:outline-none focus:ring-2 focus:ring-offset-2">Standard focus states</class>
+        </common-classes>
+
+        <note>
+          Follow existing Tailwind patterns for consistency. Use lucide-react for all icons.
+        </note>
+      </pattern>
+
+      <pattern name="Radix UI Components">
+        <description>Project uses Radix UI for accessible components</description>
+
+        <existing-usage>
+          <component>@radix-ui/react-dialog for modals</component>
+          <component>@radix-ui/react-dropdown-menu for dropdowns</component>
+          <component>@radix-ui/react-tabs for tabs</component>
+        </existing-usage>
+
+        <note>
+          Use @radix-ui/react-dialog for GradeUpdateConfirmDialog.
+          Follow Radix UI documentation for keyboard navigation and ARIA attributes.
+        </note>
+      </pattern>
+    </ui-patterns>
+
+    <existing-hooks>
+      <hook name="useS3Upload">
+        <location>src/hooks/useS3Upload.ts</location>
+        <description>Pattern for custom hook with loading, error states</description>
+
+        <pattern-elements>
+          <element>useState for loading, error, and data states</element>
+          <element>useCallback for memoized functions</element>
+          <element>Error types with codes and user-friendly messages</element>
+          <element>Retry logic for transient failures</element>
+        </pattern-elements>
+
+        <application>
+          Follow similar pattern for useOptimisticGradeUpdate hook:
+          - Track loading state during API call
+          - Track error state with error codes
+          - Return updateGrade function as memoized callback
+          - Implement optimistic update logic with rollback
+        </application>
+      </hook>
+    </existing-hooks>
+  </existing-code-context>
+
+  <!-- ========================================
+       IMPLEMENTATION GUIDANCE
+       ======================================== -->
+  <implementation-guidance>
+    <phase name="Task 1: Grade Update API Endpoint">
+      <objective>
+        Create the server-side API endpoint that handles grade updates with validation and authorization.
+      </objective>
+
+      <steps>
+        <step order="1">
+          <description>Create gradeUpdateSchema in src/validators/gradebook.ts</description>
+          <details>
+            Import cuidSchema from '@/lib/validation'.
+            Define schema with submissionId (cuidSchema) and grade (z.number().min(0)).
+            Export schema and TypeScript type using z.infer.
+            Note: maxPoints validation happens in API route after fetching assignment.
+          </details>
+        </step>
+
+        <step order="2">
+          <description>Create API route at src/app/api/instructor/gradebook/[courseId]/grade/route.ts</description>
+          <details>
+            Implement PUT handler.
+            Extract courseId from params.
+            Parse and validate request body with gradeUpdateSchema.
+            Verify instructor owns the course (check session.user.id matches course.instructorId).
+            Look up submission by submissionId, verify it belongs to assignment in this course.
+            Get assignment.maxPoints and validate grade does not exceed it.
+            Use Prisma upsert to create or update Grade record.
+            Return { success: true, submission: updatedSubmission }.
+          </details>
+        </step>
+
+        <step order="3">
+          <description>Add comprehensive error handling</description>
+          <details>
+            400 Bad Request: Validation errors (invalid submissionId, negative grade, exceeds maxPoints).
+            403 Forbidden: Instructor doesn't own course.
+            404 Not Found: Submission not found or doesn't belong to course.
+            500 Internal Server Error: Database errors.
+            Return consistent error format: { error: { code, message, details } }.
+          </details>
+        </step>
+
+        <step order="4">
+          <description>Add rate limiting</description>
+          <details>
+            Import rate limiter from '@/lib/rate-limit'.
+            Apply rate limit at endpoint level (30 requests per minute per instructor).
+            Return 429 Too Many Requests if exceeded.
+            Include Retry-After header with seconds until reset.
+          </details>
+        </step>
+      </steps>
+
+      <key-considerations>
+        <consideration>
+          Transaction safety: Use Prisma transaction if updating multiple records.
+        </consideration>
+        <consideration>
+          Audit trail: Set gradedById to session.user.id, gradedAt to current timestamp.
+        </consideration>
+        <consideration>
+          Soft deletes: Only update grades where deletedAt IS NULL.
+        </consideration>
+        <consideration>
+          Logging: Log all grade updates with userId, courseId, assignmentId, oldGrade, newGrade.
+        </consideration>
+      </key-considerations>
+    </phase>
+
+    <phase name="Task 2: Inline Editable Cell Component">
+      <objective>
+        Build the EditableGradeCell component with validation, keyboard navigation, and accessibility.
+      </objective>
+
+      <steps>
+        <step order="1">
+          <description>Create EditableGradeCell.tsx component</description>
+          <details>
+            Use 'use client' directive (client component).
+            Accept props: initialValue, maxPoints, onSave, onCancel.
+            Manage state: isEditing, currentValue, validationError.
+            Render static value in view mode, input field in edit mode.
+            Handle double-click to enter edit mode.
+          </details>
+        </step>
+
+        <step order="2">
+          <description>Implement validation logic</description>
+          <details>
+            Validate on input change (onChange handler).
+            Check: is numeric (regex /^\d+(\.\d+)?$/), is >= 0, is <= maxPoints.
+            Show inline error tooltip below input if invalid.
+            Prevent save if validation fails (disable confirmation dialog).
+            Use red border and error icon for visual feedback.
+          </details>
+        </step>
+
+        <step order="3">
+          <description>Add keyboard navigation</description>
+          <details>
+            Handle Enter key: trigger save (if valid).
+            Handle Escape key: cancel edit, revert to initialValue.
+            Handle Tab key: trigger save (if valid), then call onTabNext callback.
+            Handle Shift+Tab key: trigger save (if valid), then call onTabPrevious callback.
+            Use onKeyDown event handler with event.key checks.
+          </details>
+        </step>
+
+        <step order="4">
+          <description>Add visual states and accessibility</description>
+          <details>
+            Edit mode: Blue border highlight (border-blue-500).
+            Error state: Red border (border-red-500), error text (text-red-600).
+            Loading state: Disabled input with spinner icon.
+            ARIA labels: aria-label="Edit grade", role="textbox".
+            Focus indicator: focus:ring-2 focus:ring-blue-500.
+            Screen reader announcements: Use aria-live for status updates.
+          </details>
+        </step>
+      </steps>
+
+      <key-considerations>
+        <consideration>
+          Debouncing: Don't validate on every keystroke. Use debounce (300ms) for validation.
+        </consideration>
+        <consideration>
+          Focus management: Auto-focus input when entering edit mode. Restore focus after save/cancel.
+        </consideration>
+        <consideration>
+          Error recovery: Clear validation error when user starts typing corrected value.
+        </consideration>
+        <consideration>
+          Edge case: Handle empty cells (no submission yet) - show "-" and disable editing.
+        </consideration>
+      </key-considerations>
+    </phase>
+
+    <phase name="Task 3: Grade Update Confirmation Dialog">
+      <objective>
+        Create confirmation dialog using Radix UI to prevent accidental grade changes.
+      </objective>
+
+      <steps>
+        <step order="1">
+          <description>Create GradeUpdateConfirmDialog.tsx component</description>
+          <details>
+            Use @radix-ui/react-dialog components (Dialog, DialogContent, DialogTitle, DialogDescription).
+            Accept props: isOpen, oldGrade, newGrade, onConfirm, onCancel.
+            Display message: "Update grade from [oldGrade] to [newGrade]?".
+            Show "Yes" and "Cancel" buttons.
+            Use DialogOverlay for backdrop.
+          </details>
+        </step>
+
+        <step order="2">
+          <description>Style dialog with Tailwind CSS</description>
+          <details>
+            Backdrop: Semi-transparent black (bg-black/50).
+            Dialog: White background, centered, rounded corners, shadow.
+            Buttons: Yes (blue), Cancel (gray).
+            Responsive: Full width on mobile, max-width on desktop.
+            Animation: Fade in/out transitions using Radix built-in animations.
+          </details>
+        </step>
+
+        <step order="3">
+          <description>Add keyboard interactions</description>
+          <details>
+            Enter key: Confirms (calls onConfirm).
+            Escape key: Cancels (calls onCancel, closes dialog).
+            Tab key: Navigates between Yes and Cancel buttons.
+            Focus trap: Focus stays within dialog when open (Radix handles this).
+            Auto-focus: Yes button receives focus when dialog opens.
+          </details>
+        </step>
+
+        <step order="4">
+          <description>Integrate with EditableGradeCell</description>
+          <details>
+            Cell component manages dialog open state.
+            On Enter or blur from input: Open dialog (if valid).
+            Pass old and new values to dialog.
+            onConfirm: Call onSave prop from cell.
+            onCancel: Close dialog, revert input to original value.
+          </details>
+        </step>
+      </steps>
+
+      <key-considerations>
+        <consideration>
+          Accessibility: Use Radix DialogTitle and DialogDescription for screen readers.
+        </consideration>
+        <consideration>
+          UX: Show both old and new values clearly. Use bold or color for emphasis.
+        </consideration>
+        <consideration>
+          Edge case: If oldGrade is null (not graded yet), show "Set grade to [newGrade]?".
+        </consideration>
+      </key-considerations>
+    </phase>
+
+    <phase name="Task 4: Optimistic UI Updates with Rollback">
+      <objective>
+        Implement optimistic update pattern for immediate feedback with automatic rollback on failure.
+      </objective>
+
+      <steps>
+        <step order="1">
+          <description>Create useOptimisticGradeUpdate hook</description>
+          <details>
+            Accept params: courseId, submissionId, originalGrade.
+            Use useState for loading, error states.
+            Use useCallback for updateGrade function (prevents re-renders).
+            Return { updateGrade, isLoading, error }.
+          </details>
+        </step>
+
+        <step order="2">
+          <description>Implement optimistic update flow</description>
+          <details>
+            Step 1: Immediately update local state (call setGrade with new value).
+            Step 2: Make API call to PUT /api/instructor/gradebook/[courseId]/grade.
+            Step 3a (success): Keep updated state, show success toast.
+            Step 3b (failure): Rollback to originalGrade, show error toast, set error state.
+            Use react-hot-toast for notifications.
+          </details>
+        </step>
+
+        <step order="3">
+          <description>Add error handling and toast notifications</description>
+          <details>
+            Import toast from 'react-hot-toast'.
+            Success: toast.success('Grade updated').
+            Failure: toast.error with specific message based on error code.
+            Network error: "Network error. Please check your connection."
+            Validation error: "Invalid grade value."
+            Authorization error: "You don't have permission to update this grade."
+            Log errors to console for debugging (production: send to Sentry).
+          </details>
+        </step>
+
+        <step order="4">
+          <description>Integrate hook with gradebook grid component</description>
+          <details>
+            Pass updateGrade function to EditableGradeCell components.
+            Show loading indicator on cell during API call (disable editing).
+            Disable navigation to other cells during pending updates.
+            Update parent grid data structure on successful save (sync with local state).
+          </details>
+        </step>
+      </steps>
+
+      <key-considerations>
+        <consideration>
+          Race conditions: Prevent concurrent updates to same cell (disable cell during save).
+        </consideration>
+        <consideration>
+          Memory leaks: Clean up useEffect hooks when component unmounts.
+        </consideration>
+        <consideration>
+          Error recovery: Provide "Retry" button in error toast for transient failures.
+        </consideration>
+        <consideration>
+          Logging: Log all update attempts (success and failure) for debugging.
+        </consideration>
+      </key-considerations>
+    </phase>
+
+    <phase name="Task 5: Integrate Inline Editing into Gradebook Grid">
+      <objective>
+        Connect editable cells to the gradebook grid from Story 2.1.
+      </objective>
+
+      <steps>
+        <step order="1">
+          <description>Update gradebook grid to use EditableGradeCell</description>
+          <details>
+            Import EditableGradeCell component.
+            Replace static grade cells with EditableGradeCell.
+            Pass props: initialValue (grade.points), maxPoints (assignment.maxPoints), submissionId.
+            Maintain grid layout (don't break responsive design).
+          </details>
+        </step>
+
+        <step order="2">
+          <description>Implement cell-to-cell navigation</description>
+          <details>
+            Track currently focused cell by row/column indices (useState).
+            Handle Tab: Move to next cell (same row, next column OR next row, first column).
+            Handle Shift+Tab: Move to previous cell (same row, previous column OR previous row, last column).
+            Handle wrapping: Next after last column goes to first column of next row.
+            Focus new cell after navigation (use ref.current.focus()).
+          </details>
+        </step>
+
+        <step order="3">
+          <description>Add loading and disabled states to grid</description>
+          <details>
+            Show loading spinner on cell being updated.
+            Disable all editing during pending updates (prevent concurrent edits).
+            Prevent navigation during saves (block Tab/Shift+Tab until save completes).
+            Visual feedback: Gray overlay on disabled cells.
+          </details>
+        </step>
+
+        <step order="4">
+          <description>Handle edge cases</description>
+          <details>
+            Empty cells (no submission): Show "-", disable double-click, no editing.
+            Already graded: Allow re-grading (edit existing grade).
+            Submitted but not graded: Allow grading (create new grade).
+            Concurrent edits: If another instructor updated while editing, show warning on save attempt.
+          </details>
+        </step>
+      </steps>
+
+      <key-considerations>
+        <consideration>
+          Performance: Use React.memo for EditableGradeCell to prevent unnecessary re-renders.
+        </consideration>
+        <consideration>
+          Grid virtualization: If dataset > 50 rows, implement virtualization (react-window).
+        </consideration>
+        <consideration>
+          Data synchronization: After save, update parent grid data to reflect new grade.
+        </consideration>
+        <consideration>
+          UX: Provide visual feedback during navigation (highlight focused cell).
+        </consideration>
+      </key-considerations>
+    </phase>
+
+    <phase name="Task 6-8: Testing">
+      <objective>
+        Comprehensive testing for validation, API, and end-to-end flows.
+      </objective>
+
+      <unit-tests>
+        <test-file>__tests__/validators/gradebook.test.ts</test-file>
+        <tests>
+          <test>gradeUpdateSchema accepts valid numeric grades within range</test>
+          <test>gradeUpdateSchema rejects negative grades</test>
+          <test>gradeUpdateSchema rejects grades exceeding maxPoints</test>
+          <test>gradeUpdateSchema rejects non-numeric strings</test>
+          <test>gradeUpdateSchema rejects invalid submissionId format</test>
+        </tests>
+
+        <test-file>__tests__/components/EditableGradeCell.test.tsx</test-file>
+        <tests>
+          <test>Double-click enters edit mode</test>
+          <test>Enter key triggers save flow</test>
+          <test>Escape key cancels edit</test>
+          <test>Tab/Shift+Tab triggers save and navigation</test>
+          <test>Validation error displays tooltip</test>
+        </tests>
+
+        <test-file>__tests__/hooks/useOptimisticGradeUpdate.test.ts</test-file>
+        <tests>
+          <test>Successful update keeps new value</test>
+          <test>Failed update rolls back to original value</test>
+          <test>Loading state set during API call</test>
+          <test>Error toast shown on failure</test>
+        </tests>
+      </unit-tests>
+
+      <integration-tests>
+        <test-file>__tests__/api/instructor/gradebook/grade.test.ts</test-file>
+        <tests>
+          <test>PUT succeeds with valid grade and submissionId</test>
+          <test>PUT updates grade to 0 (minimum boundary)</test>
+          <test>PUT updates grade to maxPoints (maximum boundary)</test>
+          <test>PUT returns 400 with negative grade</test>
+          <test>PUT returns 400 with grade exceeding maxPoints</test>
+          <test>PUT returns 403 when instructor doesn't own course</test>
+          <test>PUT returns 404 with non-existent submissionId</test>
+          <test>PUT returns 429 after rate limit exceeded</test>
+        </tests>
+      </integration-tests>
+
+      <e2e-tests>
+        <test-file>__tests__/e2e/gradebook-inline-editing.spec.ts</test-file>
+        <tests>
+          <test>Instructor double-clicks cell, edits grade, confirms, grade persists</test>
+          <test>Instructor edits grade, presses Escape, edit cancelled</test>
+          <test>Instructor edits grade, clicks Cancel in dialog, grade reverts</test>
+          <test>Instructor enters invalid grade, error tooltip appears</test>
+          <test>Instructor edits grade, Tab navigates to next cell</test>
+          <test>API failure shows error toast and rolls back grade</test>
+        </tests>
+      </e2e-tests>
+
+      <test-data-setup>
+        <description>
+          Create test fixtures with:
+          - Course with instructor
+          - 5 assignments with varying maxPoints (50, 100, 150)
+          - 10 students enrolled
+          - Mix of graded and ungraded submissions
+        </description>
+      </test-data-setup>
+    </phase>
+  </implementation-guidance>
+
+  <!-- ========================================
+       TESTING REQUIREMENTS
+       ======================================== -->
+  <testing-requirements>
+    <coverage-target>
+      <unit-tests>80%+ coverage for validation logic and components</unit-tests>
+      <integration-tests>100% coverage for API endpoint (all status codes)</integration-tests>
+      <e2e-tests>Critical paths (happy path + error scenarios)</e2e-tests>
+    </coverage-target>
+
+    <test-scenarios>
+      <scenario name="Happy Path">
+        <description>Instructor edits grade, confirms, grade persists after reload</description>
+        <steps>
+          1. Instructor logs in and navigates to gradebook
+          2. Double-clicks grade cell to enter edit mode
+          3. Types new grade value
+          4. Presses Enter to trigger confirmation dialog
+          5. Clicks "Yes" in confirmation dialog
+          6. Sees optimistic UI update (grade changes immediately)
+          7. Sees success toast
+          8. Reloads page
+          9. Verifies grade persisted in database
+        </steps>
+      </scenario>
+
+      <scenario name="Cancel Edit">
+        <description>Instructor cancels edit, grade reverts to original</description>
+        <steps>
+          1. Enter edit mode and change grade
+          2. Press Escape key (or click Cancel in dialog)
+          3. Verify cell reverts to original value
+          4. Verify no API call was made
+        </steps>
+      </scenario>
+
+      <scenario name="Validation Error">
+        <description>Invalid input shows error tooltip and prevents save</description>
+        <steps>
+          1. Enter edit mode
+          2. Type negative number (-10)
+          3. Verify red border and error tooltip appear
+          4. Attempt to save (press Enter)
+          5. Verify confirmation dialog does not appear
+          6. Type number exceeding maxPoints
+          7. Verify error tooltip updates with new message
+        </steps>
+      </scenario>
+
+      <scenario name="API Failure">
+        <description>API error triggers rollback and error toast</description>
+        <steps>
+          1. Mock API endpoint to return 500 error
+          2. Edit grade and confirm
+          3. Verify optimistic UI update occurs
+          4. Wait for API call to fail
+          5. Verify grade rolls back to original value
+          6. Verify error toast appears with appropriate message
+        </steps>
+      </scenario>
+
+      <scenario name="Keyboard Navigation">
+        <description>Tab/Shift+Tab navigates between cells efficiently</description>
+        <steps>
+          1. Focus first grade cell
+          2. Edit grade and press Tab
+          3. Verify save occurs and focus moves to next cell
+          4. Edit that cell and press Shift+Tab
+          5. Verify save occurs and focus moves to previous cell
+          6. Navigate to end of row and press Tab
+          7. Verify focus wraps to first cell of next row
+        </steps>
+      </scenario>
+
+      <scenario name="Concurrent Edit Warning">
+        <description>Warning shown if grade changed by another user</description>
+        <steps>
+          1. Instructor A loads gradebook
+          2. Instructor B updates same grade via API
+          3. Instructor A attempts to edit that grade
+          4. Verify warning message about recent change
+          5. Allow override or force reload
+        </steps>
+      </scenario>
+    </test-scenarios>
+
+    <accessibility-tests>
+      <test>Keyboard-only navigation works (Tab, Shift+Tab, Enter, Escape)</test>
+      <test>Screen reader announces cell values and edit mode</test>
+      <test>ARIA labels present on all interactive elements</test>
+      <test>Focus indicators visible (2px blue outline)</test>
+      <test>Color contrast meets WCAG AA standards (4.5:1 ratio)</test>
+      <test>Error messages announced to screen readers (aria-live)</test>
+    </accessibility-tests>
+
+    <performance-tests>
+      <test>Grade update API responds in < 500ms (p95)</test>
+      <test>Optimistic UI update renders in < 100ms</test>
+      <test>Grid with 50 editable cells renders without lag</test>
+      <test>Rate limiting prevents abuse (30 req/min enforced)</test>
+    </performance-tests>
+  </testing-requirements>
+
+  <!-- ========================================
+       DEPENDENCIES
+       ======================================== -->
+  <dependencies>
+    <story-dependencies>
+      <dependency type="blocking">
+        <story-id>2.1</story-id>
+        <story-title>Gradebook Grid View with Filtering</story-title>
+        <reason>
+          This story builds on the gradebook grid view. The grid component, data fetching logic,
+          and layout must exist before inline editing can be added.
+        </reason>
+      </dependency>
+    </story-dependencies>
+
+    <npm-dependencies>
+      <dependency>
+        <package>@radix-ui/react-dialog</package>
+        <version>1.1.14</version>
+        <status>Already installed</status>
+        <usage>Confirmation dialog for grade updates</usage>
+      </dependency>
+
+      <dependency>
+        <package>react-hot-toast</package>
+        <version>2.5.2</version>
+        <status>Already installed</status>
+        <usage>Success/error toast notifications</usage>
+      </dependency>
+
+      <dependency>
+        <package>zod</package>
+        <version>4.1.13</version>
+        <status>Already installed</status>
+        <usage>Input validation schemas</usage>
+      </dependency>
+
+      <dependency>
+        <package>lucide-react</package>
+        <version>0.514.0</version>
+        <status>Already installed</status>
+        <usage>Icons (AlertCircle, Check, X, etc.)</usage>
+      </dependency>
+    </npm-dependencies>
+
+    <environment-dependencies>
+      <dependency>
+        <name>Database Connection</name>
+        <description>Neon PostgreSQL with Grade, Assignment, Submission models</description>
+        <verification>Run database health check: GET /api/health/db</verification>
+      </dependency>
+
+      <dependency>
+        <name>Authentication</name>
+        <description>NextAuth session with instructor role</description>
+        <verification>Session must include user.id and user.role</verification>
+      </dependency>
+
+      <dependency>
+        <name>Rate Limiting</name>
+        <description>Upstash Redis for rate limit tracking</description>
+        <verification>Rate limit middleware must be configured</verification>
+      </dependency>
+    </environment-dependencies>
+
+    <file-dependencies>
+      <dependency>
+        <file>src/lib/prisma.ts</file>
+        <description>Prisma client singleton for database queries</description>
+      </dependency>
+
+      <dependency>
+        <file>src/lib/auth.ts</file>
+        <description>NextAuth configuration for session checks</description>
+      </dependency>
+
+      <dependency>
+        <file>src/lib/rate-limit.ts</file>
+        <description>Upstash rate limiter instance</description>
+      </dependency>
+
+      <dependency>
+        <file>src/lib/validation.ts</file>
+        <description>Validation utilities (cuidSchema, etc.)</description>
+      </dependency>
+
+      <dependency>
+        <file>src/lib/sanitize.ts</file>
+        <description>HTML sanitization for feedback text</description>
+      </dependency>
+    </file-dependencies>
+  </dependencies>
+
+  <!-- ========================================
+       NOTES & WARNINGS
+       ======================================== -->
+  <notes>
+    <note type="security">
+      <title>Authorization Critical</title>
+      <description>
+        Always verify that the instructor owns the course before allowing grade updates.
+        Check session.user.id matches course.instructorId for every API request.
+        Never trust client-side authorization checks alone.
+      </description>
+    </note>
+
+    <note type="performance">
+      <title>Optimistic UI Trade-offs</title>
+      <description>
+        Optimistic updates improve perceived performance but can confuse users if rollback occurs.
+        Always provide clear visual feedback (success toast, error toast, rollback animation).
+        Consider showing a "Saving..." indicator briefly even with optimistic updates.
+      </description>
+    </note>
+
+    <note type="ux">
+      <title>Confirmation Dialog Necessity</title>
+      <description>
+        The confirmation dialog prevents accidental grade changes but adds friction.
+        Consider allowing instructors to disable confirmation in settings for power users.
+        For MVP, always show confirmation for safety.
+      </description>
+    </note>
+
+    <note type="data-integrity">
+      <title>Concurrent Edit Handling</title>
+      <description>
+        If two instructors edit the same grade simultaneously, last write wins (potential data loss).
+        For MVP, this is acceptable (single instructor per course typically).
+        Post-MVP: Implement optimistic concurrency control (version field, check on update).
+      </description>
+    </note>
+
+    <note type="accessibility">
+      <title>Keyboard Navigation Essential</title>
+      <description>
+        Instructors grade many assignments in bulk. Keyboard navigation (Tab, Shift+Tab) is critical for efficiency.
+        Test thoroughly with keyboard-only interaction. Ensure focus indicators are always visible.
+      </description>
+    </note>
+  </notes>
+
+  <!-- ========================================
+       RELATED FILES
+       ======================================== -->
+  <related-files>
+    <file-group name="API Implementation">
+      <file>src/app/api/instructor/gradebook/[courseId]/grade/route.ts</file>
+      <description>Grade update API endpoint (new file)</description>
+    </file-group>
+
+    <file-group name="Validation">
+      <file>src/validators/gradebook.ts</file>
+      <description>Zod schemas for gradebook operations (new file)</description>
+    </file-group>
+
+    <file-group name="UI Components">
+      <file>src/components/gradebook/EditableGradeCell.tsx</file>
+      <description>Inline editable cell component (new file)</description>
+
+      <file>src/components/gradebook/GradeUpdateConfirmDialog.tsx</file>
+      <description>Confirmation dialog component (new file)</description>
+    </file-group>
+
+    <file-group name="Custom Hooks">
+      <file>src/hooks/useOptimisticGradeUpdate.ts</file>
+      <description>Optimistic update hook with rollback (new file)</description>
+    </file-group>
+
+    <file-group name="Gradebook Pages">
+      <file>src/app/instructor/courses/[id]/gradebook/page.tsx</file>
+      <description>Gradebook page (from Story 2.1, will be updated)</description>
+    </file-group>
+
+    <file-group name="Tests">
+      <file>__tests__/validators/gradebook.test.ts</file>
+      <file>__tests__/components/EditableGradeCell.test.tsx</file>
+      <file>__tests__/hooks/useOptimisticGradeUpdate.test.ts</file>
+      <file>__tests__/api/instructor/gradebook/grade.test.ts</file>
+      <file>__tests__/e2e/gradebook-inline-editing.spec.ts</file>
+    </file-group>
+  </related-files>
+
+  <!-- ========================================
+       TRACEABILITY
+       ======================================== -->
+  <traceability>
+    <epic>
+      <id>2</id>
+      <title>Feature Completion & Admin Capabilities</title>
+      <reference>docs/tech-spec-epic-2.md</reference>
+    </epic>
+
+    <prd-references>
+      <requirement id="FR006">
+        <description>Input validation using Zod schemas</description>
+        <section>Section 4.1 - Core Features</section>
+      </requirement>
+
+      <requirement id="FR024">
+        <description>70%+ test coverage (unit, integration, E2E)</description>
+        <section>Section 7 - Testing Strategy</section>
+      </requirement>
+
+      <requirement id="NFR001">
+        <description>API response time < 500ms (p95)</description>
+        <section>Section 6.1 - Performance Requirements</section>
+      </requirement>
+
+      <requirement id="NFR005">
+        <description>Keyboard navigation and WCAG 2.1 AA compliance</description>
+        <section>Section 6.5 - Accessibility Requirements</section>
+      </requirement>
+    </prd-references>
+
+    <architecture-references>
+      <reference>
+        <section>4.3 - Grade Management System</section>
+        <description>Optimistic UI pattern for grade updates</description>
+      </reference>
+
+      <reference>
+        <section>8.1 - Input Validation</section>
+        <description>Zod validation patterns and error handling</description>
+      </reference>
+
+      <reference>
+        <section>11.2 - API Response Format</section>
+        <description>Consistent success/error response structure</description>
+      </reference>
+    </architecture-references>
+
+    <tech-spec-references>
+      <reference>
+        <section>Epic 2 Tech Spec - Story 2.2</section>
+        <description>Full technical specification for inline editing</description>
+        <file>docs/tech-spec-epic-2.md</file>
+        <line-range>684-696</line-range>
+      </reference>
+    </tech-spec-references>
+  </traceability>
+
+  <!-- ========================================
+       DEFINITION OF DONE
+       ======================================== -->
+  <definition-of-done>
+    <checklist>
+      <item>All acceptance criteria met and verified</item>
+      <item>API endpoint implemented with validation and error handling</item>
+      <item>Rate limiting applied (30 requests per minute per instructor)</item>
+      <item>EditableGradeCell component with validation and keyboard support</item>
+      <item>Confirmation dialog integrated with cell editing</item>
+      <item>Optimistic UI updates with rollback on failure</item>
+      <item>Inline editing integrated into gradebook grid from Story 2.1</item>
+      <item>Unit tests written and passing (coverage >= 80%)</item>
+      <item>Integration tests written and passing (all API scenarios)</item>
+      <item>E2E tests written and passing (critical user flows)</item>
+      <item>Code reviewed and approved</item>
+      <item>No console errors or warnings in browser</item>
+      <item>Accessible (keyboard navigation works, ARIA labels present, screen reader tested)</item>
+      <item>Responsive design tested on mobile and desktop</item>
+      <item>Documentation updated (API documentation, component docs)</item>
+      <item>Merged to main branch</item>
+    </checklist>
+  </definition-of-done>
+</story-context>

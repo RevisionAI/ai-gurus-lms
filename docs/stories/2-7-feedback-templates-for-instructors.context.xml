@@ -1,0 +1,1252 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>2.7</story-id>
+    <story-key>2-7-feedback-templates-for-instructors</story-key>
+    <story-title>Feedback Templates for Instructors</story-title>
+    <epic-id>2</epic-id>
+    <epic-title>Feature Completion &amp; Admin Capabilities</epic-title>
+    <status>drafted</status>
+    <generated-at>2025-11-26</generated-at>
+  </metadata>
+
+  <!-- ========================================== -->
+  <!-- STORY SUMMARY -->
+  <!-- ========================================== -->
+  <story-summary>
+    <user-story>
+      As an instructor, I want pre-defined feedback templates for common assignment patterns,
+      so that I can provide consistent, detailed feedback more efficiently.
+    </user-story>
+
+    <business-value>
+      <value-point>Efficiency: Reduces time spent writing repetitive feedback comments</value-point>
+      <value-point>Consistency: Ensures students receive standardized feedback for similar issues</value-point>
+      <value-point>Quality: Encourages detailed feedback through reusable templates</value-point>
+      <value-point>Personalization: Supports customization with placeholders and manual edits</value-point>
+      <value-point>Insights: Usage tracking helps instructors identify common patterns</value-point>
+    </business-value>
+
+    <key-features>
+      <feature>CRUD operations for feedback templates</feature>
+      <feature>Template library with categorization (excellent, needs-improvement, missing-requirements, late)</feature>
+      <feature>Placeholder support ({student_name}, {assignment_title}, {score}, {custom_note})</feature>
+      <feature>Template selector dropdown in grading workflow</feature>
+      <feature>Usage tracking to identify most-used templates</feature>
+      <feature>Template scoping per instructor with optional course-wide sharing</feature>
+    </key-features>
+  </story-summary>
+
+  <!-- ========================================== -->
+  <!-- ACCEPTANCE CRITERIA -->
+  <!-- ========================================== -->
+  <acceptance-criteria>
+    <criterion id="AC-2.7.1">
+      <title>Template Library Interface</title>
+      <requirements>
+        <requirement>CRUD operations supported for feedback templates</requirement>
+        <requirement>Interface accessible from instructor dashboard</requirement>
+        <requirement>Templates displayed in organized list view</requirement>
+        <requirement>Search/filter capability by category</requirement>
+      </requirements>
+    </criterion>
+
+    <criterion id="AC-2.7.2">
+      <title>Template Fields</title>
+      <requirements>
+        <requirement>Required fields: name, category, template text</requirement>
+        <requirement>Optional fields: isShared, usageCount</requirement>
+        <requirement>All fields validated via Zod schema</requirement>
+        <requirement>Clear field labels and helper text in UI</requirement>
+      </requirements>
+    </criterion>
+
+    <criterion id="AC-2.7.3">
+      <title>Placeholder Support</title>
+      <requirements>
+        <requirement>{student_name} placeholder replaces with student's full name</requirement>
+        <requirement>{assignment_title} placeholder replaces with assignment title</requirement>
+        <requirement>{score} placeholder replaces with numeric score</requirement>
+        <requirement>{custom_note} placeholder reserved for instructor-specific additions</requirement>
+        <requirement>Placeholder replacement logic unit tested</requirement>
+      </requirements>
+    </criterion>
+
+    <criterion id="AC-2.7.4">
+      <title>Template Categories</title>
+      <requirements>
+        <requirement>Category: 'excellent' - for high-quality submissions</requirement>
+        <requirement>Category: 'needs-improvement' - for work requiring revision</requirement>
+        <requirement>Category: 'missing-requirements' - for incomplete submissions</requirement>
+        <requirement>Category: 'late' - for late submission feedback</requirement>
+        <requirement>Category dropdown enforces valid options</requirement>
+      </requirements>
+    </criterion>
+
+    <criterion id="AC-2.7.5">
+      <title>Template Dropdown in Grading Workflow</title>
+      <requirements>
+        <requirement>Template selector integrated into grading interface</requirement>
+        <requirement>Dropdown accessible when providing assignment feedback</requirement>
+        <requirement>Template preview shown before selection</requirement>
+        <requirement>Selected template populates feedback text area</requirement>
+      </requirements>
+    </criterion>
+
+    <criterion id="AC-2.7.6">
+      <title>Template Customization</title>
+      <requirements>
+        <requirement>Templates editable after selection before submission</requirement>
+        <requirement>Placeholders automatically replaced on selection</requirement>
+        <requirement>Manual text editing supported post-insertion</requirement>
+        <requirement>Changes to template do not modify original</requirement>
+      </requirements>
+    </criterion>
+
+    <criterion id="AC-2.7.7">
+      <title>Usage Tracking</title>
+      <requirements>
+        <requirement>usageCount increments each time template is applied</requirement>
+        <requirement>Most-used templates displayed prominently</requirement>
+        <requirement>Usage statistics visible in template management interface</requirement>
+        <requirement>Sorting by usage count supported</requirement>
+      </requirements>
+    </criterion>
+
+    <criterion id="AC-2.7.8">
+      <title>Template Scoping</title>
+      <requirements>
+        <requirement>Templates scoped to instructor by default (instructorId)</requirement>
+        <requirement>isShared flag enables course-wide sharing (future enhancement)</requirement>
+        <requirement>Instructors see only their own templates + shared templates</requirement>
+        <requirement>Proper authorization checks prevent unauthorized access</requirement>
+      </requirements>
+    </criterion>
+
+    <criterion id="AC-2.7.9">
+      <title>Unit Tests - Placeholder Replacement</title>
+      <requirements>
+        <requirement>Test replaces all supported placeholders correctly</requirement>
+        <requirement>Test handles missing placeholders gracefully</requirement>
+        <requirement>Test validates template text with multiple placeholders</requirement>
+        <requirement>Test coverage &gt;= 80% for template utility functions</requirement>
+      </requirements>
+    </criterion>
+
+    <criterion id="AC-2.7.10">
+      <title>Integration Tests - CRUD Endpoints</title>
+      <requirements>
+        <requirement>Test GET /api/instructor/templates returns instructor's templates</requirement>
+        <requirement>Test POST /api/instructor/templates creates new template</requirement>
+        <requirement>Test PUT /api/instructor/templates/:id updates template</requirement>
+        <requirement>Test DELETE /api/instructor/templates/:id removes template</requirement>
+        <requirement>Test authorization prevents access to other instructor's templates</requirement>
+      </requirements>
+    </criterion>
+
+    <criterion id="AC-2.7.11">
+      <title>E2E Tests - Full Workflow</title>
+      <requirements>
+        <requirement>Test creates new feedback template via UI</requirement>
+        <requirement>Test applies template during assignment grading</requirement>
+        <requirement>Test customizes template text before submission</requirement>
+        <requirement>Test student sees feedback with replaced placeholders</requirement>
+        <requirement>Test usage count increments correctly</requirement>
+      </requirements>
+    </criterion>
+  </acceptance-criteria>
+
+  <!-- ========================================== -->
+  <!-- TECHNICAL CONTEXT -->
+  <!-- ========================================== -->
+  <technical-context>
+    <database-schema>
+      <prisma-model name="FeedbackTemplate">
+        <description>
+          New Prisma model for storing instructor feedback templates.
+          From tech-spec-epic-2.md, this model enables instructors to create
+          reusable feedback templates with placeholder support.
+        </description>
+        <model-definition><![CDATA[
+model FeedbackTemplate {
+  id           String   @id @default(cuid())
+  name         String
+  category     String   // excellent, needs-improvement, missing-requirements, late
+  template     String   @db.Text
+  instructorId String
+  instructor   User     @relation(fields: [instructorId], references: [id], onDelete: Cascade)
+  isShared     Boolean  @default(false)
+  usageCount   Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([instructorId])
+  @@index([category])
+}
+        ]]></model-definition>
+        <notes>
+          <note>Note: This model needs to be added to prisma/schema.prisma</note>
+          <note>The template field uses @db.Text to support longer content (up to 2000 chars validated in Zod)</note>
+          <note>category stored as String (not enum) for future extensibility</note>
+          <note>isShared flag enables future course-wide template sharing</note>
+          <note>Indexes on instructorId and category for efficient filtering</note>
+          <note>onDelete: Cascade ensures templates deleted when instructor is removed</note>
+        </notes>
+      </prisma-model>
+
+      <relation-updates>
+        <update>
+          <model>User</model>
+          <change>Add relation: feedbackTemplates FeedbackTemplate[] @relation("InstructorTemplates")</change>
+          <reason>Establish instructor-template ownership relationship</reason>
+        </update>
+      </relation-updates>
+    </database-schema>
+
+    <api-endpoints>
+      <endpoint>
+        <method>GET</method>
+        <path>/api/instructor/templates</path>
+        <description>Retrieve all templates for authenticated instructor</description>
+        <auth>Instructor role required</auth>
+        <query-params>
+          <param name="category" type="string" optional="true">Filter by category</param>
+          <param name="sortBy" type="string" optional="true">Sort by: name | usageCount | createdAt</param>
+        </query-params>
+        <response-format>{ templates: FeedbackTemplate[] }</response-format>
+      </endpoint>
+
+      <endpoint>
+        <method>POST</method>
+        <path>/api/instructor/templates</path>
+        <description>Create new feedback template</description>
+        <auth>Instructor role required</auth>
+        <body-schema>feedbackTemplateSchema</body-schema>
+        <response-format>{ template: FeedbackTemplate }</response-format>
+      </endpoint>
+
+      <endpoint>
+        <method>PUT</method>
+        <path>/api/instructor/templates/:id</path>
+        <description>Update existing template</description>
+        <auth>Instructor role required, must own template</auth>
+        <body-schema>updateFeedbackTemplateSchema</body-schema>
+        <response-format>{ template: FeedbackTemplate }</response-format>
+      </endpoint>
+
+      <endpoint>
+        <method>DELETE</method>
+        <path>/api/instructor/templates/:id</path>
+        <description>Delete template</description>
+        <auth>Instructor role required, must own template</auth>
+        <response-format>{ success: true }</response-format>
+      </endpoint>
+
+      <endpoint>
+        <method>POST</method>
+        <path>/api/instructor/templates/:id/apply</path>
+        <description>Apply template and increment usage count</description>
+        <auth>Instructor role required</auth>
+        <body-schema>applyTemplateSchema</body-schema>
+        <response-format>{ feedbackText: string }</response-format>
+        <notes>
+          <note>This endpoint replaces placeholders and increments usageCount atomically</note>
+        </notes>
+      </endpoint>
+    </api-endpoints>
+
+    <validation-schemas>
+      <schema name="feedbackTemplateSchema">
+        <location>src/validators/feedbackTemplate.ts</location>
+        <purpose>Validate template creation requests</purpose>
+        <definition><![CDATA[
+export const feedbackTemplateSchema = z.object({
+  name: z.string().min(1).max(100),
+  category: z.enum(['excellent', 'needs-improvement', 'missing-requirements', 'late']),
+  template: z.string().min(10).max(2000),
+  isShared: z.boolean().optional(),
+});
+        ]]></definition>
+      </schema>
+
+      <schema name="updateFeedbackTemplateSchema">
+        <location>src/validators/feedbackTemplate.ts</location>
+        <purpose>Validate template update requests (partial updates)</purpose>
+        <definition><![CDATA[
+export const updateFeedbackTemplateSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  category: z.enum(['excellent', 'needs-improvement', 'missing-requirements', 'late']).optional(),
+  template: z.string().min(10).max(2000).optional(),
+  isShared: z.boolean().optional(),
+}).refine(
+  (data) => Object.values(data).some((v) => v !== undefined),
+  { message: 'At least one field must be provided for update' }
+);
+        ]]></definition>
+      </schema>
+
+      <schema name="applyTemplateSchema">
+        <location>src/validators/feedbackTemplate.ts</location>
+        <purpose>Validate template application requests with placeholder data</purpose>
+        <definition><![CDATA[
+export const applyTemplateSchema = z.object({
+  studentName: z.string().min(1),
+  assignmentTitle: z.string().min(1),
+  score: z.number().min(0).max(100).optional(),
+  customNote: z.string().optional(),
+});
+        ]]></definition>
+      </schema>
+
+      <patterns-from-codebase>
+        <pattern>
+          <description>Use cuidSchema from @/lib/validation for ID validation</description>
+          <example>import { cuidSchema, stringWithLength } from '@/lib/validation'</example>
+        </pattern>
+        <pattern>
+          <description>Use sanitizeHtml transform for user-generated content</description>
+          <example>import { sanitizeHtml } from '@/lib/sanitize'</example>
+        </pattern>
+        <pattern>
+          <description>Export TypeScript types from Zod schemas</description>
+          <example>export type FeedbackTemplateInput = z.infer&lt;typeof feedbackTemplateSchema&gt;</example>
+        </pattern>
+      </patterns-from-codebase>
+    </validation-schemas>
+
+    <technology-stack>
+      <framework>Next.js 15 with App Router</framework>
+      <orm>Prisma 6.9 with PostgreSQL</orm>
+      <validation>Zod for schema validation</validation>
+      <auth>NextAuth 4.24 with role-based access control</auth>
+      <ui-components>Radix UI for dialogs, dropdowns, and accessible components</ui-components>
+      <styling>Tailwind CSS for responsive design</styling>
+    </technology-stack>
+  </technical-context>
+
+  <!-- ========================================== -->
+  <!-- EXISTING CODE CONTEXT -->
+  <!-- ========================================== -->
+  <existing-code-context>
+    <related-models>
+      <model name="User">
+        <file>prisma/schema.prisma</file>
+        <relevant-fields>
+          <field>id (String, CUID)</field>
+          <field>name (String)</field>
+          <field>role (UserRole enum: STUDENT | INSTRUCTOR | ADMIN)</field>
+        </relevant-fields>
+        <relations>
+          <relation>Will need new relation: feedbackTemplates FeedbackTemplate[]</relation>
+        </relations>
+      </model>
+
+      <model name="Grade">
+        <file>prisma/schema.prisma</file>
+        <relevant-fields>
+          <field>feedback (String?, nullable)</field>
+          <field>assignmentId (String)</field>
+          <field>studentId (String)</field>
+          <field>gradedById (String)</field>
+        </relevant-fields>
+        <usage>Templates populate the feedback field during grading workflow</usage>
+      </model>
+
+      <model name="Assignment">
+        <file>prisma/schema.prisma</file>
+        <relevant-fields>
+          <field>id (String, CUID)</field>
+          <field>title (String)</field>
+          <field>maxPoints (Int, default 100)</field>
+        </relevant-fields>
+        <usage>Assignment title used in {assignment_title} placeholder</usage>
+      </model>
+    </related-models>
+
+    <related-validators>
+      <validator>
+        <file>src/validators/grade.ts</file>
+        <schema>gradeSubmissionSchema</schema>
+        <relevant-pattern>
+          <description>Feedback field validation with sanitization</description>
+          <code><![CDATA[
+feedback: z
+  .string()
+  .max(5000, 'Feedback must be 5000 characters or less')
+  .transform(sanitizeHtml)
+  .optional()
+  .nullable()
+          ]]></code>
+        </relevant-pattern>
+      </validator>
+
+      <validator>
+        <file>src/validators/course.ts</file>
+        <schema>createCourseSchema</schema>
+        <relevant-pattern>
+          <description>Enum validation pattern for category</description>
+          <code><![CDATA[
+const contentTypeEnum = z.enum(['TEXT', 'VIDEO', 'DOCUMENT', 'LINK', 'SCORM', 'YOUTUBE'])
+          ]]></code>
+        </relevant-pattern>
+      </validator>
+    </related-validators>
+
+    <integration-points>
+      <integration>
+        <component>Grading Workflow</component>
+        <location>src/app/courses/[id]/assignments/[assignmentId]/page.tsx</location>
+        <description>
+          Template selector will integrate into existing grading interface.
+          FeedbackTemplateSelector component will be added near feedback textarea.
+        </description>
+      </integration>
+
+      <integration>
+        <component>NextAuth Session</component>
+        <location>src/lib/auth.ts</location>
+        <description>
+          Use session.user.id to scope templates to instructor.
+          Check session.user.role === 'INSTRUCTOR' for authorization.
+        </description>
+      </integration>
+    </integration-points>
+
+    <existing-patterns>
+      <pattern name="API Route Authorization">
+        <description>Standard pattern for instructor-only endpoints</description>
+        <example><![CDATA[
+const session = await getServerSession(authOptions);
+if (!session?.user?.id) {
+  return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+}
+if (session.user.role !== 'INSTRUCTOR') {
+  return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+}
+        ]]></example>
+      </pattern>
+
+      <pattern name="Prisma Transaction Usage">
+        <description>Atomic operations for data consistency</description>
+        <example><![CDATA[
+const result = await prisma.$transaction(async (tx) => {
+  const template = await tx.feedbackTemplate.update({
+    where: { id },
+    data: { usageCount: { increment: 1 } },
+  });
+  return template;
+});
+        ]]></example>
+      </pattern>
+
+      <pattern name="Soft Delete Queries">
+        <description>Filter out soft-deleted records</description>
+        <example><![CDATA[
+where: {
+  instructorId: session.user.id,
+  deletedAt: null, // Only active templates (if soft delete added later)
+}
+        ]]></example>
+      </pattern>
+    </existing-patterns>
+  </existing-code-context>
+
+  <!-- ========================================== -->
+  <!-- IMPLEMENTATION GUIDANCE -->
+  <!-- ========================================== -->
+  <implementation-guidance>
+    <placeholder-replacement>
+      <overview>
+        Core utility function to replace placeholders in template text with actual values.
+        Must handle missing data gracefully and support all defined placeholders.
+      </overview>
+
+      <supported-placeholders>
+        <placeholder name="{student_name}">
+          <description>Student's full name</description>
+          <source>User.name from studentId</source>
+          <required>true</required>
+        </placeholder>
+        <placeholder name="{assignment_title}">
+          <description>Assignment title</description>
+          <source>Assignment.title from assignmentId</source>
+          <required>true</required>
+        </placeholder>
+        <placeholder name="{score}">
+          <description>Numeric grade score</description>
+          <source>Grade.points (number)</source>
+          <required>false</required>
+          <default-value>Empty string if not provided</default-value>
+        </placeholder>
+        <placeholder name="{custom_note}">
+          <description>Instructor-specific custom text</description>
+          <source>Provided by instructor when applying template</source>
+          <required>false</required>
+          <default-value>Empty string if not provided</default-value>
+        </placeholder>
+      </supported-placeholders>
+
+      <implementation-reference>
+        <location>src/lib/feedbackTemplate.ts</location>
+        <function name="replacePlaceholders">
+          <signature><![CDATA[
+export function replacePlaceholders(
+  template: string,
+  data: {
+    studentName: string;
+    assignmentTitle: string;
+    score?: number;
+    customNote?: string;
+  }
+): string
+          ]]></signature>
+          <algorithm><![CDATA[
+1. Take template string and data object as input
+2. Use String.replace() with global regex for each placeholder:
+   - Replace all {student_name} with data.studentName
+   - Replace all {assignment_title} with data.assignmentTitle
+   - Replace all {score} with data.score?.toString() || ''
+   - Replace all {custom_note} with data.customNote || ''
+3. Return transformed string
+          ]]></algorithm>
+          <example><![CDATA[
+const template = "Hi {student_name}, your score on {assignment_title} is {score}/100. {custom_note}";
+const result = replacePlaceholders(template, {
+  studentName: "John Doe",
+  assignmentTitle: "Assignment 1",
+  score: 95,
+  customNote: "Great work!"
+});
+// Result: "Hi John Doe, your score on Assignment 1 is 95/100. Great work!"
+          ]]></example>
+        </function>
+
+        <function name="extractPlaceholders">
+          <signature><![CDATA[
+export function extractPlaceholders(template: string): string[]
+          ]]></signature>
+          <purpose>Extract all placeholders from template for validation and preview</purpose>
+          <algorithm><![CDATA[
+1. Use regex /{([^}]+)}/g to match all {placeholder} patterns
+2. Extract the text inside curly braces
+3. Return array of unique placeholder names
+          ]]></algorithm>
+        </function>
+      </implementation-reference>
+
+      <edge-cases>
+        <case>
+          <scenario>Missing optional data (score, customNote)</scenario>
+          <handling>Replace with empty string, not "undefined" or "null"</handling>
+        </case>
+        <case>
+          <scenario>Template with no placeholders</scenario>
+          <handling>Return template unchanged</handling>
+        </case>
+        <case>
+          <scenario>Multiple occurrences of same placeholder</scenario>
+          <handling>Replace all occurrences (use regex with /g flag)</handling>
+        </case>
+        <case>
+          <scenario>Invalid placeholder in template</scenario>
+          <handling>Leave invalid placeholder unchanged (don't error)</handling>
+        </case>
+        <case>
+          <scenario>Special characters in replacement data</scenario>
+          <handling>Ensure data is not interpreted as regex (use plain string replacement)</handling>
+        </case>
+      </edge-cases>
+    </placeholder-replacement>
+
+    <component-architecture>
+      <component name="FeedbackTemplateManager">
+        <location>src/components/instructor/FeedbackTemplateManager.tsx</location>
+        <purpose>Main management interface for CRUD operations on templates</purpose>
+        <features>
+          <feature>Template list with search/filter by category</feature>
+          <feature>Create/Edit modal with form validation</feature>
+          <feature>Delete confirmation dialog</feature>
+          <feature>Usage statistics display (sort by usage count)</feature>
+          <feature>Placeholder helper text/documentation</feature>
+        </features>
+        <state-management>
+          <state>templates (FeedbackTemplate[])</state>
+          <state>selectedCategory (string | 'all')</state>
+          <state>searchQuery (string)</state>
+          <state>sortBy ('name' | 'usageCount' | 'createdAt')</state>
+          <state>isCreateModalOpen (boolean)</state>
+          <state>editingTemplate (FeedbackTemplate | null)</state>
+        </state-management>
+      </component>
+
+      <component name="FeedbackTemplateSelector">
+        <location>src/components/gradebook/FeedbackTemplateSelector.tsx</location>
+        <purpose>Dropdown selector for grading workflow</purpose>
+        <features>
+          <feature>Grouped dropdown by category</feature>
+          <feature>Template preview on hover/click</feature>
+          <feature>Apply template button</feature>
+          <feature>Integration with feedback textarea state</feature>
+        </features>
+        <props>
+          <prop name="studentId" type="string" required="true" />
+          <prop name="assignmentId" type="string" required="true" />
+          <prop name="onTemplateApplied" type="(feedbackText: string) => void" required="true" />
+        </props>
+      </component>
+    </component-architecture>
+
+    <workflow-integration>
+      <step number="1">
+        <action>Instructor opens grading interface for specific student submission</action>
+        <component>GradingPage (/courses/[id]/assignments/[assignmentId]/page.tsx)</component>
+      </step>
+      <step number="2">
+        <action>FeedbackTemplateSelector component loads instructor's templates</action>
+        <api-call>GET /api/instructor/templates</api-call>
+      </step>
+      <step number="3">
+        <action>Instructor clicks "Use Template" dropdown</action>
+        <component>FeedbackTemplateSelector</component>
+      </step>
+      <step number="4">
+        <action>Instructor previews template (hover or click preview)</action>
+        <component>Template preview modal/tooltip</component>
+      </step>
+      <step number="5">
+        <action>Instructor selects template to apply</action>
+        <api-call>POST /api/instructor/templates/:id/apply</api-call>
+        <payload>{ studentName, assignmentTitle, score?, customNote? }</payload>
+      </step>
+      <step number="6">
+        <action>API replaces placeholders and increments usageCount</action>
+        <server-logic>replacePlaceholders() + Prisma update</server-logic>
+      </step>
+      <step number="7">
+        <action>Populated feedback text returned to client</action>
+        <response>{ feedbackText: "Hi John Doe..." }</response>
+      </step>
+      <step number="8">
+        <action>FeedbackTemplateSelector calls onTemplateApplied(feedbackText)</action>
+        <component>Parent grading component updates textarea state</component>
+      </step>
+      <step number="9">
+        <action>Instructor can edit feedback text before submitting grade</action>
+        <note>Template application does not lock the feedback - fully editable</note>
+      </step>
+    </workflow-integration>
+
+    <security-considerations>
+      <consideration>
+        <threat>XSS via malicious template content</threat>
+        <mitigation>Sanitize template text using sanitizeHtml on input</mitigation>
+        <validation>Zod schema with .transform(sanitizeHtml)</validation>
+      </consideration>
+      <consideration>
+        <threat>Unauthorized access to other instructor's templates</threat>
+        <mitigation>Filter queries by instructorId from session</mitigation>
+        <validation>Verify ownership before update/delete operations</validation>
+      </consideration>
+      <consideration>
+        <threat>Template injection attacks via placeholder data</threat>
+        <mitigation>Escape special characters in replacement data</mitigation>
+        <validation>Use plain string replacement, not eval or template literals</validation>
+      </consideration>
+      <consideration>
+        <threat>Rate limiting on template creation</threat>
+        <mitigation>Apply rate limiting middleware to POST endpoint</mitigation>
+        <note>Prevent abuse/spam template creation</note>
+      </consideration>
+    </security-considerations>
+
+    <performance-optimization>
+      <optimization>
+        <area>Template Caching</area>
+        <approach>Cache instructor's templates in session/local storage</approach>
+        <benefit>Reduce API calls when switching between assignments</benefit>
+      </optimization>
+      <optimization>
+        <area>Database Queries</area>
+        <approach>Index on instructorId and category for fast filtering</approach>
+        <benefit>Quick template retrieval even with large template sets</benefit>
+      </optimization>
+      <optimization>
+        <area>Usage Count Increment</area>
+        <approach>Use Prisma atomic increment { usageCount: { increment: 1 } }</approach>
+        <benefit>Prevent race conditions in concurrent grading sessions</benefit>
+      </optimization>
+    </performance-optimization>
+  </implementation-guidance>
+
+  <!-- ========================================== -->
+  <!-- TESTING REQUIREMENTS -->
+  <!-- ========================================== -->
+  <testing-requirements>
+    <unit-tests>
+      <test-suite name="Placeholder Replacement">
+        <location>__tests__/lib/feedbackTemplate.test.ts</location>
+        <test>
+          <name>replaces single placeholder correctly</name>
+          <scenario>Template with {student_name} only</scenario>
+          <expected>Student name inserted correctly</expected>
+        </test>
+        <test>
+          <name>replaces multiple placeholders in one template</name>
+          <scenario>Template with all 4 placeholders</scenario>
+          <expected>All placeholders replaced with correct data</expected>
+        </test>
+        <test>
+          <name>replaces multiple occurrences of same placeholder</name>
+          <scenario>Template with {student_name} appearing 3 times</scenario>
+          <expected>All occurrences replaced</expected>
+        </test>
+        <test>
+          <name>handles missing optional data gracefully</name>
+          <scenario>Template with {score} and {custom_note}, but data omitted</scenario>
+          <expected>Placeholders replaced with empty string</expected>
+        </test>
+        <test>
+          <name>handles template with no placeholders</name>
+          <scenario>Plain text template</scenario>
+          <expected>Returns template unchanged</expected>
+        </test>
+        <test>
+          <name>handles special characters in replacement data</name>
+          <scenario>Student name contains apostrophe, quotes, etc.</scenario>
+          <expected>Special characters preserved correctly</expected>
+        </test>
+        <test>
+          <name>extractPlaceholders finds all placeholders</name>
+          <scenario>Template with 3 different placeholders</scenario>
+          <expected>Returns array with 3 placeholder names</expected>
+        </test>
+        <test>
+          <name>extractPlaceholders returns empty array for plain text</name>
+          <scenario>Template with no placeholders</scenario>
+          <expected>Returns []</expected>
+        </test>
+      </test-suite>
+
+      <test-suite name="Validation Schemas">
+        <location>__tests__/validators/feedbackTemplate.test.ts</location>
+        <test>
+          <name>feedbackTemplateSchema accepts valid data</name>
+          <input>{ name: "Test", category: "excellent", template: "Hello {student_name}" }</input>
+          <expected>Validation passes</expected>
+        </test>
+        <test>
+          <name>feedbackTemplateSchema rejects invalid category</name>
+          <input>{ name: "Test", category: "invalid", template: "..." }</input>
+          <expected>Validation error on category field</expected>
+        </test>
+        <test>
+          <name>feedbackTemplateSchema enforces template min length</name>
+          <input>{ name: "Test", category: "excellent", template: "Hi" }</input>
+          <expected>Validation error: template too short (min 10 chars)</expected>
+        </test>
+        <test>
+          <name>feedbackTemplateSchema enforces template max length</name>
+          <input>Template with 2001 characters</input>
+          <expected>Validation error: template too long (max 2000 chars)</expected>
+        </test>
+        <test>
+          <name>applyTemplateSchema accepts valid data</name>
+          <input>{ studentName: "John", assignmentTitle: "A1", score: 95 }</input>
+          <expected>Validation passes</expected>
+        </test>
+        <test>
+          <name>applyTemplateSchema accepts optional fields omitted</name>
+          <input>{ studentName: "John", assignmentTitle: "A1" }</input>
+          <expected>Validation passes (score and customNote optional)</expected>
+        </test>
+      </test-suite>
+    </unit-tests>
+
+    <integration-tests>
+      <test-suite name="Template CRUD Endpoints">
+        <location>__tests__/api/instructor/templates.test.ts</location>
+        <setup>
+          <step>Create test database with instructor user</step>
+          <step>Seed sample templates for testing</step>
+          <step>Create authenticated session</step>
+        </setup>
+
+        <test>
+          <name>GET /api/instructor/templates returns instructor's templates</name>
+          <auth>Instructor session</auth>
+          <expected>Returns array of templates belonging to instructor</expected>
+          <assertions>
+            <assertion>Response status 200</assertion>
+            <assertion>Returns only instructor's templates (not other instructors')</assertion>
+            <assertion>Templates include all fields (id, name, category, etc.)</assertion>
+          </assertions>
+        </test>
+
+        <test>
+          <name>GET /api/instructor/templates filters by category</name>
+          <query>?category=excellent</query>
+          <expected>Returns only templates with category "excellent"</expected>
+        </test>
+
+        <test>
+          <name>GET /api/instructor/templates sorts by usageCount</name>
+          <query>?sortBy=usageCount</query>
+          <expected>Templates ordered by usage count descending</expected>
+        </test>
+
+        <test>
+          <name>POST /api/instructor/templates creates new template</name>
+          <body>{ name: "New Template", category: "late", template: "..." }</body>
+          <expected>Template created successfully</expected>
+          <assertions>
+            <assertion>Response status 201</assertion>
+            <assertion>Returns created template with generated id</assertion>
+            <assertion>instructorId set to session.user.id</assertion>
+            <assertion>usageCount defaults to 0</assertion>
+          </assertions>
+        </test>
+
+        <test>
+          <name>POST /api/instructor/templates validates input</name>
+          <body>{ name: "", category: "invalid", template: "x" }</body>
+          <expected>Validation errors returned</expected>
+          <assertions>
+            <assertion>Response status 400</assertion>
+            <assertion>Error message indicates validation failure</assertion>
+          </assertions>
+        </test>
+
+        <test>
+          <name>PUT /api/instructor/templates/:id updates template</name>
+          <setup>Create template for instructor</setup>
+          <body>{ name: "Updated Name" }</body>
+          <expected>Template updated successfully</expected>
+          <assertions>
+            <assertion>Response status 200</assertion>
+            <assertion>Template name changed</assertion>
+            <assertion>updatedAt timestamp updated</assertion>
+          </assertions>
+        </test>
+
+        <test>
+          <name>PUT /api/instructor/templates/:id prevents unauthorized update</name>
+          <setup>Create template for instructor A, authenticate as instructor B</setup>
+          <expected>Authorization error</expected>
+          <assertions>
+            <assertion>Response status 403</assertion>
+            <assertion>Template not modified</assertion>
+          </assertions>
+        </test>
+
+        <test>
+          <name>DELETE /api/instructor/templates/:id removes template</name>
+          <setup>Create template for instructor</setup>
+          <expected>Template deleted</expected>
+          <assertions>
+            <assertion>Response status 200</assertion>
+            <assertion>Template no longer exists in database</assertion>
+          </assertions>
+        </test>
+
+        <test>
+          <name>POST /api/instructor/templates/:id/apply replaces placeholders</name>
+          <setup>Create template with all placeholders</setup>
+          <body>{ studentName: "John Doe", assignmentTitle: "A1", score: 90 }</body>
+          <expected>Returns feedback text with placeholders replaced</expected>
+          <assertions>
+            <assertion>Response status 200</assertion>
+            <assertion>feedbackText contains "John Doe" (not {student_name})</assertion>
+            <assertion>usageCount incremented by 1</assertion>
+          </assertions>
+        </test>
+      </test-suite>
+    </integration-tests>
+
+    <e2e-tests>
+      <test-suite name="Template Management Workflow">
+        <location>__tests__/e2e/feedback-templates.spec.ts</location>
+        <framework>Playwright</framework>
+
+        <test>
+          <name>Instructor creates new feedback template</name>
+          <steps>
+            <step>Login as instructor</step>
+            <step>Navigate to template management page</step>
+            <step>Click "Create Template" button</step>
+            <step>Fill form: name, category, template text</step>
+            <step>Submit form</step>
+            <step>Verify success message</step>
+            <step>Verify template appears in list</step>
+          </steps>
+          <assertions>
+            <assertion>Template visible in list with correct data</assertion>
+            <assertion>Database contains new template record</assertion>
+          </assertions>
+        </test>
+
+        <test>
+          <name>Instructor applies template during grading</name>
+          <steps>
+            <step>Login as instructor</step>
+            <step>Navigate to assignment grading page</step>
+            <step>Open template selector dropdown</step>
+            <step>Select a template from dropdown</step>
+            <step>Verify feedback textarea populated</step>
+            <step>Verify placeholders replaced with actual values</step>
+            <step>Customize feedback text (edit manually)</step>
+            <step>Submit grade with feedback</step>
+          </steps>
+          <assertions>
+            <assertion>Feedback contains student name (placeholder replaced)</assertion>
+            <assertion>Feedback contains assignment title (placeholder replaced)</assertion>
+            <assertion>Manual edits preserved after template application</assertion>
+            <assertion>Template usage count incremented</assertion>
+          </assertions>
+        </test>
+
+        <test>
+          <name>Student sees feedback with replaced placeholders</name>
+          <steps>
+            <step>Login as instructor, apply template to student submission</step>
+            <step>Logout, login as student</step>
+            <step>Navigate to graded assignment</step>
+            <step>View feedback</step>
+          </steps>
+          <assertions>
+            <assertion>Feedback displays with student's actual name</assertion>
+            <assertion>No placeholder syntax visible (no curly braces)</assertion>
+            <assertion>Feedback properly formatted</assertion>
+          </assertions>
+        </test>
+
+        <test>
+          <name>Usage count increments correctly</name>
+          <steps>
+            <step>Login as instructor</step>
+            <step>Note initial usage count of template</step>
+            <step>Apply template to 3 different student submissions</step>
+            <step>Return to template management page</step>
+            <step>Verify usage count increased by 3</step>
+          </steps>
+          <assertions>
+            <assertion>Usage count displays correctly</assertion>
+            <assertion>Template list sortable by usage count</assertion>
+          </assertions>
+        </test>
+
+        <test>
+          <name>Template editing and deletion workflow</name>
+          <steps>
+            <step>Login as instructor</step>
+            <step>Edit existing template (change name and template text)</step>
+            <step>Save changes</step>
+            <step>Verify updates saved</step>
+            <step>Delete template</step>
+            <step>Confirm deletion</step>
+            <step>Verify template removed from list</step>
+          </steps>
+          <assertions>
+            <assertion>Edited template shows updated data</assertion>
+            <assertion>Deleted template no longer appears</assertion>
+            <assertion>Existing feedback using template not affected</assertion>
+          </assertions>
+        </test>
+      </test-suite>
+    </e2e-tests>
+
+    <coverage-requirements>
+      <requirement>
+        <type>Unit tests</type>
+        <target>&gt;= 80% coverage</target>
+        <focus>Template utility functions, validation schemas</focus>
+      </requirement>
+      <requirement>
+        <type>Integration tests</type>
+        <target>&gt;= 70% coverage</target>
+        <focus>API endpoints, database operations</focus>
+      </requirement>
+      <requirement>
+        <type>E2E tests</type>
+        <target>Critical user paths covered</target>
+        <focus>Template creation, application, student view</focus>
+      </requirement>
+    </coverage-requirements>
+  </testing-requirements>
+
+  <!-- ========================================== -->
+  <!-- DEPENDENCIES -->
+  <!-- ========================================== -->
+  <dependencies>
+    <prerequisites>
+      <prerequisite>
+        <story-id>2.2</story-id>
+        <story-title>Inline Grading Workflow</story-title>
+        <reason>Grading interface must exist for template selector integration</reason>
+        <status>Must be complete before starting 2.7</status>
+      </prerequisite>
+      <prerequisite>
+        <component>Assignment Grading Infrastructure</component>
+        <reason>Need existing grade submission flow to integrate templates</reason>
+        <location>src/app/courses/[id]/assignments/[assignmentId]/page.tsx</location>
+      </prerequisite>
+    </prerequisites>
+
+    <blocking-stories>
+      <none>This story does not block any other stories in Epic 2</none>
+    </blocking-stories>
+
+    <related-stories>
+      <related-story>
+        <story-id>2.2</story-id>
+        <story-title>Inline Grading</story-title>
+        <relationship>Template selector integrates into grading interface from 2.2</relationship>
+      </related-story>
+      <related-story>
+        <story-id>2.3</story-id>
+        <story-title>Grade Analytics</story-title>
+        <relationship>Template usage data could inform analytics (future enhancement)</relationship>
+      </related-story>
+      <related-story>
+        <story-id>2.8</story-id>
+        <story-title>Bulk Operations</story-title>
+        <relationship>Templates could be applied in bulk grading scenarios</relationship>
+      </related-story>
+    </related-stories>
+
+    <technical-dependencies>
+      <dependency>
+        <package>zod</package>
+        <version>^4.1.13</version>
+        <usage>Input validation for template CRUD operations</usage>
+        <status>Already installed</status>
+      </dependency>
+      <dependency>
+        <package>@radix-ui/react-dialog</package>
+        <version>^1.1.14</version>
+        <usage>Template create/edit modals, delete confirmations</usage>
+        <status>Already installed</status>
+      </dependency>
+      <dependency>
+        <package>@radix-ui/react-dropdown-menu</package>
+        <version>^2.1.15</version>
+        <usage>Template selector dropdown in grading interface</usage>
+        <status>Already installed</status>
+      </dependency>
+      <dependency>
+        <package>react-hot-toast</package>
+        <version>^2.5.2</version>
+        <usage>Success/error notifications for template operations</usage>
+        <status>Already installed</status>
+      </dependency>
+    </technical-dependencies>
+
+    <external-services>
+      <service>
+        <name>Neon PostgreSQL</name>
+        <usage>Store FeedbackTemplate records</usage>
+        <impact>All template CRUD operations require database connection</impact>
+      </service>
+      <service>
+        <name>NextAuth Session</name>
+        <usage>Authenticate instructors and scope templates</usage>
+        <impact>Template endpoints require valid instructor session</impact>
+      </service>
+    </external-services>
+  </dependencies>
+
+  <!-- ========================================== -->
+  <!-- DEVELOPMENT NOTES -->
+  <!-- ========================================== -->
+  <development-notes>
+    <implementation-order>
+      <phase number="1">
+        <title>Database Setup</title>
+        <tasks>
+          <task>Add FeedbackTemplate model to prisma/schema.prisma</task>
+          <task>Add relation to User model</task>
+          <task>Create and run migration: npx prisma migrate dev --name add_feedback_templates</task>
+          <task>Verify migration successful</task>
+        </tasks>
+      </phase>
+
+      <phase number="2">
+        <title>Validation &amp; Types</title>
+        <tasks>
+          <task>Create src/validators/feedbackTemplate.ts</task>
+          <task>Implement feedbackTemplateSchema</task>
+          <task>Implement updateFeedbackTemplateSchema</task>
+          <task>Implement applyTemplateSchema</task>
+          <task>Export types and add to src/validators/index.ts</task>
+        </tasks>
+      </phase>
+
+      <phase number="3">
+        <title>Utility Functions</title>
+        <tasks>
+          <task>Create src/lib/feedbackTemplate.ts</task>
+          <task>Implement replacePlaceholders function</task>
+          <task>Implement extractPlaceholders function</task>
+          <task>Write unit tests for both functions</task>
+          <task>Achieve 100% coverage on utility functions</task>
+        </tasks>
+      </phase>
+
+      <phase number="4">
+        <title>API Endpoints</title>
+        <tasks>
+          <task>Create src/app/api/instructor/templates/route.ts (GET, POST)</task>
+          <task>Create src/app/api/instructor/templates/[id]/route.ts (PUT, DELETE)</task>
+          <task>Create src/app/api/instructor/templates/[id]/apply/route.ts (POST)</task>
+          <task>Implement authentication and authorization checks</task>
+          <task>Write integration tests for all endpoints</task>
+        </tasks>
+      </phase>
+
+      <phase number="5">
+        <title>Template Management UI</title>
+        <tasks>
+          <task>Create FeedbackTemplateManager component</task>
+          <task>Implement template list view with filtering</task>
+          <task>Create template create/edit modal</task>
+          <task>Implement delete confirmation</task>
+          <task>Add usage statistics display</task>
+          <task>Test component rendering and interactions</task>
+        </tasks>
+      </phase>
+
+      <phase number="6">
+        <title>Grading Integration</title>
+        <tasks>
+          <task>Create FeedbackTemplateSelector component</task>
+          <task>Integrate selector into grading page</task>
+          <task>Implement template preview</task>
+          <task>Connect to feedback textarea state</task>
+          <task>Test template application workflow</task>
+        </tasks>
+      </phase>
+
+      <phase number="7">
+        <title>E2E Testing</title>
+        <tasks>
+          <task>Write E2E test for template creation</task>
+          <task>Write E2E test for template application</task>
+          <task>Write E2E test for student viewing feedback</task>
+          <task>Write E2E test for usage count tracking</task>
+          <task>Verify all tests passing</task>
+        </tasks>
+      </phase>
+    </implementation-order>
+
+    <sample-templates>
+      <template category="excellent">
+        <name>Excellent Work - Standard</name>
+        <text><![CDATA[Hi {student_name},
+
+Excellent work on {assignment_title}! Your submission demonstrates a strong understanding of the material. You scored {score}/100.
+
+{custom_note}
+
+Keep up the great work!]]></text>
+      </template>
+
+      <template category="needs-improvement">
+        <name>Needs Improvement - Standard</name>
+        <text><![CDATA[Hi {student_name},
+
+Thank you for your submission of {assignment_title}. Your current score is {score}/100.
+
+To improve, please focus on:
+{custom_note}
+
+I'm here to help if you have questions. Consider office hours for additional support.]]></text>
+      </template>
+
+      <template category="missing-requirements">
+        <name>Missing Requirements</name>
+        <text><![CDATA[Hi {student_name},
+
+Your submission for {assignment_title} is missing some required elements, resulting in a score of {score}/100.
+
+Missing components:
+{custom_note}
+
+Please review the assignment rubric and resubmit if late submissions are accepted.]]></text>
+      </template>
+
+      <template category="late">
+        <name>Late Submission</name>
+        <text><![CDATA[Hi {student_name},
+
+Your submission for {assignment_title} was received after the deadline. Your score is {score}/100, which reflects the late penalty.
+
+{custom_note}
+
+Please reach out if there were extenuating circumstances.]]></text>
+      </template>
+    </sample-templates>
+
+    <considerations>
+      <consideration>
+        <title>Template Versioning</title>
+        <description>
+          Future enhancement: Track template changes over time. Currently, editing a template
+          does not affect feedback already submitted using the old version.
+        </description>
+      </consideration>
+
+      <consideration>
+        <title>Rich Text Support</title>
+        <description>
+          MVP uses plain text templates. Future: Enable markdown or HTML formatting
+          for bold, italics, lists, links, etc.
+        </description>
+      </consideration>
+
+      <consideration>
+        <title>Template Sharing</title>
+        <description>
+          isShared flag exists but not fully implemented in MVP. Future: Enable
+          course-wide template sharing with instructor approval workflow.
+        </description>
+      </consideration>
+
+      <consideration>
+        <title>Custom Categories</title>
+        <description>
+          Categories hardcoded to 4 options in MVP. Future: Allow instructors to
+          create custom categories per course.
+        </description>
+      </consideration>
+
+      <consideration>
+        <title>AI-Suggested Templates</title>
+        <description>
+          Future enhancement: Analyze common feedback patterns and suggest templates
+          based on instructor's historical feedback.
+        </description>
+      </consideration>
+    </considerations>
+
+    <known-limitations>
+      <limitation>Templates are text-only (no rich formatting in MVP)</limitation>
+      <limitation>No template hierarchy or inheritance between templates</limitation>
+      <limitation>Usage count is aggregate (no per-course breakdown)</limitation>
+      <limitation>No template history or audit trail for changes</limitation>
+      <limitation>Limited to 4 predefined categories (extensibility via string type)</limitation>
+      <limitation>No template preview with sample data in management interface (only in selector)</limitation>
+    </known-limitations>
+
+    <future-enhancements>
+      <enhancement>Template sharing across courses with admin approval</enhancement>
+      <enhancement>Custom categories per course</enhancement>
+      <enhancement>AI-suggested templates based on feedback patterns</enhancement>
+      <enhancement>Template analytics (which templates correlate with student improvement)</enhancement>
+      <enhancement>Public template marketplace/library</enhancement>
+      <enhancement>Rich text formatting support</enhancement>
+      <enhancement>Multi-language templates</enhancement>
+      <enhancement>Template versioning and change history</enhancement>
+      <enhancement>Bulk template import from CSV/JSON</enhancement>
+      <enhancement>Template tagging system for better organization</enhancement>
+    </future-enhancements>
+  </development-notes>
+</story-context>

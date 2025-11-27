@@ -12,6 +12,8 @@
 
 # testing
 /coverage
+*.lcov
+.nyc_output/
 
 # next.js
 /.next/
@@ -53,3 +55,12 @@ next-env.d.ts
 
 # Keep thumbnails
 !/public/uploads/thumbnails/**
+
+# Database backups (contain sensitive data)
+/backups/
+
+# Playwright
+/playwright-report/
+/test-results/
+/playwright/.cache/
+vibe-code-lms/

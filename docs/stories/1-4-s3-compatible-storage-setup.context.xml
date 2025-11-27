@@ -1,0 +1,355 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context id="1-4-s3-compatible-storage-setup" v="1.0">
+  <metadata>
+    <epic-id>1</epic-id>
+    <story-id>1.4</story-id>
+    <title>S3-Compatible Storage Setup</title>
+    <status>drafted</status>
+    <generated-at>2025-11-25</generated-at>
+    <generator>Claude Sonnet 4.5 (story-context workflow)</generator>
+    <source-story-path>docs/stories/1-4-s3-compatible-storage-setup.md</source-story-path>
+  </metadata>
+
+  <story>
+    <as-a>DevOps engineer</as-a>
+    <i-want>to provision S3-compatible cloud storage with CDN</i-want>
+    <so-that>uploaded files can be stored scalably and delivered globally</so-that>
+
+    <tasks>
+      <task id="1" ac="1,2,3">
+        <description>Provision Cloudflare R2 bucket</description>
+        <subtasks>
+          <subtask>Create Cloudflare account at https://cloudflare.com (or use existing)</subtask>
+          <subtask>Navigate to R2 Object Storage dashboard</subtask>
+          <subtask>Create new R2 bucket: ai-gurus-lms-uploads</subtask>
+          <subtask>Configure bucket settings: private by default (public access via signed URLs only)</subtask>
+          <subtask>Configure CORS policy to allow uploads from application domain</subtask>
+          <subtask>Configure CDN domain for public content (R2 provides automatic CDN via r2.dev subdomain)</subtask>
+          <subtask>Document R2 bucket URL and CDN URL</subtask>
+        </subtasks>
+        <testing>Manual verification in Cloudflare dashboard that bucket exists</testing>
+      </task>
+
+      <task id="2" ac="4">
+        <description>Generate and store R2 API credentials</description>
+        <subtasks>
+          <subtask>In Cloudflare dashboard, navigate to R2 API Tokens</subtask>
+          <subtask>Create new API token with permissions: Object Read and Write</subtask>
+          <subtask>Copy Account ID, Access Key ID, and Secret Access Key</subtask>
+          <subtask>Add credentials to .env.local with proper naming (R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME, R2_PUBLIC_URL)</subtask>
+          <subtask>Verify .env.local is in .gitignore (security check)</subtask>
+        </subtasks>
+        <testing>Manual review confirms credentials stored securely</testing>
+      </task>
+
+      <task id="3" ac="5">
+        <description>Install and configure AWS SDK for R2</description>
+        <subtasks>
+          <subtask>Install AWS SDK S3 client: npm install @aws-sdk/client-s3 @aws-sdk/s3-request-presigner</subtask>
+          <subtask>Create /src/lib/r2.ts with S3Client configuration for Cloudflare R2</subtask>
+          <subtask>Configure S3Client with R2 endpoint: https://${accountId}.r2.cloudflarestorage.com</subtask>
+          <subtask>Implement helper functions: uploadFile(), generateSignedUploadUrl(), generateSignedDownloadUrl()</subtask>
+          <subtask>Add error handling for connection failures and invalid credentials</subtask>
+        </subtasks>
+        <testing>Unit test verifies S3Client exports with correct endpoint configuration</testing>
+      </task>
+
+      <task id="4" ac="6">
+        <description>Test basic file upload</description>
+        <subtasks>
+          <subtask>Write test script (scripts/test-r2-upload.ts) to upload sample file</subtask>
+          <subtask>Test upload using PutObjectCommand with test file (1MB PDF)</subtask>
+          <subtask>Verify file appears in R2 bucket via Cloudflare dashboard</subtask>
+          <subtask>Test file download using signed URL</subtask>
+          <subtask>Verify file integrity (checksum comparison)</subtask>
+        </subtasks>
+        <testing>Integration test uploads file to R2, retrieves via signed URL, verifies checksum match</testing>
+      </task>
+
+      <task id="5" ac="7">
+        <description>Implement signed URL generation</description>
+        <subtasks>
+          <subtask>Implement generateSignedUploadUrl() in /src/lib/r2.ts - Generates pre-signed PUT URL for direct client uploads with configurable expiration (default: 5 minutes) and validates file type and size parameters</subtask>
+          <subtask>Implement generateSignedDownloadUrl() in /src/lib/r2.ts - Generates pre-signed GET URL for private content with configurable expiration (default: 1 hour) and returns CDN URL for public content (no signature needed)</subtask>
+        </subtasks>
+        <testing>Unit tests verify signed URLs are generated with correct expiration times</testing>
+      </task>
+
+      <task id="6" ac="8">
+        <description>Configure cost monitoring</description>
+        <subtasks>
+          <subtask>In Cloudflare dashboard, navigate to Billing and Usage</subtask>
+          <subtask>Set up billing alert: email notification if R2 costs exceed $50/month</subtask>
+          <subtask>Document R2 free tier limits (10GB storage, 1M Class A operations/month)</subtask>
+          <subtask>Document expected costs for beta scale (estimate based on file volume)</subtask>
+        </subtasks>
+        <testing>Manual verification in Cloudflare dashboard that alert is configured</testing>
+      </task>
+
+      <task id="7" ac="1-8">
+        <description>Create storage setup documentation</description>
+        <subtasks>
+          <subtask>Document Cloudflare account creation and R2 bucket provisioning steps</subtask>
+          <subtask>Document CORS configuration and CDN setup</subtask>
+          <subtask>Document environment variable configuration (.env.local setup)</subtask>
+          <subtask>Document AWS SDK configuration for R2 compatibility</subtask>
+          <subtask>Document signed URL generation patterns (upload vs. download)</subtask>
+          <subtask>Include troubleshooting section (common connection errors, CORS issues)</subtask>
+          <subtask>Document cost monitoring and free tier limits</subtask>
+          <subtask>Save to /docs/storage-setup.md</subtask>
+        </subtasks>
+        <testing>Manual review confirms documentation completeness</testing>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptance-criteria>
+    <criterion id="1">S3-compatible storage provisioned - Cloudflare R2 bucket created and accessible</criterion>
+    <criterion id="2">CDN configured for fast content delivery - CDN domain configured for public content</criterion>
+    <criterion id="3">Storage bucket created with appropriate access controls - Bucket configured as private by default with CORS policies</criterion>
+    <criterion id="4">API credentials stored securely in environment variables - R2 credentials configured (R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME, R2_PUBLIC_URL)</criterion>
+    <criterion id="5">Storage client library integrated - AWS SDK S3 client configured for Cloudflare R2</criterion>
+    <criterion id="6">Basic file upload test successful - Manual test upload via SDK confirms storage operational</criterion>
+    <criterion id="7">CDN URL generation working - Signed URLs generated for private content access</criterion>
+    <criterion id="8">Cost monitoring configured - Billing alerts configured if monthly costs exceed $50</criterion>
+  </acceptance-criteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>AI Gurus LMS - Architecture Document</title>
+        <section>File Storage Architecture</section>
+        <snippet>
+Storage Provider: Cloudflare R2
+- Why Cloudflare R2: Zero egress fees (unlimited downloads), S3-compatible API, 10GB free tier, Global CDN included, Cost-effective ($0.015/GB)
+- Storage Strategy: Public Bucket (course content, thumbnails - CDN enabled), Private Bucket (assignments - signed URLs only)
+- File Upload Flow: Client requests signed URL from API → API generates signed URL → Client uploads directly to R2 → Client confirms upload → API stores metadata
+        </snippet>
+      </doc>
+
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Epic Technical Specification: Infrastructure Foundation and Security Hardening</title>
+        <section>Dependencies - File Storage (Story 1.4, 1.5)</section>
+        <snippet>
+Service: Cloudflare R2 (S3-compatible)
+Integration: AWS SDK S3 client
+Credentials: R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME
+Endpoints: https://account.r2.cloudflarestorage.com (uploads), https://cdn.domain (CDN)
+Operations: Signed URL generation, direct uploads, file metadata storage
+        </snippet>
+      </doc>
+
+      <doc>
+        <path>docs/PRD.md</path>
+        <title>ai-gurus-lms Product Requirements Document</title>
+        <section>Functional Requirements</section>
+        <snippet>
+FR002: System shall store all uploaded files (course content, assignments, submissions) in S3-compatible cloud storage with CDN delivery
+FR008: System shall validate uploaded files for MIME type, size limits, and malware scanning before storage
+FR012: Instructors shall upload course content files up to configurable size limits with automatic CDN distribution
+        </snippet>
+      </doc>
+
+      <doc>
+        <path>docs/epics.md</path>
+        <title>ai-gurus-lms - Epic Breakdown</title>
+        <section>Story 1.4: S3-Compatible Storage Setup</section>
+        <snippet>
+As a DevOps engineer, I want to provision S3-compatible cloud storage with CDN, so that uploaded files can be stored scalably and delivered globally.
+Acceptance Criteria: 8 criteria covering R2 provisioning, CDN config, access controls, credentials, SDK integration, upload testing, signed URLs, and cost monitoring
+Prerequisites: None (parallel to database migration)
+        </snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <file>
+        <path>src/lib/r2.ts</path>
+        <kind>NEW</kind>
+        <symbol>r2Client, generateSignedUploadUrl, generateSignedDownloadUrl, getPublicUrl</symbol>
+        <reason>R2 storage client singleton pattern with helper functions for signed URL generation</reason>
+        <implementation-notes>
+S3Client configured for Cloudflare R2:
+- Region: 'auto' (R2 uses 'auto' region)
+- Endpoint: https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com
+- Credentials: accessKeyId and secretAccessKey from environment variables
+- generateSignedUploadUrl: Creates pre-signed PUT URL (5 min expiration), validates file type/size
+- generateSignedDownloadUrl: Creates pre-signed GET URL (1 hour expiration) for private content
+- getPublicUrl: Returns CDN URL for public content (no signature)
+        </implementation-notes>
+      </file>
+
+      <file>
+        <path>scripts/test-r2-upload.ts</path>
+        <kind>NEW</kind>
+        <symbol>testR2Upload</symbol>
+        <reason>Integration test script to verify R2 upload/download functionality with checksum validation</reason>
+        <implementation-notes>
+Test workflow:
+1. Create test file with known content
+2. Calculate checksum before upload
+3. Upload to R2 using PutObjectCommand
+4. Generate signed download URL
+5. Download file via signed URL
+6. Calculate checksum after download
+7. Verify checksums match (integrity validation)
+        </implementation-notes>
+      </file>
+
+      <file>
+        <path>.env.local</path>
+        <kind>MODIFIED</kind>
+        <symbol>R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME, R2_PUBLIC_URL</symbol>
+        <reason>Environment variables for R2 credentials and configuration</reason>
+        <implementation-notes>
+Required environment variables:
+R2_ACCOUNT_ID="your-cloudflare-account-id"
+R2_ACCESS_KEY_ID="your-r2-access-key"
+R2_SECRET_ACCESS_KEY="your-r2-secret-key"
+R2_BUCKET_NAME="ai-gurus-lms-uploads"
+R2_PUBLIC_URL="https://pub-xxxxx.r2.dev"
+R2_ENDPOINT="https://${accountId}.r2.cloudflarestorage.com" (computed)
+        </implementation-notes>
+      </file>
+
+      <file>
+        <path>.gitignore</path>
+        <kind>VERIFIED</kind>
+        <symbol>.env.local</symbol>
+        <reason>Verify .env.local is gitignored for security</reason>
+        <implementation-notes>Must contain .env.local to prevent credential leakage</implementation-notes>
+      </file>
+    </code>
+
+    <dependencies>
+      <existing>
+        <package name="next" version="15.3.3" purpose="Next.js framework with App Router and API routes" />
+        <package name="react" version="19.0.0" purpose="UI library" />
+        <package name="typescript" version="5.x" purpose="Type-safe JavaScript" />
+        <package name="@prisma/client" version="6.9.0" purpose="Prisma ORM client for file metadata storage" />
+      </existing>
+
+      <new>
+        <package name="@aws-sdk/client-s3" version="^3.700.0" purpose="AWS SDK S3 client for R2-compatible file operations" license="Apache-2.0" />
+        <package name="@aws-sdk/s3-request-presigner" version="^3.700.0" purpose="Generate signed URLs for direct S3 uploads/downloads" license="Apache-2.0" />
+      </new>
+
+      <external-services>
+        <service name="Cloudflare R2" type="S3-compatible object storage">
+          <credentials>R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY</credentials>
+          <endpoint>https://{account-id}.r2.cloudflarestorage.com</endpoint>
+          <cdn>https://pub-xxxxx.r2.dev (automatic CDN)</cdn>
+          <free-tier>10GB storage, 1M Class A operations/month, 10M Class B operations/month</free-tier>
+          <cost-structure>$0.015/GB storage, $0.36 per million Class A operations, Zero egress fees</cost-structure>
+        </service>
+      </external-services>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="architecture">Must use Cloudflare R2 (not AWS S3 or Vercel Blob) per architecture decision for zero egress fees and cost optimization</constraint>
+    <constraint type="security">Bucket must be private by default - all access via signed URLs only (no public read permissions)</constraint>
+    <constraint type="security">CORS policy must restrict uploads to application domain only (localhost:3000 for dev, production domain for prod)</constraint>
+    <constraint type="performance">Signed upload URLs expire in 5 minutes (balance between security and user experience)</constraint>
+    <constraint type="performance">Signed download URLs expire in 1 hour (sufficient for multi-page navigation while maintaining security)</constraint>
+    <constraint type="cost">Must configure billing alert at $50/month threshold to prevent cost overruns</constraint>
+    <constraint type="development">Must use AWS SDK (not Cloudflare SDK) for S3 compatibility and potential future migration flexibility</constraint>
+    <constraint type="testing">Must validate file integrity via checksum comparison (uploaded file matches downloaded file)</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface type="storage-client">
+      <name>r2Client (S3Client)</name>
+      <operations>
+        <operation name="PutObjectCommand" input="Bucket, Key, Body, ContentType" output="Upload result" />
+        <operation name="GetObjectCommand" input="Bucket, Key" output="File stream" />
+        <operation name="getSignedUrl" input="Command, ExpiresIn" output="Signed URL string" />
+      </operations>
+    </interface>
+
+    <interface type="helper-functions">
+      <function name="generateSignedUploadUrl">
+        <signature>async (key: string, contentType: string, expiresIn?: number) => Promise&lt;string&gt;</signature>
+        <description>Generates pre-signed PUT URL for direct client uploads (default 5 min expiration)</description>
+      </function>
+      <function name="generateSignedDownloadUrl">
+        <signature>async (key: string, expiresIn?: number) => Promise&lt;string&gt;</signature>
+        <description>Generates pre-signed GET URL for private content access (default 1 hour expiration)</description>
+      </function>
+      <function name="getPublicUrl">
+        <signature>(key: string) => string</signature>
+        <description>Returns CDN URL for public content (no signature required)</description>
+      </function>
+    </interface>
+
+    <interface type="environment-variables">
+      <variable name="R2_ACCOUNT_ID" type="string" required="true" example="your-cloudflare-account-id" />
+      <variable name="R2_ACCESS_KEY_ID" type="string" required="true" example="your-r2-access-key" />
+      <variable name="R2_SECRET_ACCESS_KEY" type="string" required="true" example="your-r2-secret-key" />
+      <variable name="R2_BUCKET_NAME" type="string" required="true" example="ai-gurus-lms-uploads" />
+      <variable name="R2_PUBLIC_URL" type="string" required="true" example="https://pub-xxxxx.r2.dev" />
+    </interface>
+
+    <interface type="cors-configuration">
+      <policy>
+        <allowed-origins>["https://ai-gurus-lms.vercel.app", "http://localhost:3000"]</allowed-origins>
+        <allowed-methods>["GET", "PUT", "POST"]</allowed-methods>
+        <allowed-headers>["*"]</allowed-headers>
+        <expose-headers>["ETag"]</expose-headers>
+        <max-age-seconds>3000</max-age-seconds>
+      </policy>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      <unit-testing>
+        <framework>Jest</framework>
+        <coverage-target>90%+ for /src/lib/r2.ts</coverage-target>
+        <test-patterns>
+          <pattern>Test R2 client singleton exports connection with correct endpoint</pattern>
+          <pattern>Test signed URL generation functions return valid URLs with correct expiration</pattern>
+          <pattern>Test error handling for invalid credentials or missing environment variables</pattern>
+        </test-patterns>
+      </unit-testing>
+
+      <integration-testing>
+        <framework>Jest + actual R2 connection</framework>
+        <test-environment>Dedicated test bucket (ai-gurus-lms-test)</test-environment>
+        <test-patterns>
+          <pattern>Test actual file upload to R2 bucket from development environment</pattern>
+          <pattern>Test file download via signed URL</pattern>
+          <pattern>Test checksum validation (uploaded file matches downloaded file)</pattern>
+          <pattern>Test CORS configuration (preflight requests succeed from allowed origins)</pattern>
+        </test-patterns>
+      </integration-testing>
+
+      <manual-testing>
+        <test>Verify bucket exists in Cloudflare R2 dashboard</test>
+        <test>Verify CORS configuration in bucket settings</test>
+        <test>Verify CDN domain accessible (public content only)</test>
+        <test>Verify billing alert configured for $50/month threshold</test>
+      </manual-testing>
+    </standards>
+
+    <locations>
+      <unit-tests>__tests__/unit/lib/r2.test.ts</unit-tests>
+      <integration-tests>__tests__/integration/storage/r2-upload.test.ts</integration-tests>
+      <test-script>scripts/test-r2-upload.ts</test-script>
+    </locations>
+
+    <test-ideas>
+      <idea ac="1">Manual: Navigate to Cloudflare dashboard, verify R2 bucket "ai-gurus-lms-uploads" exists</idea>
+      <idea ac="2">Manual: Check bucket settings show CDN domain configured (r2.dev subdomain)</idea>
+      <idea ac="3">Manual: Verify bucket access control is "Private" with CORS policy configured</idea>
+      <idea ac="4">Manual: Check .env.local contains all 5 required R2 environment variables</idea>
+      <idea ac="5">Unit: Import r2Client, verify exports S3Client instance with R2 endpoint</idea>
+      <idea ac="6">Integration: Run scripts/test-r2-upload.ts, verify successful upload and checksum match</idea>
+      <idea ac="7">Unit: Call generateSignedUploadUrl(), verify URL contains signature and correct expiration query param</idea>
+      <idea ac="7">Unit: Call generateSignedDownloadUrl(), verify URL contains signature and correct expiration query param</idea>
+      <idea ac="8">Manual: Navigate to Cloudflare Billing, verify alert configured for $50/month</idea>
+    </test-ideas>
+  </tests>
+</story-context>

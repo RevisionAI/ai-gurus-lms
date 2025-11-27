@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { softDelete, notDeleted } from '@/lib/soft-delete'
 
 export async function GET(
   request: NextRequest,
@@ -131,21 +132,19 @@ export async function DELETE(
     const content = await prisma.courseContent.findUnique({
       where: {
         id: contentId,
-        courseId: id
+        courseId: id,
+        ...notDeleted,
       }
     })
 
     if (!content) {
-      return NextResponse.json({ error: 'Content not found' }, { status: 404 })
+      return NextResponse.json({ error: 'Content not found or has been archived' }, { status: 404 })
     }
 
-    await prisma.courseContent.delete({
-      where: {
-        id: contentId
-      }
-    })
+    // Soft delete content
+    await softDelete(prisma.courseContent, contentId)
 
-    return NextResponse.json({ message: 'Content deleted successfully' })
+    return NextResponse.json({ message: 'Content archived successfully' })
   } catch (error) {
     console.error('Error deleting content:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

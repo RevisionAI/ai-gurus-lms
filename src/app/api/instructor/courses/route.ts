@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { createCourseSchema } from '@/validators/course'
 
 export async function GET() {
   try {
@@ -43,14 +44,31 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { title, description, code, semester, year } = await request.json()
+    const body = await request.json()
 
-    if (!title || !code || !semester || !year) {
+    // Validate with Zod schema
+    const validation = createCourseSchema.safeParse(body)
+    if (!validation.success) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        {
+          error: 'Validation failed',
+          details: validation.error.errors
+        },
         { status: 400 }
       )
     }
+
+    const {
+      title,
+      description,
+      code,
+      semester,
+      year,
+      isActive,
+      prerequisites,
+      learningObjectives,
+      targetAudience
+    } = validation.data
 
     // Check if course code already exists
     const existingCourse = await prisma.course.findUnique({
@@ -70,7 +88,11 @@ export async function POST(request: NextRequest) {
         description,
         code,
         semester,
-        year: parseInt(year),
+        year,
+        isActive,
+        prerequisites,
+        learningObjectives,
+        targetAudience,
         instructorId: session.user.id
       }
     })

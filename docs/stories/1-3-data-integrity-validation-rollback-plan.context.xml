@@ -1,0 +1,521 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context id="1-3-data-integrity-validation-rollback-plan" v="1.0">
+  <metadata>
+    <epicId>1</epicId>
+    <storyId>1.3</storyId>
+    <title>Data Integrity Validation &amp; Rollback Plan</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-25</generatedAt>
+    <generator>BMM Story Context Generator</generator>
+    <sourceStoryPath>docs/stories/1-3-data-integrity-validation-rollback-plan.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>developer</asA>
+    <iWant>to validate data integrity after migration and establish rollback procedures</iWant>
+    <soThat>we can confidently migrate production data without risk of loss or corruption</soThat>
+
+    <tasks>
+      <task id="1" acceptanceCriteria="1">
+        <title>Create data validation script</title>
+        <subtasks>
+          <subtask>Create /scripts/validate-migration.ts with TypeScript configuration</subtask>
+          <subtask>Implement row count validation for all 10 models</subtask>
+          <subtask>Implement checksum validation for critical data fields</subtask>
+          <subtask>Validate foreign key integrity (all 25 relations maintained)</subtask>
+          <subtask>Validate data type preservation (dates, booleans, integers)</subtask>
+          <subtask>Generate validation report (JSON + human-readable summary)</subtask>
+          <subtask>Add error detection for common migration issues</subtask>
+          <subtask>Unit test validates script logic with mock data</subtask>
+          <subtask>Integration test runs script against test database</subtask>
+        </subtasks>
+      </task>
+
+      <task id="2" acceptanceCriteria="2">
+        <title>Prepare and migrate sample data</title>
+        <subtasks>
+          <subtask>Create sample dataset representative of production</subtask>
+          <subtask>Include edge cases (soft-deleted records, nested posts, multiple content types)</subtask>
+          <subtask>Backup sample SQLite database to /backups/sample-sqlite-[timestamp].db</subtask>
+          <subtask>Run migration script from Story 1.2 on sample data</subtask>
+          <subtask>Verify PostgreSQL database populated with migrated data</subtask>
+          <subtask>Manual verification of sample data presence in PostgreSQL</subtask>
+        </subtasks>
+      </task>
+
+      <task id="3" acceptanceCriteria="3">
+        <title>Execute validation and verify 100% integrity</title>
+        <subtasks>
+          <subtask>Run validation script against migrated sample data</subtask>
+          <subtask>Verify row counts match between SQLite and PostgreSQL</subtask>
+          <subtask>Verify checksums match for critical fields</subtask>
+          <subtask>Verify all 25 relations intact (foreign keys valid)</subtask>
+          <subtask>Document validation results in /docs/validation-results-[timestamp].md</subtask>
+          <subtask>Investigate and fix any discrepancies found</subtask>
+          <subtask>Integration test confirms validation script reports 100% success</subtask>
+        </subtasks>
+      </task>
+
+      <task id="4" acceptanceCriteria="4">
+        <title>Document rollback procedure</title>
+        <subtasks>
+          <subtask>Create /docs/rollback-procedures.md with detailed steps</subtask>
+          <subtask>Document SQLite backup restoration steps</subtask>
+          <subtask>Document PostgreSQL connection teardown steps</subtask>
+          <subtask>Document verification steps after rollback</subtask>
+          <subtask>Include estimated rollback time (target: &lt; 30 minutes)</subtask>
+          <subtask>Include rollback decision criteria</subtask>
+          <subtask>Manual review confirms procedure completeness</subtask>
+        </subtasks>
+      </task>
+
+      <task id="5" acceptanceCriteria="5">
+        <title>Test rollback procedure end-to-end</title>
+        <subtasks>
+          <subtask>Create test scenario with intentional data corruption</subtask>
+          <subtask>Run validation script to detect corruption</subtask>
+          <subtask>Execute rollback procedure</subtask>
+          <subtask>Verify SQLite database restored and app functional</subtask>
+          <subtask>Verify all data accessible after rollback</subtask>
+          <subtask>Document rollback test results</subtask>
+          <subtask>Time rollback procedure (confirm &lt; 30 minute target)</subtask>
+          <subtask>Integration test validates rollback script execution</subtask>
+        </subtasks>
+      </task>
+
+      <task id="6" acceptanceCriteria="6">
+        <title>Establish performance baseline</title>
+        <subtasks>
+          <subtask>Identify critical database operations for baseline measurement</subtask>
+          <subtask>Measure query response times on SQLite (baseline before migration)</subtask>
+          <subtask>Measure query response times on PostgreSQL (post-migration)</subtask>
+          <subtask>Document response times in /docs/performance-baseline.md</subtask>
+          <subtask>Verify PostgreSQL performance acceptable (target: &lt; 100ms p95)</subtask>
+          <subtask>Identify any performance regressions</subtask>
+          <subtask>Integration test executes performance measurement queries</subtask>
+        </subtasks>
+      </task>
+
+      <task id="7" acceptanceCriteria="7">
+        <title>Document go/no-go criteria</title>
+        <subtasks>
+          <subtask>Create /docs/migration-go-nogo.md with decision framework</subtask>
+          <subtask>Define GO criteria (100% integrity, zero violations, acceptable performance)</subtask>
+          <subtask>Define NO-GO criteria (data loss, FK violations, performance regression)</subtask>
+          <subtask>Define stakeholder approval process</subtask>
+          <subtask>Include contingency plan</subtask>
+          <subtask>Manual review confirms criteria comprehensiveness</subtask>
+        </subtasks>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="1">
+      <description>Data validation script created</description>
+      <details>Comprehensive validation script (/scripts/validate-migration.ts) that performs checksums and row counts for each model</details>
+    </criterion>
+    <criterion id="2">
+      <description>Sample data migrated</description>
+      <details>Representative sample data migrated from SQLite to PostgreSQL for validation testing</details>
+    </criterion>
+    <criterion id="3">
+      <description>Validation confirms 100% data integrity</description>
+      <details>Script verifies no missing or corrupted records (row counts match, foreign key integrity maintained)</details>
+    </criterion>
+    <criterion id="4">
+      <description>Rollback procedure documented</description>
+      <details>Step-by-step SQLite restore procedure documented in /docs/rollback-procedures.md</details>
+    </criterion>
+    <criterion id="5">
+      <description>Rollback procedure tested</description>
+      <details>Full migration → validation failure → rollback cycle tested successfully</details>
+    </criterion>
+    <criterion id="6">
+      <description>Performance baseline established</description>
+      <details>Query response times measured and documented for critical operations (course list, gradebook, assignment submission)</details>
+    </criterion>
+    <criterion id="7">
+      <description>Go/no-go criteria documented</description>
+      <details>Clear criteria for production migration approval documented in /docs/migration-go-nogo.md</details>
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Database Architecture</title>
+        <section>Data Architecture</section>
+        <snippet>10 Core Models: User, Course, Enrollment, Assignment, Submission, Grade, Discussion, DiscussionPost, Announcement, CourseContent</snippet>
+        <relevance>Defines the 10 models that must be validated during migration</relevance>
+      </doc>
+
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Database Relations</title>
+        <section>Data Architecture</section>
+        <snippet>25 Database Relations maintained: User → Enrollments, Course → Assignments, Assignment → Submissions, etc.</snippet>
+        <relevance>Defines all 25 foreign key relationships that must be validated for integrity</relevance>
+      </doc>
+
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Data Migration Strategy</title>
+        <section>Workflows and Sequencing</section>
+        <snippet>Validation approach: Row count + checksum validation for each model; Integrity checks: Foreign key validation for all 25 relations; Rollback capability: Documented step-by-step restore to SQLite</snippet>
+        <relevance>Technical specification for validation and rollback approach</relevance>
+      </doc>
+
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Performance Baseline Targets</title>
+        <section>Performance</section>
+        <snippet>Database Query Latency: &lt; 100ms (p95) for critical operations; Acceptable Range: PostgreSQL within 50% variance of SQLite</snippet>
+        <relevance>Performance targets for validation comparison</relevance>
+      </doc>
+
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Reliability Requirements</title>
+        <section>Reliability/Availability</section>
+        <snippet>Data Integrity Validation: Row count validation, checksum validation, foreign key integrity validation; Go/no-go criteria: 100% data integrity validated before production migration</snippet>
+        <relevance>Reliability requirements for migration validation</relevance>
+      </doc>
+    </docs>
+
+    <code>
+      <file>
+        <path>prisma/schema.prisma</path>
+        <kind>database-schema</kind>
+        <symbol>User, Course, Enrollment, Assignment, Submission, Grade, Discussion, DiscussionPost, Announcement, CourseContent</symbol>
+        <lines>10-212</lines>
+        <reason>Defines all 10 database models and their relations for validation</reason>
+      </file>
+
+      <file>
+        <path>src/lib/prisma.ts</path>
+        <kind>database-client</kind>
+        <symbol>prisma</symbol>
+        <lines>1-9</lines>
+        <reason>Prisma client singleton used for both SQLite and PostgreSQL connections during validation</reason>
+      </file>
+    </code>
+
+    <dependencies>
+      <package name="@prisma/client" version="^6.9.0" purpose="Prisma ORM client for database operations (SQLite and PostgreSQL)" />
+      <package name="typescript" version="^5" purpose="TypeScript for validation script development" />
+      <package name="@types/node" version="^20" purpose="Node.js type definitions for crypto module (checksum validation)" />
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="technical">
+      <title>Dual Database Connection</title>
+      <description>Validation script must connect to both SQLite (source) and PostgreSQL (target) simultaneously for comparison</description>
+      <mitigation>Use separate Prisma client instances with different DATABASE_URL configurations</mitigation>
+    </constraint>
+
+    <constraint type="security">
+      <title>Backup Data Sensitivity</title>
+      <description>SQLite backup files contain sensitive data (user emails, hashed passwords) and must never be committed to git</description>
+      <mitigation>Store backups in /backups/ directory (gitignored); delete after successful migration (2-week retention)</mitigation>
+    </constraint>
+
+    <constraint type="performance">
+      <title>Validation Script Performance</title>
+      <description>Validation script must complete within reasonable timeframe even for large datasets</description>
+      <mitigation>Use efficient queries (batching, indexes); document expected runtime for production dataset sizes</mitigation>
+    </constraint>
+
+    <constraint type="data-integrity">
+      <title>Zero Data Loss Tolerance</title>
+      <description>100% data integrity required - any data loss or corruption is a NO-GO for production migration</description>
+      <mitigation>Comprehensive validation with checksum verification; rollback capability if any discrepancies detected</mitigation>
+    </constraint>
+
+    <constraint type="operational">
+      <title>Rollback Time Constraint</title>
+      <description>Rollback procedure must complete within 30 minutes to minimize downtime</description>
+      <mitigation>Document step-by-step procedure; test rollback timing during Story 1.3 execution</mitigation>
+    </constraint>
+  </constraints>
+
+  <interfaces>
+    <interface type="validation-api">
+      <name>ValidationResult</name>
+      <definition>
+        interface ValidationResult {
+          model: string;
+          sqliteCount: number;
+          postgresCount: number;
+          match: boolean;
+          checksumMatch: boolean;
+          foreignKeyIntegrity: boolean;
+        }
+      </definition>
+      <purpose>Standard format for validation script output per model</purpose>
+    </interface>
+
+    <interface type="validation-report">
+      <name>ValidationReport</name>
+      <definition>
+        interface ValidationReport {
+          timestamp: string;
+          results: ValidationResult[];
+          allPassed: boolean;
+          summary: {
+            totalModels: number;
+            passedModels: number;
+            failedModels: number;
+            totalRows: number;
+          };
+        }
+      </definition>
+      <purpose>Comprehensive validation report format (JSON output)</purpose>
+    </interface>
+
+    <interface type="performance-baseline">
+      <name>PerformanceMetrics</name>
+      <definition>
+        interface PerformanceMetrics {
+          query: string;
+          description: string;
+          sqliteLatency: number;
+          postgresLatency: number;
+          percentageDifference: number;
+          acceptable: boolean;
+        }
+      </definition>
+      <purpose>Performance comparison metrics for critical queries</purpose>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <testStandards>
+      <standard>Unit tests for validation script logic (checksum calculation, row count comparison)</standard>
+      <standard>Integration tests for validation script execution against test databases</standard>
+      <standard>Integration tests for rollback procedure execution</standard>
+      <standard>Manual tests for documentation completeness and clarity</standard>
+    </testStandards>
+
+    <testLocations>
+      <location>__tests__/unit/scripts/validate-migration.test.ts - Unit tests for validation functions</location>
+      <location>__tests__/integration/migration/validation.test.ts - Integration tests for full validation workflow</location>
+      <location>__tests__/integration/migration/rollback.test.ts - Integration tests for rollback procedure</location>
+    </testLocations>
+
+    <testIdeas>
+      <idea acceptanceCriteria="1">
+        <description>Unit test: validateRowCounts function</description>
+        <scenario>Mock Prisma clients return different counts → verify function detects mismatch</scenario>
+      </idea>
+
+      <idea acceptanceCriteria="1">
+        <description>Unit test: calculateChecksum function</description>
+        <scenario>Given identical data → verify checksum matches; Given different data → verify checksum differs</scenario>
+      </idea>
+
+      <idea acceptanceCriteria="2">
+        <description>Integration test: Sample data migration</description>
+        <scenario>Create test dataset with 5 users, 3 courses → migrate to PostgreSQL → verify all records present</scenario>
+      </idea>
+
+      <idea acceptanceCriteria="3">
+        <description>Integration test: 100% integrity validation</description>
+        <scenario>Run validation script on test data → verify reports 100% success with matching counts and checksums</scenario>
+      </idea>
+
+      <idea acceptanceCriteria="5">
+        <description>Integration test: Rollback procedure</description>
+        <scenario>Migrate test data → corrupt PostgreSQL record → run validation (expect failure) → execute rollback → verify SQLite restored</scenario>
+      </idea>
+
+      <idea acceptanceCriteria="6">
+        <description>Integration test: Performance baseline measurement</description>
+        <scenario>Execute critical queries on both databases → measure p50, p95, p99 latencies → verify within acceptable range</scenario>
+      </idea>
+
+      <idea acceptanceCriteria="4,7">
+        <description>Manual test: Documentation review</description>
+        <scenario>Have another developer follow rollback procedure documentation → verify completeness and clarity</scenario>
+      </idea>
+    </testIdeas>
+  </tests>
+
+  <devNotes>
+    <note category="implementation">
+      <title>Validation Script Structure</title>
+      <content>
+        Validation script must instantiate two Prisma clients:
+        - SQLite client: new PrismaClient({ datasources: { db: { url: SQLITE_DATABASE_URL } } })
+        - PostgreSQL client: new PrismaClient({ datasources: { db: { url: DATABASE_URL } } })
+
+        Critical validation functions:
+        1. validateRowCounts(model) - Compare record counts between databases
+        2. calculateChecksum(model, fields) - SHA-256 hash of critical fields
+        3. validateForeignKeys() - Verify all 25 relations intact (no orphaned records)
+        4. validateDataTypes() - Verify dates, booleans, integers preserved correctly
+
+        Error detection patterns:
+        - NULL values in NOT NULL fields
+        - Duplicate IDs (should be impossible with CUID but validate)
+        - Orphaned records (foreign key references non-existent records)
+        - Data type mismatches (date stored as string, etc.)
+      </content>
+    </note>
+
+    <note category="edge-cases">
+      <title>Sample Data Edge Cases</title>
+      <content>
+        Sample dataset must include:
+        - Minimum: 5 users (2 students, 2 instructors, 1 admin)
+        - 3 courses (1 active, 1 inactive, 1 with no enrollments)
+        - 10 assignments (various due dates: past, present, future)
+        - 20 submissions (some with files, some text-only, some late)
+        - Nested discussion posts (at least 3 levels deep)
+        - Multiple content types (TEXT, VIDEO, DOCUMENT, LINK, YOUTUBE)
+        - Edge case: User with no enrollments (orphaned user)
+        - Edge case: Course with no content (empty course)
+        - Edge case: Assignment with no submissions (unsubmitted assignment)
+      </content>
+    </note>
+
+    <note category="performance">
+      <title>Critical Queries for Performance Baseline</title>
+      <content>
+        Measure these queries on both SQLite and PostgreSQL:
+
+        1. Course list query (Student dashboard):
+           prisma.course.findMany({ where: { active: true }, include: { instructor: true, enrollments: true } })
+
+        2. Gradebook query (Instructor):
+           prisma.grade.findMany({ where: { assignment: { courseId: 'course-id' } }, include: { student: true, assignment: true } })
+
+        3. Assignment submission query (Student):
+           prisma.assignment.findUnique({ where: { id: 'assignment-id' }, include: { course: true, submissions: true } })
+
+        4. Discussion thread query (nested posts):
+           prisma.discussion.findMany({ where: { courseId: 'course-id' }, include: { posts: { include: { author: true, replies: true } } } })
+
+        Document p50, p95, p99 latencies for each query.
+        Target: PostgreSQL &lt; 100ms (p95) and within 50% of SQLite performance.
+      </content>
+    </note>
+
+    <note category="rollback">
+      <title>Rollback Procedure Key Steps</title>
+      <content>
+        Rollback procedure must include:
+
+        Step 1: Stop Application (5 minutes)
+        - Stop development server, notify team, mark status as "rollback-in-progress"
+
+        Step 2: Restore SQLite Database (5 minutes)
+        - Copy /backups/sample-sqlite-[timestamp].db to prisma/dev.db
+        - Verify backup file integrity (file size &gt; 0)
+
+        Step 3: Update Environment Variables (2 minutes)
+        - Edit .env.local: DATABASE_URL="file:./prisma/dev.db"
+        - Comment out PostgreSQL DATABASE_URL
+
+        Step 4: Restart Prisma Client (5 minutes)
+        - Run: npx prisma generate
+        - Test connection: npx prisma studio
+
+        Step 5: Validate Application Functionality (10 minutes)
+        - Start dev server: npm run dev
+        - Test: User login, Course list, Assignment submission, Gradebook access
+
+        Step 6: Document Rollback (3 minutes)
+        - Create /docs/rollback-report-[timestamp].md
+        - Document reason, next steps, notify team
+
+        Total time: &lt; 30 minutes
+      </content>
+    </note>
+
+    <note category="go-no-go">
+      <title>Go/No-Go Decision Criteria</title>
+      <content>
+        GO Criteria (all must be TRUE):
+        ✅ 100% data integrity validated (all models, all records)
+        ✅ Zero foreign key violations
+        ✅ Performance baseline acceptable (&lt; 100ms p95 for critical queries)
+        ✅ Rollback procedure tested successfully
+        ✅ PostgreSQL connection stable (health check passing for 24 hours)
+
+        NO-GO Criteria (any is TRUE):
+        ❌ Any data loss detected (missing records, corrupted data)
+        ❌ Foreign key violations present
+        ❌ Performance regression &gt; 50% (significantly slower than SQLite)
+        ❌ Rollback procedure fails or exceeds 30-minute target
+        ❌ PostgreSQL connection unstable (intermittent failures)
+
+        Contingency Plan:
+        - NO-GO → Defer migration, investigate issues, retry after fixes
+        - Document all issues in /docs/migration-issues-[timestamp].md
+        - Stakeholder approval required before retry attempt
+      </content>
+    </note>
+  </devNotes>
+
+  <storyDependencies>
+    <dependency>
+      <storyId>1.1</storyId>
+      <title>PostgreSQL Setup &amp; Configuration</title>
+      <reason>PostgreSQL instance must be provisioned and accessible for validation testing</reason>
+    </dependency>
+    <dependency>
+      <storyId>1.2</storyId>
+      <title>Database Schema Migration to PostgreSQL</title>
+      <reason>Prisma schema must be migrated to PostgreSQL before data migration can be validated</reason>
+    </dependency>
+  </storyDependencies>
+
+  <successMetrics>
+    <metric>
+      <name>Data Integrity Score</name>
+      <target>100%</target>
+      <measurement>Validation script reports zero discrepancies (row counts match, checksums match, FK integrity maintained)</measurement>
+    </metric>
+    <metric>
+      <name>Rollback Time</name>
+      <target>&lt; 30 minutes</target>
+      <measurement>Timed execution of rollback procedure from start to verified application functionality</measurement>
+    </metric>
+    <metric>
+      <name>Performance Baseline Variance</name>
+      <target>&lt; 50%</target>
+      <measurement>PostgreSQL query latency within 50% of SQLite baseline for critical operations</measurement>
+    </metric>
+    <metric>
+      <name>Test Coverage</name>
+      <target>90%+</target>
+      <measurement>Unit test coverage for validation script logic (functions, error handling)</measurement>
+    </metric>
+  </successMetrics>
+
+  <risks>
+    <risk>
+      <description>Validation script may not detect subtle data corruption (e.g., truncated strings, precision loss)</description>
+      <severity>High</severity>
+      <mitigation>Implement checksum validation on critical fields; manual spot-check of 10 random records after migration</mitigation>
+    </risk>
+    <risk>
+      <description>Rollback procedure may fail if SQLite backup corrupted or missing</description>
+      <severity>Medium</severity>
+      <mitigation>Verify backup file integrity before deleting original SQLite database; create multiple backup copies</mitigation>
+    </risk>
+    <risk>
+      <description>Performance regression on PostgreSQL not detected until production</description>
+      <severity>Medium</severity>
+      <mitigation>Establish performance baseline before migration; compare SQLite vs. PostgreSQL under realistic load</mitigation>
+    </risk>
+    <risk>
+      <description>Sample data not representative of production data characteristics</description>
+      <severity>Low</severity>
+      <mitigation>Include edge cases (soft-deleted records, nested discussions, multiple content types); minimum dataset size requirements</mitigation>
+    </risk>
+  </risks>
+</story-context>

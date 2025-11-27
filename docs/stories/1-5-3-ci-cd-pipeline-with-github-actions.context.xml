@@ -1,0 +1,529 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context id="1-5-3-ci-cd-pipeline-with-github-actions" v="1.0">
+  <metadata>
+    <epicId>1.5</epicId>
+    <storyId>3</storyId>
+    <title>CI/CD Pipeline with GitHub Actions</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-11-26</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/1-5-3-ci-cd-pipeline-with-github-actions.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>DevOps engineer</asA>
+    <iWant>automated testing and deployment via GitHub Actions</iWant>
+    <soThat>every code change is validated automatically before merging and deploying</soThat>
+
+    <tasks>
+      <task id="1" status="pending">
+        <name>Create GitHub Actions Workflow File</name>
+        <description>Create .github/workflows/ci.yml file and configure workflow triggers for pull requests and push to main branch</description>
+        <acceptance>AC 1, 2</acceptance>
+        <subtasks>
+          <subtask>Create .github/workflows/ci.yml file</subtask>
+          <subtask>Configure on.pull_request.branches: [main]</subtask>
+          <subtask>Configure on.push.branches: [main]</subtask>
+          <subtask>Define workflow name and basic structure</subtask>
+          <subtask>Test workflow triggers correctly on PR creation</subtask>
+        </subtasks>
+      </task>
+
+      <task id="2" status="pending">
+        <name>Configure Dependency Installation with Caching</name>
+        <description>Add Node.js setup with npm caching to speed up workflow execution</description>
+        <acceptance>AC 3, 10</acceptance>
+        <subtasks>
+          <subtask>Add Node.js setup step using actions/setup-node@v3</subtask>
+          <subtask>Set node-version: '20' and enable npm caching</subtask>
+          <subtask>Add dependency installation step: npm ci</subtask>
+          <subtask>Verify cache is working and measure installation time improvement</subtask>
+        </subtasks>
+        <notes>npm ci is preferred for CI/CD (clean install from package-lock.json). Expected 30-60 seconds savings with caching.</notes>
+      </task>
+
+      <task id="3" status="pending">
+        <name>Add Linter Step</name>
+        <description>Add linting step to fail workflow on code style issues</description>
+        <acceptance>AC 3</acceptance>
+        <subtasks>
+          <subtask>Add linting step after dependency installation</subtask>
+          <subtask>Run npm run lint command</subtask>
+          <subtask>Configure linter to fail workflow on errors (exit code 1)</subtask>
+          <subtask>Test with intentional linting error to verify workflow fails</subtask>
+        </subtasks>
+      </task>
+
+      <task id="4" status="pending">
+        <name>Add Unit and Integration Test Steps</name>
+        <description>Add test step to run Jest unit and integration tests with coverage</description>
+        <acceptance>AC 3</acceptance>
+        <subtasks>
+          <subtask>Add test step after linter</subtask>
+          <subtask>Run npm test -- --coverage command</subtask>
+          <subtask>Configure test step to fail workflow on test failures</subtask>
+          <subtask>Verify test coverage report is generated in ./coverage/ directory</subtask>
+        </subtasks>
+        <notes>Jest runs unit and integration tests by default. Coverage report generated for later upload to Codecov.</notes>
+      </task>
+
+      <task id="5" status="pending">
+        <name>Add E2E Test Step</name>
+        <description>Add Playwright E2E test step in headless mode with artifact upload on failure</description>
+        <acceptance>AC 5</acceptance>
+        <subtasks>
+          <subtask>Add E2E test step after unit/integration tests</subtask>
+          <subtask>Install Playwright browsers: npx playwright install --with-deps</subtask>
+          <subtask>Run E2E tests in headless mode: npm run test:e2e</subtask>
+          <subtask>Configure Playwright retries for CI: retries: 2 in playwright.config.ts</subtask>
+          <subtask>Upload Playwright test artifacts on failure (screenshots, traces)</subtask>
+        </subtasks>
+        <notes>Playwright headless mode required for CI. 2 retries configured for flaky test mitigation. Artifacts uploaded using actions/upload-artifact@v3.</notes>
+      </task>
+
+      <task id="6" status="pending">
+        <name>Add Build Validation Step</name>
+        <description>Add Next.js build step to validate application builds successfully</description>
+        <acceptance>AC 6</acceptance>
+        <subtasks>
+          <subtask>Add build step after tests</subtask>
+          <subtask>Run npm run build to validate Next.js application builds</subtask>
+          <subtask>Configure build to fail workflow if build errors occur</subtask>
+          <subtask>Verify build output in .next/ directory</subtask>
+        </subtasks>
+        <notes>Build validation catches production build issues early. Next.js build includes TypeScript type checking and optimizations.</notes>
+      </task>
+
+      <task id="7" status="pending">
+        <name>Configure GitHub Secrets for Environment Variables</name>
+        <description>Add required secrets to GitHub repository for test environment</description>
+        <acceptance>AC 7</acceptance>
+        <subtasks>
+          <subtask>Navigate to GitHub repository → Settings → Secrets and variables → Actions</subtask>
+          <subtask>Add DATABASE_URL (test database connection string)</subtask>
+          <subtask>Add NEXTAUTH_SECRET (secret for NextAuth test environment)</subtask>
+          <subtask>Add NEXTAUTH_URL (test environment URL: http://localhost:3000)</subtask>
+          <subtask>Add additional secrets as needed (R2 credentials for file upload tests, etc.)</subtask>
+          <subtask>Reference secrets in workflow using ${{ secrets.SECRET_NAME }}</subtask>
+          <subtask>Verify secrets are masked in workflow logs</subtask>
+        </subtasks>
+        <notes>Never commit secrets to repository. Test database should be isolated from production.</notes>
+      </task>
+
+      <task id="8" status="pending">
+        <name>Configure Branch Protection Rules</name>
+        <description>Enable branch protection to require CI checks before PR merge</description>
+        <acceptance>AC 4</acceptance>
+        <subtasks>
+          <subtask>Navigate to GitHub repository → Settings → Branches</subtask>
+          <subtask>Add branch protection rule for main branch</subtask>
+          <subtask>Require status checks before merging: ✅</subtask>
+          <subtask>Select required status checks: CI workflow job</subtask>
+          <subtask>Require branches to be up to date: ✅</subtask>
+          <subtask>Test by creating PR with failing tests</subtask>
+          <subtask>Verify PR cannot be merged until tests pass</subtask>
+        </subtasks>
+        <notes>Branch protection enforces CI/CD checks before merge. Prevents broken code from reaching main branch.</notes>
+      </task>
+
+      <task id="9" status="pending">
+        <name>Add Workflow Status Badges to README</name>
+        <description>Add CI/CD status badge to README.md for build status visibility</description>
+        <acceptance>AC 8</acceptance>
+        <subtasks>
+          <subtask>Generate workflow status badge URL from GitHub Actions</subtask>
+          <subtask>Add badge to README.md near top of file</subtask>
+          <subtask>Verify badge displays correctly (green = passing, red = failing)</subtask>
+          <subtask>Commit and push README.md update</subtask>
+        </subtasks>
+        <notes>Status badge provides quick visual feedback on build status. Badge URL automatically updates based on latest workflow run.</notes>
+      </task>
+
+      <task id="10" status="pending">
+        <name>Configure Workflow Failure Notifications</name>
+        <description>Configure GitHub notifications and optional Slack integration for workflow failures</description>
+        <acceptance>AC 9</acceptance>
+        <subtasks>
+          <subtask>Configure GitHub notifications in profile settings</subtask>
+          <subtask>Ensure "Actions" notifications enabled</subtask>
+          <subtask>Optional: Add Slack integration for team notifications</subtask>
+          <subtask>Test notifications by triggering workflow failure</subtask>
+        </subtasks>
+        <notes>GitHub notifications enabled by default for workflow failures. Slack integration optional but recommended for team visibility.</notes>
+      </task>
+
+      <task id="11" status="pending">
+        <name>Optimize Workflow Execution Time</name>
+        <description>Implement optimizations to achieve target CI/CD pipeline time under 10 minutes</description>
+        <acceptance>AC 10</acceptance>
+        <subtasks>
+          <subtask>Measure baseline workflow execution time (full pipeline)</subtask>
+          <subtask>Parallelize independent jobs if beneficial (linting can run parallel to tests)</subtask>
+          <subtask>Use dependency caching (already implemented in Task 2)</subtask>
+          <subtask>Verify total pipeline time &lt; 10 minutes (target from Tech Spec)</subtask>
+          <subtask>Document workflow execution time in comments</subtask>
+        </subtasks>
+        <performanceTargets>
+          <target type="unit-tests">&lt; 30 seconds</target>
+          <target type="integration-tests">&lt; 60 seconds</target>
+          <target type="e2e-tests">&lt; 5 minutes</target>
+          <target type="total-pipeline">&lt; 10 minutes</target>
+        </performanceTargets>
+        <optimizations>
+          <optimization>Jest parallel execution (enabled by default)</optimization>
+          <optimization>Playwright parallel workers (configured in playwright.config.ts)</optimization>
+          <optimization>npm dependency caching (GitHub Actions)</optimization>
+        </optimizations>
+      </task>
+
+      <task id="12" status="pending">
+        <name>Upload Coverage Reports to Codecov (Optional Enhancement)</name>
+        <description>Optional: Set up Codecov integration for coverage tracking and trend analysis</description>
+        <acceptance>Related to AC 3 (coverage reporting)</acceptance>
+        <subtasks>
+          <subtask>Sign up for Codecov account (free for public repositories)</subtask>
+          <subtask>Install Codecov GitHub Action: codecov/codecov-action@v3</subtask>
+          <subtask>Add coverage upload step after tests</subtask>
+          <subtask>Add Codecov badge to README.md</subtask>
+          <subtask>Configure coverage thresholds (70%+ for critical paths)</subtask>
+        </subtasks>
+        <notes>Codecov provides coverage trend tracking over time. Coverage displayed in PR comments automatically. Free for open-source projects.</notes>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="1">GitHub Actions workflow created (.github/workflows/ci.yml)</criterion>
+    <criterion id="2">Workflow triggers: On pull request, on push to main branch</criterion>
+    <criterion id="3">CI steps: Install dependencies → Run linter → Run unit tests → Run integration tests</criterion>
+    <criterion id="4">Test failures block PR merge (required status check)</criterion>
+    <criterion id="5">E2E tests run on pull request (Playwright in headless mode)</criterion>
+    <criterion id="6">Build step validates Next.js application builds successfully</criterion>
+    <criterion id="7">Environment variables configured via GitHub Secrets</criterion>
+    <criterion id="8">Workflow status badges added to README.md</criterion>
+    <criterion id="9">Notification on workflow failure (GitHub notifications or Slack integration)</criterion>
+    <criterion id="10">Workflow execution time optimized (parallel jobs, dependency caching)</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/tech-spec-epic-1-5.md" relevance="primary">
+        <section name="Workflows and Sequencing" lines="177-221">
+          <description>CI/CD Test Pipeline Flow - Complete workflow from PR creation through deployment</description>
+          <keyPoints>
+            <point>11-step pipeline: PR opened → GitHub Actions triggered → Install deps → Lint → Unit tests → Integration tests → E2E tests → Build → Upload coverage → Report status → Vercel preview</point>
+            <point>Performance targets: Unit tests &lt;30s, Integration tests &lt;60s, E2E tests &lt;5min, Total pipeline &lt;10min</point>
+            <point>E2E Test Execution Flow: Playwright starts dev server → Create isolated test DB → Seed data → Execute tests in parallel → Capture screenshots on failure → Generate HTML report → Cleanup</point>
+          </keyPoints>
+        </section>
+        <section name="Non-Functional Requirements - Performance" lines="226-242">
+          <description>Performance targets and optimization strategies</description>
+          <keyPoints>
+            <point>Jest parallel execution enabled by default</point>
+            <point>Playwright parallel workers (3 workers)</point>
+            <point>npm dependency caching in GitHub Actions</point>
+            <point>Selective test running (only affected tests on file changes - future enhancement)</point>
+          </keyPoints>
+        </section>
+        <section name="Reliability/Availability" lines="254-260">
+          <description>Flaky test mitigation strategies</description>
+          <keyPoints>
+            <point>Playwright retries: Configure 2 retries on CI in playwright.config.ts</point>
+            <point>Deterministic tests: Use fixed dates/times, mock Date.now()</point>
+            <point>Isolated environments: Each PR gets fresh test environment (Neon database branching)</point>
+            <point>Failure visibility: Screenshot capture on E2E test failure, artifacts uploaded to GitHub Actions</point>
+          </keyPoints>
+        </section>
+      </doc>
+
+      <doc path="docs/architecture.md" relevance="primary">
+        <section name="Testing Strategy" lines="1420-1713">
+          <description>Complete testing strategy including CI/CD integration</description>
+          <keyPoints>
+            <point>Test pyramid: Unit tests (50-100), Integration tests (20-30), E2E tests (5-10)</point>
+            <point>Coverage targets: Business logic 80%+, API routes 70%+, UI components 50%+, Overall 70%+</point>
+            <point>CI/CD Integration: GitHub Actions workflow runs Lint → Unit tests → E2E tests → Build</point>
+            <point>Test failures block PR merge (required status check)</point>
+            <point>Vercel creates preview deployment for each PR (automatic)</point>
+          </keyPoints>
+        </section>
+        <section name="Development Workflow" lines="2168-2172">
+          <description>NPM scripts for linting</description>
+          <keyPoints>
+            <point>npm run lint - Run ESLint</point>
+            <point>npm run lint:fix - Fix linting issues</point>
+          </keyPoints>
+        </section>
+        <section name="Project Structure" lines="193-393">
+          <description>CI/CD workflow file location and related configurations</description>
+          <keyPoints>
+            <point>.github/workflows/ci.yml - Main CI/CD workflow (Epic 1.5, Story 1.5.3)</point>
+            <point>jest.config.js - Jest configuration (Epic 1.5: Jest configuration)</point>
+            <point>playwright.config.ts - Playwright configuration (Epic 1.5: Playwright configuration)</point>
+            <point>package.json - NPM scripts (lint, test, test:e2e, build)</point>
+          </keyPoints>
+        </section>
+      </doc>
+
+      <doc path="docs/PRD.md" relevance="supporting">
+        <section name="Functional Requirements" lines="63-68">
+          <description>Automation requirement for testing</description>
+          <keyPoints>
+            <point>FR024: System shall maintain automated test suite covering critical user flows with 70%+ code coverage, including accessibility tests</point>
+          </keyPoints>
+        </section>
+        <section name="Non-Functional Requirements" lines="76-81">
+          <description>Performance and reliability requirements</description>
+          <keyPoints>
+            <point>NFR001: Performance - Page load times &lt;2s (p95), API response times &lt;500ms (p95), Lighthouse score &gt;80</point>
+            <point>NFR002: Reliability - 99.5%+ uptime during production operation</point>
+            <point>NFR005: Maintainability - 70%+ test coverage for critical paths with comprehensive documentation</point>
+          </keyPoints>
+        </section>
+      </doc>
+    </docs>
+
+    <code>
+      <file path="package.json" relevance="critical">
+        <reason>Contains npm scripts for lint, test, test:e2e, build that will be called in CI/CD workflow</reason>
+        <currentScripts>
+          <script name="lint">next lint</script>
+          <script name="build">next build</script>
+          <script name="dev">next dev -p 3000</script>
+        </currentScripts>
+        <requiredScripts>
+          <script name="test">npm test (to be added in Story 1.5.1 - Jest setup)</script>
+          <script name="test:e2e">npm run test:e2e (to be added in Story 1.5.2 - Playwright setup)</script>
+        </requiredScripts>
+      </file>
+
+      <file path="README.md" relevance="moderate">
+        <reason>Will be updated to add CI/CD workflow status badge for build status visibility</reason>
+        <currentState>Generic Next.js starter README</currentState>
+        <requiredChanges>Add GitHub Actions workflow status badge near top of file</requiredChanges>
+      </file>
+
+      <file path="next.config.js" relevance="reference">
+        <reason>Next.js build configuration - validates in CI/CD build step</reason>
+        <note>Already contains security headers configuration (Story 1.10). Build step will validate Next.js compiles successfully with this config.</note>
+      </file>
+
+      <file path="tsconfig.json" relevance="reference">
+        <reason>TypeScript configuration - type checking happens during Next.js build in CI/CD</reason>
+        <note>Strict mode enabled. Build step will fail if TypeScript errors exist.</note>
+      </file>
+    </code>
+
+    <dependencies>
+      <dependency name="next" version="15.3.3" usage="Build step validates Next.js application compiles"/>
+      <dependency name="@upstash/ratelimit" version="^2.0.7" usage="Rate limiting in test environment (requires UPSTASH_* secrets)"/>
+      <dependency name="@upstash/redis" version="^1.35.6" usage="Redis client for rate limiting in test environment"/>
+      <dependency name="@prisma/client" version="^6.9.0" usage="Database client (requires DATABASE_URL secret for test DB)"/>
+      <dependency name="prisma" version="^6.9.0" usage="Prisma CLI for migrations and schema management"/>
+      <dependency name="next-auth" version="^4.24.11" usage="Authentication (requires NEXTAUTH_SECRET and NEXTAUTH_URL secrets)"/>
+      <dependency name="@aws-sdk/client-s3" version="^3.939.0" usage="R2 file storage client (requires R2 credentials for file upload tests)"/>
+      <dependency name="zod" version="^4.1.13" usage="Input validation schemas used in API routes"/>
+
+      <devDependency name="eslint" version="^9" usage="Linter - runs in CI/CD lint step"/>
+      <devDependency name="eslint-config-next" version="15.3.3" usage="Next.js ESLint rules"/>
+      <devDependency name="typescript" version="^5" usage="Type checking during build step"/>
+
+      <testDependencies>
+        <note>Jest and Playwright dependencies will be added in Stories 1.5.1 and 1.5.2</note>
+      </testDependencies>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <developmentConstraints>
+      <constraint type="prerequisite">Stories 1.5.1 (Jest setup) and 1.5.2 (Playwright setup) must be complete before this story</constraint>
+      <constraint type="workflow-syntax">Follow GitHub Actions YAML syntax and best practices</constraint>
+      <constraint type="caching">Use actions/setup-node@v3 with cache: 'npm' for dependency caching</constraint>
+      <constraint type="clean-install">Use npm ci (not npm install) for CI/CD - faster and more reliable</constraint>
+      <constraint type="security">Never commit secrets to repository - use GitHub Secrets for all sensitive values</constraint>
+      <constraint type="test-isolation">Test database must be isolated from production (Neon branch or SQLite)</constraint>
+      <constraint type="performance">Total CI/CD pipeline execution time must be &lt; 10 minutes</constraint>
+      <constraint type="error-handling">Workflow must fail immediately on any step failure (fail-fast behavior)</constraint>
+    </developmentConstraints>
+
+    <technicalConstraints>
+      <constraint type="node-version">Use Node.js 20 (matches development environment)</constraint>
+      <constraint type="runner">Use ubuntu-latest runner (standard GitHub Actions runner)</constraint>
+      <constraint type="playwright-headless">E2E tests must run in headless mode (no GUI in CI)</constraint>
+      <constraint type="retries">Configure Playwright retries: 2 for CI (flaky test mitigation)</constraint>
+      <constraint type="artifacts">Upload test artifacts on failure (screenshots, traces) for debugging</constraint>
+      <constraint type="branch-protection">Require CI checks to pass before allowing PR merge</constraint>
+    </technicalConstraints>
+  </constraints>
+
+  <interfaces>
+    <githubActions>
+      <interface name="GitHub Actions Workflow">
+        <triggers>
+          <trigger event="pull_request" branches="[main]">Trigger on PRs to main branch</trigger>
+          <trigger event="push" branches="[main]">Trigger on direct pushes to main branch</trigger>
+        </triggers>
+        <jobs>
+          <job name="test">
+            <runsOn>ubuntu-latest</runsOn>
+            <steps>
+              <step name="Checkout code">actions/checkout@v3</step>
+              <step name="Setup Node.js">actions/setup-node@v3 (node-version: '20', cache: 'npm')</step>
+              <step name="Install dependencies">npm ci</step>
+              <step name="Run linter">npm run lint</step>
+              <step name="Run unit and integration tests">npm test -- --coverage</step>
+              <step name="Install Playwright browsers">npx playwright install --with-deps</step>
+              <step name="Run E2E tests">npm run test:e2e</step>
+              <step name="Upload test artifacts">actions/upload-artifact@v3 (on failure only)</step>
+              <step name="Build application">npm run build</step>
+              <step name="Upload coverage to Codecov">codecov/codecov-action@v3 (optional)</step>
+            </steps>
+          </job>
+        </jobs>
+      </interface>
+
+      <interface name="GitHub Secrets">
+        <secrets>
+          <secret name="DATABASE_URL" required="true">Test database connection string (Neon branch or SQLite)</secret>
+          <secret name="NEXTAUTH_SECRET" required="true">Secret for NextAuth (test environment)</secret>
+          <secret name="NEXTAUTH_URL" required="true">Test environment URL (http://localhost:3000)</secret>
+          <secret name="CLOUDFLARE_R2_ENDPOINT" required="false">R2 endpoint (for file upload tests)</secret>
+          <secret name="CLOUDFLARE_R2_ACCESS_KEY_ID" required="false">R2 access key</secret>
+          <secret name="CLOUDFLARE_R2_SECRET_ACCESS_KEY" required="false">R2 secret key</secret>
+          <secret name="UPSTASH_REDIS_REST_URL" required="false">Upstash Redis URL (for rate limiting tests)</secret>
+          <secret name="UPSTASH_REDIS_REST_TOKEN" required="false">Upstash Redis token</secret>
+        </secrets>
+      </interface>
+
+      <interface name="Branch Protection Rules">
+        <rule branch="main">
+          <requireStatusChecks>true</requireStatusChecks>
+          <requiredChecks>
+            <check>test (CI workflow job)</check>
+          </requiredChecks>
+          <requireBranchUpToDate>true</requireBranchUpToDate>
+          <enforcement>Prevents PR merge if tests fail or branch is outdated</enforcement>
+        </rule>
+      </interface>
+    </githubActions>
+  </interfaces>
+
+  <tests>
+    <standards>
+      <standard>All CI/CD steps must complete successfully before allowing PR merge</standard>
+      <standard>Workflow must fail immediately on any test failure (fail-fast)</standard>
+      <standard>Total pipeline execution time must be &lt; 10 minutes</standard>
+      <standard>Test artifacts (screenshots, traces) uploaded on E2E test failures for debugging</standard>
+      <standard>Coverage report generated and optionally uploaded to Codecov</standard>
+      <standard>Secrets must be masked in workflow logs (GitHub automatically masks secret values)</standard>
+      <standard>Notifications sent on workflow failure (email to commit author, optional Slack)</standard>
+    </standards>
+
+    <locations>
+      <location>.github/workflows/ci.yml</location>
+      <location>GitHub repository → Settings → Secrets and variables → Actions</location>
+      <location>GitHub repository → Settings → Branches (branch protection rules)</location>
+      <location>README.md (workflow status badge)</location>
+    </locations>
+
+    <ideas>
+      <idea type="workflow-validation">Create a PR with intentional linting error to verify workflow fails and blocks merge</idea>
+      <idea type="workflow-validation">Create a PR with intentional test failure to verify workflow fails and blocks merge</idea>
+      <idea type="workflow-validation">Create a PR with valid changes to verify workflow passes and allows merge</idea>
+      <idea type="caching-validation">Check GitHub Actions logs for cache hit/miss messages to verify caching is working</idea>
+      <idea type="performance-validation">Measure baseline workflow time, then measure with caching to validate 30-60s improvement</idea>
+      <idea type="artifact-validation">Trigger E2E test failure and verify screenshots/traces are uploaded as workflow artifacts</idea>
+      <idea type="secret-validation">Verify secrets are masked in workflow logs (no sensitive values visible)</idea>
+      <idea type="notification-validation">Trigger workflow failure and verify GitHub notification email is sent</idea>
+      <idea type="badge-validation">Verify README.md badge displays correctly and updates when workflow status changes</idea>
+      <idea type="branch-protection-validation">Attempt to merge PR with failing tests and verify merge is blocked</idea>
+      <idea type="parallel-validation">If implementing parallel jobs, verify total pipeline time is reduced</idea>
+      <idea type="coverage-validation">Verify coverage report is generated in ./coverage/ directory after test step</idea>
+      <idea type="codecov-validation">If implementing Codecov, verify coverage is uploaded and displayed in PR comments</idea>
+    </ideas>
+  </tests>
+
+  <references>
+    <techSpec path="docs/tech-spec-epic-1-5.md">
+      <section>Workflows and Sequencing (lines 177-221) - CI/CD pipeline flow</section>
+      <section>Non-Functional Requirements - Performance (lines 226-242) - Performance targets</section>
+      <section>Reliability/Availability (lines 254-260) - Flaky test mitigation</section>
+    </techSpec>
+    <architecture path="docs/architecture.md">
+      <section>Testing Strategy (lines 1420-1713) - CI/CD integration details</section>
+      <section>Development Workflow (lines 2168-2172) - NPM scripts</section>
+      <section>Project Structure (lines 193-393) - Workflow file location</section>
+    </architecture>
+    <prd path="docs/PRD.md">
+      <section>Functional Requirements - FR024 (lines 63-68) - Automated testing requirement</section>
+      <section>Non-Functional Requirements - NFR001, NFR002, NFR005 (lines 76-81) - Performance, reliability, maintainability</section>
+    </prd>
+    <epics path="docs/epics.md">
+      <section>Epic 1.5, Story 1.5.3 (lines 294-313) - Acceptance criteria</section>
+    </epics>
+  </references>
+
+  <sampleWorkflow>
+    <yaml>
+      <![CDATA[
+name: CI/CD
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+      NEXTAUTH_URL: http://localhost:3000
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run linter
+        run: npm run lint
+
+      - name: Run unit and integration tests
+        run: npm test -- --coverage
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Run E2E tests
+        run: npm run test:e2e
+
+      - name: Upload test artifacts
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: playwright-report
+          path: playwright-report/
+
+      - name: Build application
+        run: npm run build
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage/coverage-final.json
+      ]]>
+    </yaml>
+    <description>Sample GitHub Actions workflow structure based on Tech Spec guidance</description>
+  </sampleWorkflow>
+</story-context>

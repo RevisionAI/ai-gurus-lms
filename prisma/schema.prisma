@@ -3,13 +3,14 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
-  id          String   @id @default(cuid())
-  email       String   @unique
+  id          String    @id @default(cuid())
+  email       String    @unique
   name        String
   surname     String
   password    String
@@ -17,10 +18,11 @@ model User {
   company     String
   position    String
   workAddress String
-  role        UserRole @default(STUDENT)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
+  role        UserRole  @default(STUDENT)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime? // Soft delete timestamp (NULL = active, timestamp = deleted)
+
   // Relations
   enrollments     Enrollment[]
   instructorCourses Course[] @relation("InstructorCourses")
@@ -31,21 +33,27 @@ model User {
   announcements   Announcement[]
   gradesReceived  Grade[] @relation("StudentGrades")
   gradesGiven     Grade[] @relation("GraderGrades")
-  
+  feedbackTemplates FeedbackTemplate[]
+
+  @@index([deletedAt])
   @@map("users")
 }
 
 model Course {
-  id          String   @id @default(cuid())
-  title       String
-  description String?
-  code        String   @unique
-  semester    String
-  year        Int
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
+  id                 String    @id @default(cuid())
+  title              String
+  description        String?
+  code               String    @unique
+  semester           String
+  year               Int
+  isActive           Boolean   @default(true)
+  prerequisites      String?   // Free-text description of course prerequisites
+  learningObjectives String[]  // Array of learning objective strings
+  targetAudience     String?   // Description of intended audience
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  deletedAt          DateTime? // Soft delete timestamp (NULL = active, timestamp = deleted)
+
   // Relations
   instructorId String
   instructor   User   @relation("InstructorCourses", fields: [instructorId], references: [id])
@@ -54,7 +62,8 @@ model Course {
   discussions  Discussion[]
   announcements Announcement[]
   content      CourseContent[]
-  
+
+  @@index([deletedAt])
   @@map("courses")
 }
 
@@ -73,15 +82,16 @@ model Enrollment {
 }
 
 model Assignment {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   title       String
   description String?
   dueDate     DateTime?
-  maxPoints   Int      @default(100)
-  isPublished Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
+  maxPoints   Int       @default(100)
+  isPublished Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime? // Soft delete timestamp (NULL = active, timestamp = deleted)
+
   // Relations
   courseId    String
   createdById String
@@ -89,7 +99,8 @@ model Assignment {
   createdBy   User         @relation(fields: [createdById], references: [id])
   submissions Submission[]
   grades      Grade[]
-  
+
+  @@index([deletedAt])
   @@map("assignments")
 }
 
@@ -97,24 +108,26 @@ model Submission {
   id          String   @id @default(cuid())
   content     String?
   fileUrl     String?
+  s3Key       String?  // S3/R2 object key for file storage
   submittedAt DateTime @default(now())
-  
+
   // Relations
   assignmentId String
   studentId    String
   assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
   student      User       @relation(fields: [studentId], references: [id])
-  
+
   @@unique([assignmentId, studentId])
   @@map("submissions")
 }
 
 model Grade {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   points    Float
   feedback  String?
-  gradedAt  DateTime @default(now())
-  
+  gradedAt  DateTime  @default(now())
+  deletedAt DateTime? // Soft delete timestamp (NULL = active, timestamp = deleted)
+
   // Relations
   assignmentId String
   studentId    String
@@ -122,26 +135,29 @@ model Grade {
   assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
   student      User       @relation("StudentGrades", fields: [studentId], references: [id])
   gradedBy     User       @relation("GraderGrades", fields: [gradedById], references: [id])
-  
+
   @@unique([assignmentId, studentId])
+  @@index([deletedAt])
   @@map("grades")
 }
 
 model Discussion {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   title       String
   description String?
-  isPinned    Boolean  @default(false)
-  isLocked    Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  
+  isPinned    Boolean   @default(false)
+  isLocked    Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  deletedAt   DateTime? // Soft delete timestamp (NULL = active, timestamp = deleted)
+
   // Relations
   courseId  String
   createdBy String
   course    Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
   author    User             @relation(fields: [createdBy], references: [id])
   posts     DiscussionPost[]
-  
+
+  @@index([deletedAt])
   @@map("discussions")
 }
 
@@ -164,35 +180,41 @@ model DiscussionPost {
 }
 
 model Announcement {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   title     String
   content   String
-  createdAt DateTime @default(now())
-  
+  createdAt DateTime  @default(now())
+  deletedAt DateTime? // Soft delete timestamp (NULL = active, timestamp = deleted)
+
   // Relations
   courseId String
   authorId String
   course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
   author   User   @relation(fields: [authorId], references: [id])
-  
+
+  @@index([deletedAt])
   @@map("announcements")
 }
 
 model CourseContent {
-  id          String      @id @default(cuid())
-  title       String
-  type        ContentType
-  content     String?
-  fileUrl     String?
-  thumbnailUrl String?
-  orderIndex  Int
-  isPublished Boolean     @default(false)
-  createdAt   DateTime    @default(now())
-  
+  id             String      @id @default(cuid())
+  title          String
+  type           ContentType
+  content        String?
+  fileUrl        String?
+  s3Key          String?     // S3/R2 object key for file storage
+  thumbnailUrl   String?
+  thumbnailS3Key String?     // S3/R2 object key for thumbnail
+  orderIndex     Int
+  isPublished    Boolean     @default(false)
+  createdAt      DateTime    @default(now())
+  deletedAt      DateTime?   // Soft delete timestamp (NULL = active, timestamp = deleted)
+
   // Relations
   courseId String
   course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  
+
+  @@index([deletedAt])
   @@map("course_content")
 }
 
@@ -209,4 +231,21 @@ enum ContentType {
   LINK
   SCORM
   YOUTUBE
+}
+
+model FeedbackTemplate {
+  id           String   @id @default(cuid())
+  name         String
+  category     String   // excellent, needs-improvement, missing-requirements, late
+  template     String   @db.Text
+  instructorId String
+  instructor   User     @relation(fields: [instructorId], references: [id], onDelete: Cascade)
+  isShared     Boolean  @default(false)
+  usageCount   Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([instructorId])
+  @@index([category])
+  @@map("feedback_templates")
 }

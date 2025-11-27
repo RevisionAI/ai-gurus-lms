@@ -1,0 +1,1196 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>4-7-production-readiness-validation-launch</story-id>
+    <story-title>Production Readiness Validation &amp; Launch</story-title>
+    <epic>Epic 4: Production Deployment &amp; Monitoring</epic>
+    <generated-date>2025-11-27</generated-date>
+    <status>ready-for-dev</status>
+    <context-type>production-launch</context-type>
+  </metadata>
+
+  <story-overview>
+    <user-story>
+      As a product manager,
+      I want comprehensive production readiness validation and launch checklist,
+      so that we can confidently launch beta with clear success criteria.
+    </user-story>
+
+    <description>
+      This story represents the final gate before beta launch. It validates that all infrastructure,
+      features, testing, and operational procedures from Stories 4.1-4.6 are complete and functioning
+      correctly in production. The story includes executing 11 production smoke test scenarios,
+      validating performance metrics against targets (99.5%+ uptime, &lt;2s page load, &lt;500ms API),
+      creating 1-10 beta tester accounts, sending onboarding materials, and obtaining stakeholder
+      approval for go-live.
+    </description>
+
+    <dependencies>
+      <dependency type="blocking" status="required">
+        <story-id>4-1-production-hosting-configuration</story-id>
+        <reason>Production environment must be operational with health checks passing</reason>
+      </dependency>
+      <dependency type="blocking" status="required">
+        <story-id>4-2-automated-database-backup-recovery</story-id>
+        <reason>Daily backups must be configured and validated</reason>
+      </dependency>
+      <dependency type="blocking" status="required">
+        <story-id>4-3-error-tracking-logging-infrastructure</story-id>
+        <reason>Sentry must be receiving and alerting on errors</reason>
+      </dependency>
+      <dependency type="blocking" status="required">
+        <story-id>4-4-performance-monitoring-uptime-tracking</story-id>
+        <reason>Better Stack uptime monitoring and Vercel Analytics must be active</reason>
+      </dependency>
+      <dependency type="blocking" status="required">
+        <story-id>4-5-deployment-runbooks-operational-procedures</story-id>
+        <reason>Deployment runbook, incident response, and troubleshooting guides must be complete</reason>
+      </dependency>
+      <dependency type="blocking" status="required">
+        <story-id>4-6-beta-tester-onboarding-materials</story-id>
+        <reason>Quick start guide, video walkthrough, and feedback survey must be ready</reason>
+      </dependency>
+      <dependency type="blocking" status="required">
+        <epic-id>epic-1</epic-id>
+        <reason>All infrastructure foundation stories (1.1-1.10) must be complete</reason>
+      </dependency>
+      <dependency type="blocking" status="required">
+        <epic-id>epic-1-5</epic-id>
+        <reason>All testing infrastructure stories (1.5.1-1.5.4) must be complete</reason>
+      </dependency>
+      <dependency type="blocking" status="required">
+        <epic-id>epic-2</epic-id>
+        <reason>All feature completion stories (2.1-2.8) must be complete</reason>
+      </dependency>
+      <dependency type="blocking" status="required">
+        <epic-id>epic-3</epic-id>
+        <reason>All E2E testing and quality validation stories (3.1-3.5) must be complete</reason>
+      </dependency>
+    </dependencies>
+  </story-overview>
+
+  <acceptance-criteria>
+    <criterion id="AC1">
+      <description>Production readiness checklist completed (all Epics 1-4 stories complete)</description>
+      <validation-method>Review sprint-status.yaml for all Epic 1-4 stories marked 'done'</validation-method>
+    </criterion>
+
+    <criterion id="AC2">
+      <description>Pre-launch smoke tests executed in production (admin creates user, instructor creates course, student enrolls and submits, instructor grades)</description>
+      <validation-method>Execute all 11 smoke test scenarios and document results with screenshots</validation-method>
+    </criterion>
+
+    <criterion id="AC3">
+      <description>Beta launch criteria validated: Uptime 99.5%+, page load &lt; 2s, API &lt; 500ms, security P0/P1 remediated, accessibility Lighthouse &gt; 90, test coverage 70%+</description>
+      <validation-method>Collect metrics from Better Stack, Vercel Analytics, Lighthouse, Jest coverage report</validation-method>
+    </criterion>
+
+    <criterion id="AC4">
+      <description>Beta tester accounts created (1-10 student accounts, instructor accounts, admin accounts)</description>
+      <validation-method>Verify accounts created in production database and can login successfully</validation-method>
+    </criterion>
+
+    <criterion id="AC5">
+      <description>Welcome emails sent with credentials</description>
+      <validation-method>Confirm email delivery and track opens/confirmations</validation-method>
+    </criterion>
+
+    <criterion id="AC6">
+      <description>Launch communication prepared (announcement, support contact, feedback process)</description>
+      <validation-method>Review and approve launch announcement, support contact info, feedback survey link</validation-method>
+    </criterion>
+
+    <criterion id="AC7">
+      <description>Go-live decision: Stakeholder approval obtained for beta launch</description>
+      <validation-method>Obtain formal approval email or sign-off from stakeholder</validation-method>
+    </criterion>
+  </acceptance-criteria>
+
+  <go-no-go-criteria>
+    <title>11 Blocking Items - Must Be 100% Complete</title>
+    <description>
+      This authoritative checklist from tech-spec-epic-4.md must be validated before stakeholder approval.
+      All items are BLOCKING - if any fail, launch must be delayed until resolved.
+    </description>
+
+    <criterion id="GO-1" blocking="true">
+      <item>Production deployment successful</item>
+      <threshold>Application accessible at production URL</threshold>
+      <validation-method>Navigate to production URL, verify homepage loads</validation-method>
+      <evidence-required>Screenshot of homepage with timestamp</evidence-required>
+    </criterion>
+
+    <criterion id="GO-2" blocking="true">
+      <item>Health check passing</item>
+      <threshold>GET /api/health/db returns 200 OK</threshold>
+      <validation-method>Execute: curl https://[production-url]/api/health/db</validation-method>
+      <evidence-required>Response JSON showing {"status": "healthy", "database": "connected"}</evidence-required>
+    </criterion>
+
+    <criterion id="GO-3" blocking="true">
+      <item>Database connection verified</item>
+      <threshold>Queries execute successfully</threshold>
+      <validation-method>Execute test query via Prisma Studio or admin dashboard</validation-method>
+      <evidence-required>Query result showing active records (users, courses)</evidence-required>
+    </criterion>
+
+    <criterion id="GO-4" blocking="true">
+      <item>File storage operational</item>
+      <threshold>Upload/download works via R2</threshold>
+      <validation-method>Upload test file, verify accessible via CDN URL</validation-method>
+      <evidence-required>Successful file upload confirmation + accessible CDN URL</evidence-required>
+    </criterion>
+
+    <criterion id="GO-5" blocking="true">
+      <item>Sentry receiving errors</item>
+      <threshold>Test error captured and displayed in dashboard</threshold>
+      <validation-method>Trigger test error (browser dev tools), check Sentry dashboard</validation-method>
+      <evidence-required>Screenshot of test error in Sentry within 5 minutes</evidence-required>
+    </criterion>
+
+    <criterion id="GO-6" blocking="true">
+      <item>Uptime monitoring active</item>
+      <threshold>Better Stack monitors showing green status</threshold>
+      <validation-method>Check Better Stack dashboard for all configured monitors</validation-method>
+      <evidence-required>Screenshot of Better Stack dashboard with all monitors green</evidence-required>
+    </criterion>
+
+    <criterion id="GO-7" blocking="true">
+      <item>Backup configured</item>
+      <threshold>Daily backup visible in Neon dashboard</threshold>
+      <validation-method>Check Neon dashboard for most recent automated backup</validation-method>
+      <evidence-required>Screenshot showing backup timestamp within last 24 hours</evidence-required>
+    </criterion>
+
+    <criterion id="GO-8" blocking="true">
+      <item>Runbooks complete</item>
+      <threshold>Peer-reviewed and approved</threshold>
+      <validation-method>Verify docs/deployment-runbook.md, docs/incident-response.md, docs/troubleshooting.md exist and reviewed</validation-method>
+      <evidence-required>Peer review confirmation (email or PR approval)</evidence-required>
+    </criterion>
+
+    <criterion id="GO-9" blocking="true">
+      <item>Onboarding materials ready</item>
+      <threshold>Stakeholder approved</threshold>
+      <validation-method>Verify docs/beta-quick-start.md and video walkthrough approved by stakeholder</validation-method>
+      <evidence-required>Stakeholder approval confirmation (email)</evidence-required>
+    </criterion>
+
+    <criterion id="GO-10" blocking="true">
+      <item>Smoke tests passing</item>
+      <threshold>All 11 scenarios pass without errors</threshold>
+      <validation-method>Execute production smoke test suite (see detailed scenarios below)</validation-method>
+      <evidence-required>Smoke test results document with all 11 tests passing</evidence-required>
+    </criterion>
+
+    <criterion id="GO-11" blocking="true">
+      <item>Stakeholder approval</item>
+      <threshold>Formal go-live decision obtained</threshold>
+      <validation-method>Present Go-Live Decision Document, obtain approval</validation-method>
+      <evidence-required>Email confirmation or formal sign-off with date and stakeholder name</evidence-required>
+    </criterion>
+  </go-no-go-criteria>
+
+  <production-smoke-tests>
+    <title>11 Required Test Scenarios</title>
+    <description>
+      Execute all scenarios in production environment. All must pass for GO-10 criterion.
+      Document results with screenshots and timestamps.
+    </description>
+
+    <test-scenario id="SMOKE-1" order="1">
+      <name>Health Check</name>
+      <steps>
+        <step>Execute: GET /api/health/db</step>
+        <step>Verify response status: 200 OK</step>
+        <step>Verify response body contains: {"status": "healthy", "database": "connected"}</step>
+      </steps>
+      <expected-result>Health check returns 200 OK with database connected status</expected-result>
+      <evidence>Screenshot of curl response or browser network tab</evidence>
+    </test-scenario>
+
+    <test-scenario id="SMOKE-2" order="2">
+      <name>Authentication</name>
+      <steps>
+        <step>Navigate to /login</step>
+        <step>Enter test credentials (admin or instructor account)</step>
+        <step>Click "Login" button</step>
+        <step>Verify redirect to dashboard</step>
+        <step>Verify user name displayed in navigation</step>
+      </steps>
+      <expected-result>Successful login with redirect to role-appropriate dashboard</expected-result>
+      <evidence>Screenshot of dashboard after login with timestamp</evidence>
+    </test-scenario>
+
+    <test-scenario id="SMOKE-3" order="3">
+      <name>Admin User Creation</name>
+      <steps>
+        <step>Login as admin</step>
+        <step>Navigate to /admin/users</step>
+        <step>Click "Create User" button</step>
+        <step>Fill form: name, email, role (STUDENT), password</step>
+        <step>Click "Create" to submit</step>
+        <step>Verify success message displayed</step>
+        <step>Verify new user appears in user list</step>
+      </steps>
+      <expected-result>Test user account created and visible in admin user list</expected-result>
+      <evidence>Screenshot of new user in user list</evidence>
+    </test-scenario>
+
+    <test-scenario id="SMOKE-4" order="4">
+      <name>Instructor Course Creation</name>
+      <steps>
+        <step>Login as instructor</step>
+        <step>Navigate to /instructor/courses/new</step>
+        <step>Fill course form: title "Test Beta Course", code "TEST101", description, learning objectives</step>
+        <step>Upload course thumbnail image (optional)</step>
+        <step>Add content module (text, video, or document)</step>
+        <step>Upload content file or embed YouTube video</step>
+        <step>Create assignment: title "Test Assignment", due date (future), max points 100, description</step>
+        <step>Click "Publish Course"</step>
+        <step>Verify course created and accessible at /courses/[id]</step>
+      </steps>
+      <expected-result>Course created with content and assignment, visible in course catalog</expected-result>
+      <evidence>Screenshot of course detail page showing content and assignment</evidence>
+    </test-scenario>
+
+    <test-scenario id="SMOKE-5" order="5">
+      <name>Student Enrollment</name>
+      <steps>
+        <step>Login as student (created in SMOKE-3)</step>
+        <step>Navigate to /courses</step>
+        <step>Browse course catalog, locate "Test Beta Course"</step>
+        <step>Click course card to view detail page /courses/[id]</step>
+        <step>Verify prerequisites, learning objectives, target audience displayed</step>
+        <step>Click "Enroll" button</step>
+        <step>Verify enrollment success message</step>
+        <step>Verify course appears on student dashboard</step>
+      </steps>
+      <expected-result>Student successfully enrolled, course visible on dashboard</expected-result>
+      <evidence>Screenshot of student dashboard showing enrolled course</evidence>
+    </test-scenario>
+
+    <test-scenario id="SMOKE-6" order="6">
+      <name>Assignment Submission</name>
+      <steps>
+        <step>Student navigates to /courses/[id]/assignments/[assignmentId]</step>
+        <step>Read assignment details (due date, requirements, rubric)</step>
+        <step>Enter text response in textarea: "This is my beta test submission."</step>
+        <step>Upload file attachment (PDF or DOC, max 50MB)</step>
+        <step>Click "Submit Assignment" button</step>
+        <step>Verify submission confirmation message displayed</step>
+        <step>Verify file uploaded successfully to R2 (check S3 key in database)</step>
+      </steps>
+      <expected-result>Assignment submitted with text + file, stored in database and R2</expected-result>
+      <evidence>Screenshot of submission confirmation + database record</evidence>
+    </test-scenario>
+
+    <test-scenario id="SMOKE-7" order="7">
+      <name>Instructor Grading</name>
+      <steps>
+        <step>Instructor navigates to /instructor/courses/[id]/gradebook</step>
+        <step>View gradebook grid with pending submissions</step>
+        <step>Click on student submission (from SMOKE-6)</step>
+        <step>Review submission content and uploaded file</step>
+        <step>Enter numeric grade (0-100): 85</step>
+        <step>Enter written feedback: "Good work on beta test submission!"</step>
+        <step>Optionally apply feedback template (if available from Story 2.7)</step>
+        <step>Click "Save Grade" button</step>
+        <step>Verify grade saved and submission status updated</step>
+      </steps>
+      <expected-result>Grade and feedback saved, student notified (if notifications enabled)</expected-result>
+      <evidence>Screenshot of graded submission in gradebook</evidence>
+    </test-scenario>
+
+    <test-scenario id="SMOKE-8" order="8">
+      <name>Grade Visibility</name>
+      <steps>
+        <step>Student navigates to gradebook (dashboard or /courses/[id]/grades)</step>
+        <step>Verify grade displayed: 85/100</step>
+        <step>Verify feedback visible: "Good work on beta test submission!"</step>
+        <step>Verify GPA calculation displayed (if Story 2.4 complete)</step>
+      </steps>
+      <expected-result>Student can view grade, feedback, and GPA</expected-result>
+      <evidence>Screenshot of student gradebook view with grade and feedback</evidence>
+    </test-scenario>
+
+    <test-scenario id="SMOKE-9" order="9">
+      <name>File Upload/CDN</name>
+      <steps>
+        <step>Retrieve uploaded file URL from submission (SMOKE-6)</step>
+        <step>Copy R2 CDN URL or generate signed download URL</step>
+        <step>Open URL in browser (new tab)</step>
+        <step>Verify file downloads successfully</step>
+        <step>Verify correct MIME type (application/pdf or application/msword)</step>
+        <step>Verify file content intact (not corrupted)</step>
+      </steps>
+      <expected-result>Uploaded file accessible via CDN, downloads with correct MIME type</expected-result>
+      <evidence>Screenshot of file download dialog + file opened successfully</evidence>
+    </test-scenario>
+
+    <test-scenario id="SMOKE-10" order="10">
+      <name>Error Tracking</name>
+      <steps>
+        <step>Open browser developer tools console</step>
+        <step>Trigger intentional error: invalid API call or client-side exception</step>
+        <step>Example: fetch('/api/invalid-endpoint') or throw new Error('Test error')</step>
+        <step>Wait up to 5 minutes</step>
+        <step>Navigate to Sentry dashboard (sentry.io)</step>
+        <step>Verify test error captured and displayed</step>
+        <step>Verify error includes: stack trace, user context, timestamp</step>
+      </steps>
+      <expected-result>Test error appears in Sentry dashboard within 5 minutes</expected-result>
+      <evidence>Screenshot of Sentry error event with timestamp</evidence>
+    </test-scenario>
+
+    <test-scenario id="SMOKE-11" order="11">
+      <name>Performance Metrics</name>
+      <steps>
+        <step>Navigate to Vercel Analytics dashboard (vercel.com/analytics)</step>
+        <step>Select production project and last 24 hours timeframe</step>
+        <step>Check Core Web Vitals scores:
+          - Largest Contentful Paint (LCP) &lt; 2.5s
+          - First Input Delay (FID) &lt; 100ms
+          - Cumulative Layout Shift (CLS) &lt; 0.1
+        </step>
+        <step>Check page load time p95 &lt; 2 seconds</step>
+        <step>Check API response time p95 &lt; 500ms</step>
+        <step>Navigate to Better Stack dashboard</step>
+        <step>Verify uptime percentage &gt; 99.5% (if sufficient data available)</step>
+      </steps>
+      <expected-result>All Core Web Vitals within targets, uptime &gt; 99.5%</expected-result>
+      <evidence>Screenshots of Vercel Analytics and Better Stack dashboards</evidence>
+    </test-scenario>
+  </production-smoke-tests>
+
+  <beta-launch-criteria>
+    <title>Performance and Quality Targets</title>
+    <description>
+      These metrics from tech-spec-epic-4.md and prd.md NFR001-NFR006 must be validated before launch.
+    </description>
+
+    <metric id="PERF-1">
+      <name>Uptime</name>
+      <target>99.5%+ (7-day rolling average)</target>
+      <measurement-tool>Better Stack Uptime</measurement-tool>
+      <current-value>[To be measured]</current-value>
+      <validation-method>Check Better Stack dashboard for uptime percentage over last 7 days</validation-method>
+    </metric>
+
+    <metric id="PERF-2">
+      <name>Page load time (p95)</name>
+      <target>&lt; 2 seconds</target>
+      <measurement-tool>Vercel Analytics</measurement-tool>
+      <current-value>[To be measured]</current-value>
+      <validation-method>Check Vercel Analytics "Web Vitals" tab for p95 page load time</validation-method>
+    </metric>
+
+    <metric id="PERF-3">
+      <name>API response time (p95)</name>
+      <target>&lt; 500ms</target>
+      <measurement-tool>Vercel Analytics</measurement-tool>
+      <current-value>[To be measured]</current-value>
+      <validation-method>Check Vercel Analytics "Functions" tab for p95 API response time</validation-method>
+    </metric>
+
+    <metric id="PERF-4">
+      <name>Lighthouse Performance Score</name>
+      <target>&gt; 80</target>
+      <measurement-tool>Lighthouse CI</measurement-tool>
+      <current-value>[To be measured]</current-value>
+      <validation-method>Run: npx lighthouse https://[production-url] --view</validation-method>
+    </metric>
+
+    <metric id="PERF-5">
+      <name>Lighthouse Accessibility Score</name>
+      <target>&gt; 90</target>
+      <measurement-tool>Lighthouse CI</measurement-tool>
+      <current-value>[To be measured]</current-value>
+      <validation-method>Run: npx lighthouse https://[production-url] --view --only-categories=accessibility</validation-method>
+    </metric>
+
+    <metric id="PERF-6">
+      <name>Test coverage (critical paths)</name>
+      <target>70%+</target>
+      <measurement-tool>Jest coverage report</measurement-tool>
+      <current-value>[To be measured]</current-value>
+      <validation-method>Run: npm run test:coverage, check coverage/index.html report</validation-method>
+    </metric>
+
+    <metric id="PERF-7">
+      <name>Security P0 vulnerabilities</name>
+      <target>0</target>
+      <measurement-tool>Sentry + Story 3.5 penetration test report</measurement-tool>
+      <current-value>[To be measured]</current-value>
+      <validation-method>Review Story 3.5 security audit report, confirm all P0 remediated</validation-method>
+    </metric>
+
+    <metric id="PERF-8">
+      <name>Security P1 vulnerabilities</name>
+      <target>0 or mitigated with documented plan</target>
+      <measurement-tool>Sentry + Story 3.5 penetration test report</measurement-tool>
+      <current-value>[To be measured]</current-value>
+      <validation-method>Review Story 3.5 security audit report, confirm all P1 remediated or mitigation plan documented</validation-method>
+    </metric>
+  </beta-launch-criteria>
+
+  <beta-tester-setup>
+    <title>Account Creation and Onboarding</title>
+    <description>
+      Create 1-10 beta tester accounts per AC4, send welcome emails per AC5.
+    </description>
+
+    <tester-count>
+      <minimum>1</minimum>
+      <maximum>10</maximum>
+      <recommended>5-7 (manageable for first beta cohort)</recommended>
+      <stakeholder-decision>Confirm final count with stakeholder before account creation</stakeholder-decision>
+    </tester-count>
+
+    <account-types>
+      <student-accounts>
+        <count>1-10 (primary beta testers)</count>
+        <role>STUDENT</role>
+        <creation-method>Admin dashboard /admin/users → Create User</creation-method>
+        <credentials>
+          <username-format>beta{number}@aigurus.com (e.g., beta1@aigurus.com)</username-format>
+          <password-format>Secure random password (min 12 chars, stored in password manager)</password-format>
+        </credentials>
+        <test-assignment>Enroll all in "Test Beta Course" created in SMOKE-4</test-assignment>
+      </student-accounts>
+
+      <instructor-accounts>
+        <count>1-2 (for instructor workflow testing)</count>
+        <role>INSTRUCTOR</role>
+        <creation-method>Admin dashboard /admin/users → Create User</creation-method>
+        <credentials>
+          <username-format>beta-instructor{number}@aigurus.com</username-format>
+          <password-format>Secure random password (min 12 chars)</password-format>
+        </credentials>
+        <test-assignment>Create test course, grade student submissions</test-assignment>
+      </instructor-accounts>
+
+      <admin-accounts>
+        <count>1 (platform admin for monitoring)</count>
+        <role>ADMIN</role>
+        <creation-method>Admin dashboard /admin/users → Create User (or promote existing)</creation-method>
+        <credentials>
+          <username-format>beta-admin@aigurus.com</username-format>
+          <password-format>Secure random password (min 12 chars)</password-format>
+        </credentials>
+        <test-assignment>Monitor system stats, create additional users if needed</test-assignment>
+      </admin-accounts>
+    </account-types>
+
+    <credential-management>
+      <storage>Secure password manager (1Password, LastPass, or similar)</storage>
+      <delivery-method>Welcome email with unique credentials per tester</delivery-method>
+      <security-note>Never send passwords in plain text via unsecured channels</security-note>
+    </credential-management>
+
+    <welcome-email-template>
+      <subject>Welcome to AI Gurus LMS Beta Program</subject>
+      <body>
+        <greeting>Hi [Tester First Name],</greeting>
+        <intro>Welcome to the AI Gurus LMS Beta Program! We're excited to have you as one of our first testers.</intro>
+        <credentials>
+          <production-url>https://[production-url]</production-url>
+          <username>[beta-tester-email]</username>
+          <password>[unique-secure-password]</password>
+        </credentials>
+        <resources>
+          <quick-start-guide>docs/beta-quick-start.md (attached or linked)</quick-start-guide>
+          <video-walkthrough>[Link to video walkthrough from Story 4.6]</video-walkthrough>
+          <feedback-survey>[Link to feedback survey from Story 4.6]</feedback-survey>
+        </resources>
+        <support>
+          <contact>If you encounter any issues, please contact: [support-email] or [Slack channel]</contact>
+          <timeline>Beta program runs: [Start Date] - [End Date]</timeline>
+        </support>
+        <expectations>
+          <testing-focus>Please test key workflows: enrollment, content access, assignment submission, grade viewing</testing-focus>
+          <feedback-request>We'd love your feedback on usability, features, and any bugs you encounter</feedback-request>
+        </expectations>
+        <closing>Thank you for helping us build a better learning platform!</closing>
+        <signature>The AI Gurus Team</signature>
+      </body>
+    </welcome-email-template>
+  </beta-tester-setup>
+
+  <launch-communication>
+    <title>Stakeholder Announcement and Support Setup</title>
+    <description>
+      Prepare launch announcement per AC6 for internal stakeholders and beta testers.
+    </description>
+
+    <announcement-draft>
+      <title>AI Gurus LMS Beta Launch Announcement</title>
+      <audience>Internal stakeholders, beta testers</audience>
+      <distribution-channels>
+        <email>Send to stakeholder list and beta tester list</email>
+        <slack>Post in #ai-gurus-lms Slack channel (if applicable)</slack>
+      </distribution-channels>
+      <content>
+        <header>We're excited to announce the beta launch of AI Gurus LMS!</header>
+        <goals>
+          <goal>Validate platform stability and performance with 1-10 SME executive testers</goal>
+          <goal>Gather feedback on user experience, features, and workflows</goal>
+          <goal>Identify and resolve any critical issues before wider release</goal>
+        </goals>
+        <timeline>
+          <start-date>[Beta Launch Date - Q1 2026]</start-date>
+          <duration>2-4 weeks for initial beta cohort</duration>
+          <end-date>[Beta End Date]</end-date>
+        </timeline>
+        <key-features>
+          <feature>Course catalog with enrollment and prerequisites</feature>
+          <feature>Multi-type content (text, video, documents, YouTube embeds)</feature>
+          <feature>Assignment submission with file uploads</feature>
+          <feature>Instructor gradebook with inline editing and CSV export</feature>
+          <feature>GPA calculation and progress tracking</feature>
+          <feature>Discussion forums with nested replies</feature>
+          <feature>Admin dashboard with user management and system stats</feature>
+        </key-features>
+        <support>
+          <email>[support-email] for technical issues</email>
+          <slack>[#ai-gurus-lms-support] for quick questions</slack>
+          <response-time>We'll respond to P0 issues immediately, P1 within 1 hour, P2 within 4 hours</response-time>
+        </support>
+        <feedback>
+          <survey>[Link to feedback survey from Story 4.6]</survey>
+          <request>Please share your thoughts weekly via the feedback survey</request>
+        </feedback>
+        <known-limitations>
+          <limitation>Email notifications are manual (instructors will email students directly)</limitation>
+          <limitation>Certificate generation is manual (admin will create certificates)</limitation>
+          <limitation>Advanced analytics not yet available (basic metrics only)</limitation>
+        </known-limitations>
+        <closing>Thank you for being part of this journey. Let's build something great together!</closing>
+      </content>
+    </announcement-draft>
+
+    <support-contact-info>
+      <primary-contact>[Name, Email, Phone]</primary-contact>
+      <backup-contact>[Name, Email] (if primary unavailable)</backup-contact>
+      <slack-channel>[#ai-gurus-lms-support] (if using Slack)</slack-channel>
+      <business-hours>[9am-5pm EST, Monday-Friday] (response time targets apply)</business-hours>
+      <escalation-path>P0 issues → Immediate Slack ping + SMS, P1 → Email + Slack, P2/P3 → Email</escalation-path>
+    </support-contact-info>
+
+    <feedback-process>
+      <survey-link>[Link to feedback survey from Story 4.6]</survey-link>
+      <survey-frequency>Weekly (sent via email reminder)</survey-frequency>
+      <feedback-tracking>Store responses in Google Sheets or Airtable for analysis</feedback-tracking>
+      <prioritization>Categorize feedback as P0 (blocker), P1 (high), P2 (medium), P3 (low)</prioritization>
+      <follow-up>PM reviews feedback weekly, implements P0/P1 fixes, plans P2/P3 for post-beta</follow-up>
+    </feedback-process>
+  </launch-communication>
+
+  <go-live-decision-document>
+    <title>Stakeholder Go-Live Decision Document</title>
+    <description>
+      Present this document to stakeholder for AC7 approval. Document must summarize all validation results.
+    </description>
+
+    <document-sections>
+      <section id="SECTION-1">
+        <title>Executive Summary</title>
+        <content>
+          - Beta launch date: [Date]
+          - Target beta testers: [1-10 SME executives]
+          - Production environment: [Production URL]
+          - Go/No-Go criteria: [11/11 PASS or X/11 FAIL]
+          - Smoke tests: [11/11 PASS or X/11 FAIL]
+          - Recommendation: [GO or NO-GO with justification]
+        </content>
+      </section>
+
+      <section id="SECTION-2">
+        <title>Production Readiness Checklist Status</title>
+        <content>
+          - Epic 1 (Infrastructure): [10/10 stories complete]
+          - Epic 1.5 (Testing Infrastructure): [4/4 stories complete]
+          - Epic 2 (Feature Completion): [8/8 stories complete]
+          - Epic 3 (E2E Testing): [5/5 stories complete]
+          - Epic 4 (Production Deployment): [6/7 stories complete (4.7 in progress)]
+          - Total: [33/34 stories complete, 1 in progress]
+        </content>
+      </section>
+
+      <section id="SECTION-3">
+        <title>Go/No-Go Criteria Validation (11 items)</title>
+        <content>
+          [For each GO-1 through GO-11, include:
+           - Criterion name
+           - Status: PASS or FAIL
+           - Evidence: Link to screenshot or artifact
+           - Notes: Any concerns or mitigations]
+        </content>
+      </section>
+
+      <section id="SECTION-4">
+        <title>Smoke Test Results (11 scenarios)</title>
+        <content>
+          [For each SMOKE-1 through SMOKE-11, include:
+           - Test name
+           - Status: PASS or FAIL
+           - Execution timestamp
+           - Evidence: Screenshot or artifact link
+           - Notes: Any issues encountered and resolutions]
+        </content>
+      </section>
+
+      <section id="SECTION-5">
+        <title>Performance Metrics Validation</title>
+        <content>
+          [For each PERF-1 through PERF-8, include:
+           - Metric name
+           - Target value
+           - Current value (measured)
+           - Status: PASS or FAIL
+           - Tool used for measurement]
+        </content>
+      </section>
+
+      <section id="SECTION-6">
+        <title>Security and Accessibility Validation</title>
+        <content>
+          - Security P0 vulnerabilities: [0 (target met)]
+          - Security P1 vulnerabilities: [0 or list with mitigation plans]
+          - Accessibility Lighthouse score: [90+ (target met)]
+          - WCAG 2.1 AA compliance: [Validated in Story 3.4]
+          - Test coverage: [70%+ for critical paths]
+        </content>
+      </section>
+
+      <section id="SECTION-7">
+        <title>Beta Tester Accounts and Onboarding</title>
+        <content>
+          - Beta tester count: [Final count: 1-10]
+          - Student accounts created: [X accounts]
+          - Instructor accounts created: [X accounts]
+          - Admin accounts created: [X accounts]
+          - Welcome emails sent: [YES/NO, delivery confirmations tracked]
+          - Onboarding materials: [Quick start guide + video walkthrough ready]
+        </content>
+      </section>
+
+      <section id="SECTION-8">
+        <title>Launch Communication Prepared</title>
+        <content>
+          - Launch announcement: [Drafted and ready to send]
+          - Support contact: [Primary contact: Name, Email, Phone]
+          - Feedback process: [Survey link ready, weekly collection cadence]
+          - Known limitations documented: [Email notifications, certificates, advanced analytics]
+        </content>
+      </section>
+
+      <section id="SECTION-9">
+        <title>Risks and Mitigation</title>
+        <content>
+          - Risk: Beta testers encounter critical bugs
+            Mitigation: Sentry real-time alerting, rapid response SLA (&lt;1 hour for P1)
+          - Risk: Uptime falls below 99.5% target
+            Mitigation: Better Stack monitoring, rollback procedure documented (&lt;5 min execution)
+          - Risk: Performance degrades under load
+            Mitigation: Vercel auto-scaling, connection pooling, query optimization
+          - Risk: Data loss or corruption
+            Mitigation: Daily automated backups (7-day retention), point-in-time restore tested
+        </content>
+      </section>
+
+      <section id="SECTION-10">
+        <title>Rollback Plan (If Launch Issues Detected)</title>
+        <content>
+          If critical P0 issues are discovered during launch:
+          1. Assess severity: Data loss risk? Site down? Major feature broken?
+          2. Decision point: Hotfix or rollback?
+          3. If rollback:
+             - Notify stakeholder and beta testers immediately
+             - Execute rollback via Vercel dashboard (deploy previous version)
+             - Verify health checks passing after rollback
+             - Document issue and root cause analysis
+             - Prepare remediation plan
+             - Reschedule launch after fix validated
+        </content>
+      </section>
+
+      <section id="SECTION-11">
+        <title>Recommendation and Next Steps</title>
+        <content>
+          Recommendation: [GO or NO-GO]
+          Justification: [Based on 11/11 Go/No-Go criteria PASS, 11/11 smoke tests PASS, performance targets met]
+
+          If GO:
+          - Launch date/time: [Specific date and time]
+          - Send launch announcement: [Immediately upon approval]
+          - Send welcome emails to beta testers: [Within 24 hours]
+          - Monitor for 24 hours: Check Sentry, Better Stack, Vercel Analytics hourly
+          - Week 1 metrics review: Schedule for [Date] to review uptime, error rate, tester engagement
+
+          If NO-GO:
+          - Blocking issues: [List specific criteria that failed]
+          - Remediation plan: [Steps to resolve each issue]
+          - Re-validation: [Timeline to re-execute Go/No-Go validation]
+          - Revised launch date: [New target date after fixes]
+        </content>
+      </section>
+    </document-sections>
+
+    <approval-signature>
+      <stakeholder-name>[Stakeholder Name]</stakeholder-name>
+      <date>[Approval Date]</date>
+      <decision>[APPROVED or REJECTED]</decision>
+      <comments>[Any concerns, conditions, or feedback]</comments>
+    </approval-signature>
+  </go-live-decision-document>
+
+  <week-1-metrics-tracking>
+    <title>Post-Launch Day 1 and Week 1 Validation</title>
+    <description>
+      Monitor these metrics daily for the first week post-launch to ensure beta stability.
+    </description>
+
+    <day-1-validation>
+      <checklist>
+        <item>All monitoring dashboards accessible (Sentry, Better Stack, Vercel Analytics)</item>
+        <item>No P0/P1 errors in Sentry since launch</item>
+        <item>Uptime at 100% since launch (Better Stack)</item>
+        <item>Beta testers successfully logged in (check user activity logs)</item>
+        <item>Feedback survey link working</item>
+        <item>Support contact responding to inquiries</item>
+      </checklist>
+      <evidence>Document Day 1 validation results with screenshots and timestamps</evidence>
+    </day-1-validation>
+
+    <week-1-metrics>
+      <metric id="W1-1">
+        <name>Uptime</name>
+        <target>99.5%+</target>
+        <measurement-frequency>Check daily</measurement-frequency>
+        <tool>Better Stack</tool>
+      </metric>
+
+      <metric id="W1-2">
+        <name>Error Rate</name>
+        <target>Establish baseline, monitor for spikes</target>
+        <measurement-frequency>Check daily</measurement-frequency>
+        <tool>Sentry</tool>
+        <alert-threshold>10x normal error rate = investigate immediately</alert-threshold>
+      </metric>
+
+      <metric id="W1-3">
+        <name>Page Load (p95)</name>
+        <target>&lt; 2 seconds</target>
+        <measurement-frequency>Check daily</measurement-frequency>
+        <tool>Vercel Analytics</tool>
+      </metric>
+
+      <metric id="W1-4">
+        <name>API Response (p95)</name>
+        <target>&lt; 500ms</target>
+        <measurement-frequency>Check daily</measurement-frequency>
+        <tool>Vercel Analytics</tool>
+      </metric>
+
+      <metric id="W1-5">
+        <name>Beta Tester Engagement</name>
+        <target>Track daily active users, login frequency</target>
+        <measurement-frequency>Check daily</measurement-frequency>
+        <tool>Admin dashboard /admin/stats or database queries</tool>
+      </metric>
+
+      <metric id="W1-6">
+        <name>Feedback Survey Submissions</name>
+        <target>Track response rate (aim for 50%+ of testers)</target>
+        <measurement-frequency>Check weekly</measurement-frequency>
+        <tool>Google Forms or Typeform analytics</tool>
+      </metric>
+
+      <metric id="W1-7">
+        <name>Support Requests</name>
+        <target>Track volume and type of issues reported</target>
+        <measurement-frequency>Check daily</measurement-frequency>
+        <tool>Email inbox, Slack channel</tool>
+        <categorization>Categorize by P0/P1/P2/P3 severity</categorization>
+      </metric>
+    </week-1-metrics>
+
+    <weekly-review-meeting>
+      <schedule>End of Week 1 (Friday or Monday of Week 2)</schedule>
+      <attendees>PM, Dev, Stakeholder</attendees>
+      <agenda>
+        <item>Review Week 1 metrics dashboard</item>
+        <item>Discuss beta tester feedback themes</item>
+        <item>Prioritize P0/P1 issues for hotfixes</item>
+        <item>Plan Week 2 improvements</item>
+        <item>Decide: Continue beta or pause for fixes?</item>
+      </agenda>
+    </weekly-review-meeting>
+  </week-1-metrics-tracking>
+
+  <technical-references>
+    <title>Implementation Files and Endpoints</title>
+    <description>
+      This story is primarily validation and checklist-driven, but references these technical components.
+    </description>
+
+    <endpoints>
+      <endpoint id="EP-1">
+        <path>GET /api/health/db</path>
+        <purpose>Health check for database connection (GO-2 validation)</purpose>
+        <file>/src/app/api/health/db/route.ts</file>
+        <story-reference>Story 1.1 (Epic 1)</story-reference>
+      </endpoint>
+
+      <endpoint id="EP-2">
+        <path>POST /api/admin/users</path>
+        <purpose>Create beta tester accounts (AC4)</purpose>
+        <file>/src/app/api/admin/users/route.ts</file>
+        <story-reference>Story 2.5 (Epic 2)</story-reference>
+      </endpoint>
+
+      <endpoint id="EP-3">
+        <path>GET /api/instructor/gradebook/[courseId]</path>
+        <purpose>Gradebook access for grading smoke test (SMOKE-7)</purpose>
+        <file>/src/app/api/instructor/gradebook/[courseId]/route.ts</file>
+        <story-reference>Story 2.1 (Epic 2)</story-reference>
+      </endpoint>
+
+      <endpoint id="EP-4">
+        <path>POST /api/student/enroll</path>
+        <purpose>Student enrollment smoke test (SMOKE-5)</purpose>
+        <file>/src/app/api/student/enroll/route.ts</file>
+        <story-reference>Existing API (Epic 1)</story-reference>
+      </endpoint>
+    </endpoints>
+
+    <configuration-files>
+      <file id="CF-1">
+        <path>/.env.production</path>
+        <purpose>Production environment variables (all Story 4.1-4.4 credentials)</purpose>
+        <sensitive>YES - Never commit to git</sensitive>
+      </file>
+
+      <file id="CF-2">
+        <path>/vercel.json</path>
+        <purpose>Vercel project configuration (Story 4.1)</purpose>
+        <sensitive>NO</sensitive>
+      </file>
+
+      <file id="CF-3">
+        <path>/next.config.js</path>
+        <purpose>Security headers and Sentry configuration (Story 4.3)</purpose>
+        <sensitive>NO</sensitive>
+      </file>
+    </configuration-files>
+
+    <documentation-files>
+      <file id="DOC-1">
+        <path>/docs/deployment-runbook.md</path>
+        <purpose>Deployment procedures (Story 4.5, GO-8 validation)</purpose>
+        <status>Must exist and be peer-reviewed</status>
+      </file>
+
+      <file id="DOC-2">
+        <path>/docs/incident-response.md</path>
+        <purpose>Incident classification and response (Story 4.5, GO-8 validation)</purpose>
+        <status>Must exist and be peer-reviewed</status>
+      </file>
+
+      <file id="DOC-3">
+        <path>/docs/troubleshooting.md</path>
+        <purpose>Common issues and resolutions (Story 4.5, GO-8 validation)</purpose>
+        <status>Must exist and be peer-reviewed</status>
+      </file>
+
+      <file id="DOC-4">
+        <path>/docs/beta-quick-start.md</path>
+        <purpose>Beta tester onboarding guide (Story 4.6, GO-9 validation)</purpose>
+        <status>Must exist and be stakeholder-approved</status>
+      </file>
+    </documentation-files>
+
+    <external-services>
+      <service id="SVC-1">
+        <name>Vercel</name>
+        <dashboard>https://vercel.com/dashboard</dashboard>
+        <purpose>Production hosting, deployment, analytics (GO-1, GO-2, PERF-2, PERF-3)</purpose>
+        <story-reference>Story 4.1, 4.4</story-reference>
+      </service>
+
+      <service id="SVC-2">
+        <name>Neon PostgreSQL</name>
+        <dashboard>https://console.neon.tech</dashboard>
+        <purpose>Production database, automated backups (GO-3, GO-7)</purpose>
+        <story-reference>Story 1.1, 4.2</story-reference>
+      </service>
+
+      <service id="SVC-3">
+        <name>Cloudflare R2</name>
+        <dashboard>https://dash.cloudflare.com</dashboard>
+        <purpose>File storage, CDN (GO-4, SMOKE-9)</purpose>
+        <story-reference>Story 1.4, 1.5, 1.6</story-reference>
+      </service>
+
+      <service id="SVC-4">
+        <name>Sentry</name>
+        <dashboard>https://sentry.io</dashboard>
+        <purpose>Error tracking, session replay (GO-5, SMOKE-10, PERF-7, PERF-8)</purpose>
+        <story-reference>Story 4.3</story-reference>
+      </service>
+
+      <service id="SVC-5">
+        <name>Better Stack Uptime</name>
+        <dashboard>https://betterstack.com</dashboard>
+        <purpose>Uptime monitoring, incident alerting (GO-6, PERF-1)</purpose>
+        <story-reference>Story 4.4</story-reference>
+      </service>
+    </external-services>
+  </technical-references>
+
+  <prd-nfr-mapping>
+    <title>Non-Functional Requirements Validation</title>
+    <description>
+      This story validates all NFRs from prd.md are met before launch.
+    </description>
+
+    <nfr id="NFR001">
+      <name>Performance</name>
+      <requirements>
+        <requirement>Page load times &lt; 2 seconds (p95)</requirement>
+        <requirement>API response times &lt; 500ms (p95)</requirement>
+        <requirement>Lighthouse score &gt; 80 across all metrics</requirement>
+      </requirements>
+      <validation>Measured in PERF-2, PERF-3, PERF-4</validation>
+      <evidence>Vercel Analytics + Lighthouse CI reports</evidence>
+    </nfr>
+
+    <nfr id="NFR002">
+      <name>Reliability</name>
+      <requirements>
+        <requirement>99.5%+ uptime during production operation</requirement>
+        <requirement>Automated monitoring and alerting for critical errors</requirement>
+      </requirements>
+      <validation>Measured in PERF-1, validated in GO-5, GO-6</validation>
+      <evidence>Better Stack uptime report + Sentry alerting configuration</evidence>
+    </nfr>
+
+    <nfr id="NFR003">
+      <name>Scalability</name>
+      <requirements>
+        <requirement>Support concurrent usage by 10 → 100 → 1000+ users without major refactoring</requirement>
+        <requirement>Predictable infrastructure cost scaling</requirement>
+      </requirements>
+      <validation>Architecture validation (Neon auto-scaling, Vercel edge deployment)</validation>
+      <evidence>architecture.md cost breakdown ($0/month beta → $87/month production)</evidence>
+    </nfr>
+
+    <nfr id="NFR004">
+      <name>Security</name>
+      <requirements>
+        <requirement>Pass external security audit with all P0/P1 vulnerabilities remediated</requirement>
+        <requirement>OWASP Top 10 protections implemented</requirement>
+        <requirement>Encryption for data at rest and in transit</requirement>
+      </requirements>
+      <validation>Measured in PERF-7, PERF-8, validated in Story 3.5 audit</validation>
+      <evidence>Story 3.5 security audit report + penetration test results</evidence>
+    </nfr>
+
+    <nfr id="NFR005">
+      <name>Maintainability</name>
+      <requirements>
+        <requirement>70%+ test coverage for critical paths</requirement>
+        <requirement>Comprehensive documentation (deployment runbooks, incident response, troubleshooting)</requirement>
+      </requirements>
+      <validation>Measured in PERF-6, validated in GO-8</validation>
+      <evidence>Jest coverage report + docs/deployment-runbook.md, docs/incident-response.md, docs/troubleshooting.md</evidence>
+    </nfr>
+
+    <nfr id="NFR006">
+      <name>Accessibility</name>
+      <requirements>
+        <requirement>Pass automated accessibility audits (Lighthouse Accessibility score &gt; 90)</requirement>
+        <requirement>Support full keyboard navigation for all critical workflows</requirement>
+      </requirements>
+      <validation>Measured in PERF-5, validated in Story 3.4 testing</validation>
+      <evidence>Lighthouse accessibility report + Story 3.4 WCAG 2.1 AA compliance validation</evidence>
+    </nfr>
+  </prd-nfr-mapping>
+
+  <implementation-notes>
+    <note priority="CRITICAL">
+      This story is NOT code-heavy. It is primarily a VALIDATION and CHECKLIST story. The developer's
+      primary tasks are executing tests, collecting evidence, documenting results, and obtaining approvals.
+    </note>
+
+    <note priority="HIGH">
+      ALL 11 Go/No-Go criteria are BLOCKING. If any fail, launch must be delayed until resolved.
+      Do not attempt to "work around" failures - fix the root cause and re-validate.
+    </note>
+
+    <note priority="HIGH">
+      All smoke test results must be DOCUMENTED with screenshots and timestamps. This evidence is required
+      for the Go-Live Decision Document (AC7).
+    </note>
+
+    <note priority="MEDIUM">
+      Beta tester count (1-10 range) must be confirmed with stakeholder before creating accounts (AC4).
+      Recommended: 5-7 testers for manageable first cohort.
+    </note>
+
+    <note priority="MEDIUM">
+      Welcome emails (AC5) should be sent within 24 hours of stakeholder approval (AC7), not before.
+      This prevents confusion if launch is delayed.
+    </note>
+
+    <note priority="LOW">
+      Week 1 metrics tracking establishes performance baselines for future comparison. Track daily for
+      first 7 days, then switch to weekly review cadence.
+    </note>
+  </implementation-notes>
+
+  <success-criteria>
+    <criterion id="SC-1">
+      <description>Production readiness checklist 100% complete</description>
+      <validation>All Epic 1-4 stories (1.1-4.6) marked 'done' in sprint-status.yaml</validation>
+    </criterion>
+
+    <criterion id="SC-2">
+      <description>All 11 Go/No-Go criteria pass without exceptions</description>
+      <validation>GO-1 through GO-11 all show PASS status with documented evidence</validation>
+    </criterion>
+
+    <criterion id="SC-3">
+      <description>All 11 smoke test scenarios pass without errors</description>
+      <validation>SMOKE-1 through SMOKE-11 all show PASS status with screenshots</validation>
+    </criterion>
+
+    <criterion id="SC-4">
+      <description>All beta launch criteria validated and documented</description>
+      <validation>PERF-1 through PERF-8 all show PASS status with measured values</validation>
+    </criterion>
+
+    <criterion id="SC-5">
+      <description>1-10 beta tester accounts created and welcome emails sent</description>
+      <validation>Accounts exist in production database, welcome emails delivered and tracked</validation>
+    </criterion>
+
+    <criterion id="SC-6">
+      <description>Stakeholder approval obtained with formal sign-off</description>
+      <validation>Go-Live Decision Document signed with date and stakeholder name</validation>
+    </criterion>
+
+    <criterion id="SC-7">
+      <description>Beta launch executed with no P0 errors in first 24 hours</description>
+      <validation>Day 1 validation checklist complete, Sentry shows no P0 errors since launch</validation>
+    </criterion>
+
+    <criterion id="SC-8">
+      <description>Day 1 validation complete with all monitoring systems healthy</description>
+      <validation>All dashboards accessible, uptime 100%, beta testers logged in successfully</validation>
+    </criterion>
+  </success-criteria>
+
+  <completion-checklist>
+    <phase id="PHASE-1" name="Production Readiness Validation">
+      <task>Review sprint-status.yaml - verify all Epic 1-4 stories (1.1-4.6) marked 'done'</task>
+      <task>Document any incomplete items with mitigation plan</task>
+      <task>Confirm production deployment operational (health checks passing)</task>
+      <task>Confirm monitoring and alerting configured (Sentry, Better Stack, Vercel Analytics)</task>
+      <task>Confirm backup and recovery procedures tested (database restore validated)</task>
+      <task>Confirm runbooks and documentation complete (deployment, incident response, troubleshooting)</task>
+    </phase>
+
+    <phase id="PHASE-2" name="Go/No-Go Criteria Validation">
+      <task>Execute GO-1: Production deployment successful (navigate to production URL)</task>
+      <task>Execute GO-2: Health check passing (curl /api/health/db)</task>
+      <task>Execute GO-3: Database connection verified (test query via Prisma)</task>
+      <task>Execute GO-4: File storage operational (upload test file, verify CDN)</task>
+      <task>Execute GO-5: Sentry receiving errors (trigger test error, check dashboard)</task>
+      <task>Execute GO-6: Uptime monitoring active (check Better Stack monitors)</task>
+      <task>Execute GO-7: Backup configured (check Neon dashboard for recent backup)</task>
+      <task>Execute GO-8: Runbooks complete (verify docs exist and peer-reviewed)</task>
+      <task>Execute GO-9: Onboarding materials ready (verify stakeholder approval)</task>
+      <task>Execute GO-10: Smoke tests passing (see Phase 3)</task>
+      <task>Execute GO-11: Stakeholder approval (see Phase 5)</task>
+      <task>Document Go/No-Go decision with evidence for each criterion</task>
+    </phase>
+
+    <phase id="PHASE-3" name="Pre-Launch Smoke Testing">
+      <task>Execute SMOKE-1: Health Check</task>
+      <task>Execute SMOKE-2: Authentication</task>
+      <task>Execute SMOKE-3: Admin User Creation</task>
+      <task>Execute SMOKE-4: Instructor Course Creation</task>
+      <task>Execute SMOKE-5: Student Enrollment</task>
+      <task>Execute SMOKE-6: Assignment Submission</task>
+      <task>Execute SMOKE-7: Instructor Grading</task>
+      <task>Execute SMOKE-8: Grade Visibility</task>
+      <task>Execute SMOKE-9: File Upload/CDN</task>
+      <task>Execute SMOKE-10: Error Tracking</task>
+      <task>Execute SMOKE-11: Performance Metrics</task>
+      <task>Document all test results with screenshots and timestamps</task>
+    </phase>
+
+    <phase id="PHASE-4" name="Beta Launch Criteria Validation">
+      <task>Measure PERF-1: Uptime (99.5%+ over last 7 days from Better Stack)</task>
+      <task>Measure PERF-2: Page load times p95 (target &lt; 2s from Vercel Analytics)</task>
+      <task>Measure PERF-3: API response times p95 (target &lt; 500ms from Vercel Analytics)</task>
+      <task>Validate PERF-4: Lighthouse Performance score (&gt; 80)</task>
+      <task>Validate PERF-5: Lighthouse Accessibility score (&gt; 90)</task>
+      <task>Validate PERF-6: Test coverage (70%+ for critical paths from Jest)</task>
+      <task>Validate PERF-7: Security P0 vulnerabilities (0 from Story 3.5 audit)</task>
+      <task>Validate PERF-8: Security P1 vulnerabilities (0 or mitigated from Story 3.5 audit)</task>
+      <task>Document performance baselines for future comparison</task>
+    </phase>
+
+    <phase id="PHASE-5" name="Beta Tester Account Setup">
+      <task>Determine final beta tester count (1-10 range) with stakeholder</task>
+      <task>Create 1-10 student role accounts with unique credentials</task>
+      <task>Create instructor role account(s) for course management</task>
+      <task>Create admin role account(s) for platform administration</task>
+      <task>Verify all accounts can log in successfully</task>
+      <task>Assign beta testers to test course(s) created in smoke tests</task>
+      <task>Document account credentials securely (password manager)</task>
+      <task>Prepare welcome email template with credentials, login URL, resources</task>
+    </phase>
+
+    <phase id="PHASE-6" name="Launch Communication &amp; Approval">
+      <task>Draft beta launch announcement (internal stakeholders)</task>
+      <task>Include beta program goals, timeline, key features</task>
+      <task>Publish support contact information (email, Slack channel)</task>
+      <task>Document feedback collection process (survey link)</task>
+      <task>Prepare known limitations document</task>
+      <task>Prepare beta testing checklist for testers</task>
+      <task>Prepare Go-Live Decision Document with all validation results</task>
+      <task>Present Go-Live Decision Document to stakeholder</task>
+      <task>Address any stakeholder concerns or questions</task>
+      <task>Obtain formal stakeholder approval (email confirmation or sign-off)</task>
+      <task>Document approval decision with date and stakeholder name</task>
+      <task>Schedule official launch date/time</task>
+    </phase>
+
+    <phase id="PHASE-7" name="Launch Execution">
+      <task>Send beta launch announcement to stakeholders</task>
+      <task>Send welcome emails to beta testers with credentials</task>
+      <task>Track email delivery confirmations</task>
+      <task>Monitor Sentry dashboard for errors in first hour</task>
+      <task>Monitor Better Stack uptime dashboard</task>
+      <task>Monitor Vercel Analytics for traffic and performance</task>
+      <task>Respond to any immediate support requests from beta testers</task>
+      <task>Verify beta testers successfully logging in</task>
+      <task>Track feedback survey submissions</task>
+    </phase>
+
+    <phase id="PHASE-8" name="Day 1 Post-Launch Validation">
+      <task>Verify all monitoring dashboards accessible</task>
+      <task>Verify no P0/P1 errors in Sentry since launch</task>
+      <task>Verify uptime at 100% since launch (Better Stack)</task>
+      <task>Verify beta testers successfully logged in (check user activity logs)</task>
+      <task>Verify feedback survey link working</task>
+      <task>Document any issues encountered and resolutions</task>
+      <task>Schedule Week 1 metrics review (uptime, error rate, page load, API response, user engagement)</task>
+      <task>Update sprint-status.yaml to mark story 4-7-production-readiness-validation-launch as 'done'</task>
+    </phase>
+  </completion-checklist>
+</story-context>

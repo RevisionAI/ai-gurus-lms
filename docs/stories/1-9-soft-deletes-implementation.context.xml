@@ -1,0 +1,488 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context id="1-9-soft-deletes-implementation" v="1.0">
+
+  <metadata>
+    <epic-id>1</epic-id>
+    <story-id>1.9</story-id>
+    <title>Soft Deletes Implementation</title>
+    <status>drafted</status>
+    <generated-at>2025-11-25</generated-at>
+    <generator>BMM story-context workflow</generator>
+    <source-story-path>docs/stories/1-9-soft-deletes-implementation.md</source-story-path>
+  </metadata>
+
+  <story>
+    <as-a>compliance officer</as-a>
+    <i-want>deleted records to be soft-deleted (marked inactive) instead of hard-deleted</i-want>
+    <so-that>we maintain an audit trail for regulatory compliance</so-that>
+
+    <tasks>
+      <task id="1" mapped-ac="1,8">
+        <title>Update Prisma schema with deletedAt fields</title>
+        <subtasks>
+          <subtask>Add deletedAt DateTime? field to User model</subtask>
+          <subtask>Add deletedAt DateTime? field to Course model</subtask>
+          <subtask>Add deletedAt DateTime? field to Assignment model</subtask>
+          <subtask>Add deletedAt DateTime? field to Grade model</subtask>
+          <subtask>Add deletedAt DateTime? field to Discussion model</subtask>
+          <subtask>Add database indexes on deletedAt columns (@@index([deletedAt]))</subtask>
+          <subtask>Generate Prisma migration: npx prisma migrate dev --name add-soft-delete-fields</subtask>
+          <subtask>Apply migration to development database</subtask>
+          <subtask>Verify migration creates deletedAt columns with correct nullable type</subtask>
+          <subtask>Testing: Integration test verifies schema changes applied successfully</subtask>
+        </subtasks>
+      </task>
+
+      <task id="2" mapped-ac="2,4">
+        <title>Create soft delete utilities and middleware</title>
+        <subtasks>
+          <subtask>Create /src/lib/soft-delete.ts utility file</subtask>
+          <subtask>Implement softDelete() function that updates deletedAt to current timestamp</subtask>
+          <subtask>Implement restore() function that sets deletedAt to null</subtask>
+          <subtask>Implement cascadeSoftDelete() function for related records</subtask>
+          <subtask>Create Prisma middleware to automatically exclude soft-deleted records from all queries</subtask>
+          <subtask>Configure middleware to include where: { deletedAt: null } by default on findMany, findFirst, findUnique</subtask>
+          <subtask>Add includeSoftDeleted: true option to bypass filter when needed (admin views)</subtask>
+          <subtask>Testing: Unit tests verify soft delete functions set timestamps correctly</subtask>
+          <subtask>Testing: Integration tests verify queries exclude soft-deleted records by default</subtask>
+        </subtasks>
+      </task>
+
+      <task id="3" mapped-ac="4">
+        <title>Replace hard delete operations with soft deletes</title>
+        <subtasks>
+          <subtask>Audit codebase for all prisma.*.delete() and prisma.*.deleteMany() calls</subtask>
+          <subtask>Replace User hard deletes with softDelete() calls in /src/app/api/admin/users/[id]/route.ts</subtask>
+          <subtask>Replace Course hard deletes with softDelete() calls in /src/app/api/instructor/courses/[id]/route.ts</subtask>
+          <subtask>Replace Assignment hard deletes with softDelete() calls in assignment deletion routes</subtask>
+          <subtask>Replace Grade hard deletes with softDelete() calls in grade deletion routes (if any)</subtask>
+          <subtask>Replace Discussion hard deletes with softDelete() calls in discussion deletion routes</subtask>
+          <subtask>Update delete button UIs to show "Archive" or "Deactivate" instead of "Delete" for clarity</subtask>
+          <subtask>Testing: Integration tests verify delete operations set deletedAt instead of removing records</subtask>
+          <subtask>Testing: E2E test verifies soft-deleted record no longer appears in default queries</subtask>
+        </subtasks>
+      </task>
+
+      <task id="4" mapped-ac="5">
+        <title>Implement cascade soft delete logic</title>
+        <subtasks>
+          <subtask>Create cascade delete function for Course model</subtask>
+          <subtask>When course is soft-deleted, soft-delete all related Assignments</subtask>
+          <subtask>When course is soft-deleted, soft-delete all related Discussions</subtask>
+          <subtask>When course is soft-deleted, soft-delete all related CourseContent</subtask>
+          <subtask>When course is soft-deleted, soft-delete all related Announcements</subtask>
+          <subtask>Note: Enrollments remain active but filtered out via course.deletedAt check (no cascade needed)</subtask>
+          <subtask>Document cascade behavior in code comments</subtask>
+          <subtask>Testing: Integration test soft-deletes course, verifies all related content soft-deleted</subtask>
+          <subtask>Testing: Integration test verifies enrollment queries still work (filtered by course.deletedAt)</subtask>
+        </subtasks>
+      </task>
+
+      <task id="5" mapped-ac="3,6">
+        <title>Create admin UI for viewing soft-deleted records</title>
+        <subtasks>
+          <subtask>Create /src/app/admin/deleted-records/page.tsx route for audit trail UI</subtask>
+          <subtask>Add "View Deleted Records" link to admin dashboard navigation</subtask>
+          <subtask>Create filter/tabs for each model type (Users, Courses, Assignments, Grades, Discussions)</subtask>
+          <subtask>Display soft-deleted records with deletedAt timestamp in table</subtask>
+          <subtask>Add "Restore" button for each soft-deleted record</subtask>
+          <subtask>Implement restore API endpoint: POST /api/admin/deleted-records/[id]/restore</subtask>
+          <subtask>Add confirmation dialog for restoration: "Restore [record name]? This will make it visible again."</subtask>
+          <subtask>Update UI to refresh after successful restoration</subtask>
+          <subtask>Testing: E2E test navigates to deleted records page, restores record, verifies it reappears in main list</subtask>
+        </subtasks>
+      </task>
+
+      <task id="6" mapped-ac="7">
+        <title>Document data retention policy and implementation</title>
+        <subtasks>
+          <subtask>Create /docs/data-retention-policy.md document</subtask>
+          <subtask>Document soft delete retention period: 1 year from deletedAt timestamp</subtask>
+          <subtask>Document permanent deletion policy: Manual admin action only (no automated deletion in MVP)</subtask>
+          <subtask>Document cascade soft delete behavior (course → assignments, discussions, content)</subtask>
+          <subtask>Document restoration process and admin access requirements</subtask>
+          <subtask>Document audit trail access for compliance reviews</subtask>
+          <subtask>Include table mapping models with soft delete capability (User, Course, Assignment, Grade, Discussion)</subtask>
+          <subtask>Testing: Manual review confirms documentation completeness</subtask>
+        </subtasks>
+      </task>
+
+      <task id="7" mapped-ac="4">
+        <title>Update API documentation and error messages</title>
+        <subtasks>
+          <subtask>Update API contracts in /docs/api-contracts.md for deletion endpoints</subtask>
+          <subtask>Change DELETE endpoint descriptions to clarify soft delete behavior</subtask>
+          <subtask>Update success messages: "User deactivated successfully" instead of "User deleted"</subtask>
+          <subtask>Update error messages to handle soft-deleted record access attempts: "This record has been archived"</subtask>
+          <subtask>Document includeSoftDeleted query parameter for admin endpoints</subtask>
+          <subtask>Testing: Manual review verifies documentation accuracy</subtask>
+        </subtasks>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptance-criteria>
+    <criterion id="1" priority="must-have">
+      <description>deletedAt timestamp field added - User, Course, Assignment, Grade, Discussion models include nullable deletedAt field</description>
+      <verification-method>Unit test verifies 5 models have deletedAt field in schema</verification-method>
+    </criterion>
+
+    <criterion id="2" priority="must-have">
+      <description>Prisma queries updated to filter out soft-deleted records - All queries default to excluding records where deletedAt IS NOT NULL</description>
+      <verification-method>Unit test verifies queries include where: { deletedAt: null }</verification-method>
+    </criterion>
+
+    <criterion id="3" priority="must-have">
+      <description>Admin UI includes option to view soft-deleted records - Audit trail accessible for compliance review</description>
+      <verification-method>E2E test: Login as admin, view deleted records</verification-method>
+    </criterion>
+
+    <criterion id="4" priority="must-have">
+      <description>Hard delete operations replaced with soft delete - All delete operations set deletedAt timestamp instead of removing records</description>
+      <verification-method>Unit test verifies no .delete() calls, only .update({ deletedAt })</verification-method>
+    </criterion>
+
+    <criterion id="5" priority="must-have">
+      <description>Cascade soft deletes implemented - Deleting a course soft-deletes all related content (assignments, discussions, enrollments)</description>
+      <verification-method>Integration test: Soft delete course, verify related content soft-deleted</verification-method>
+    </criterion>
+
+    <criterion id="6" priority="must-have">
+      <description>Soft delete restoration capability added - Admins can restore soft-deleted records by setting deletedAt to null</description>
+      <verification-method>Integration test: Soft delete user, restore, verify deletedAt = null</verification-method>
+    </criterion>
+
+    <criterion id="7" priority="must-have">
+      <description>Data retention policy documented - Soft-deleted records retained for 1 year before eligible for permanent deletion</description>
+      <verification-method>Manual review verifies 1-year policy documented</verification-method>
+    </criterion>
+
+    <criterion id="8" priority="must-have">
+      <description>Migration script created - Prisma migration adds deletedAt field to existing database records</description>
+      <verification-method>Integration test: Run migration, verify fields added</verification-method>
+    </criterion>
+  </acceptance-criteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture Document - Security Architecture</title>
+        <section>Soft Deletes & Audit Trail (Epic 1, Story 1.9)</section>
+        <snippet>
+          Strategy: Mark records as deleted (deletedAt timestamp) instead of hard deleting for compliance and audit trail.
+          Models with Soft Deletes: User, Course, Assignment, Grade, Discussion
+          Data Retention Policy: Soft-deleted records retained for 1 year, after 1 year eligible for permanent deletion (manual process)
+          Admin UI displays soft-deleted records with restore capability
+        </snippet>
+      </doc>
+
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture Document - Data Architecture</title>
+        <section>Database Models (Prisma Schema)</section>
+        <snippet>
+          Prisma Schema Pattern for soft deletes:
+          model User {
+            id        String    @id @default(cuid())
+            deletedAt DateTime? // Soft delete timestamp (NULL = active, timestamp = deleted)
+            @@index([deletedAt]) // Index for performance on soft delete filtering
+          }
+          // Repeat pattern for Course, Assignment, Grade, Discussion models
+        </snippet>
+      </doc>
+
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Epic 1 Technical Specification</title>
+        <section>Detailed Design - Data Models and Contracts</section>
+        <snippet>
+          Story 1.9: Soft Deletes Implementation
+          - Add deletedAt fields to User, Course, Assignment, Grade, Discussion models
+          - Prisma queries automatically filter `deletedAt IS NULL`
+          - Admin can view soft-deleted records
+          - Hard deletes replaced with soft deletes
+          - Cascade soft deletes implemented
+        </snippet>
+      </doc>
+
+      <doc>
+        <path>docs/epics.md</path>
+        <title>Epic Breakdown</title>
+        <section>Story 1.9: Soft Deletes Implementation</section>
+        <snippet>
+          As a compliance officer, I want deleted records to be soft-deleted (marked inactive) instead of hard-deleted, so that we maintain an audit trail for regulatory compliance.
+          Prerequisites: Story 1.2 complete (requires database schema changes)
+        </snippet>
+      </doc>
+
+      <doc>
+        <path>docs/PRD.md</path>
+        <title>Product Requirements Document</title>
+        <section>FR007: Security & Access Control</section>
+        <snippet>
+          System shall implement soft deletes with audit trail for compliance (User, Course, Assignment, Grade models)
+        </snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <file>
+        <path>prisma/schema.prisma</path>
+        <kind>prisma-schema</kind>
+        <symbol>User, Course, Assignment, Grade, Discussion models</symbol>
+        <lines>10-212</lines>
+        <reason>Current database schema that needs deletedAt fields added to 5 models: User (lines 10-36), Course (lines 38-59), Assignment (lines 75-94), Grade (lines 112-128), Discussion (lines 130-146)</reason>
+      </file>
+
+      <file>
+        <path>src/app/api/instructor/courses/[id]/route.ts</path>
+        <kind>api-route</kind>
+        <symbol>DELETE handler</symbol>
+        <lines>113-148</lines>
+        <reason>Hard delete operation that needs to be replaced with soft delete - currently uses prisma.course.delete() at line 137</reason>
+      </file>
+
+      <file>
+        <path>src/app/api/instructor/assignments/[id]/route.ts</path>
+        <kind>api-route</kind>
+        <symbol>DELETE handler</symbol>
+        <lines>96-131</lines>
+        <reason>Hard delete operation that needs to be replaced with soft delete - currently uses prisma.assignment.delete() at line 120</reason>
+      </file>
+
+      <file>
+        <path>src/app/api/instructor/courses/[id]/discussions/[discussionId]/route.ts</path>
+        <kind>api-route</kind>
+        <symbol>DELETE handler</symbol>
+        <lines>unknown</lines>
+        <reason>Hard delete operation that needs to be replaced with soft delete for Discussion model</reason>
+      </file>
+
+      <file>
+        <path>src/app/api/instructor/courses/[id]/content/[contentId]/route.ts</path>
+        <kind>api-route</kind>
+        <symbol>DELETE handler</symbol>
+        <lines>unknown</lines>
+        <reason>Hard delete operation for CourseContent - needs soft delete if included in cascade behavior</reason>
+      </file>
+
+      <file>
+        <path>src/app/api/instructor/courses/[id]/announcements/[announcementId]/route.ts</path>
+        <kind>api-route</kind>
+        <symbol>DELETE handler</symbol>
+        <lines>unknown</lines>
+        <reason>Hard delete operation for Announcements - needs soft delete if included in cascade behavior</reason>
+      </file>
+    </code>
+
+    <dependencies>
+      <dependency>
+        <name>@prisma/client</name>
+        <version>6.9.0</version>
+        <purpose>Database ORM - used for soft delete operations and query filtering</purpose>
+      </dependency>
+
+      <dependency>
+        <name>prisma</name>
+        <version>6.9.0</version>
+        <purpose>Prisma CLI - used for generating migrations (npx prisma migrate dev)</purpose>
+      </dependency>
+
+      <dependency>
+        <name>next</name>
+        <version>15.3.3</version>
+        <purpose>Next.js framework - API routes for soft delete endpoints</purpose>
+      </dependency>
+
+      <dependency>
+        <name>next-auth</name>
+        <version>4.24.11</version>
+        <purpose>Authentication - admin-only access to soft delete restoration UI</purpose>
+      </dependency>
+
+      <dependency>
+        <name>react</name>
+        <version>19.0.0</version>
+        <purpose>React - UI components for admin deleted records page</purpose>
+      </dependency>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="architecture">
+      <description>Must preserve existing Next.js 15 + React 19 + Prisma foundation (brownfield constraint)</description>
+      <impact>Soft delete middleware must integrate with existing Prisma client without breaking current queries</impact>
+    </constraint>
+
+    <constraint type="security">
+      <description>Admin-only access: Viewing soft-deleted records requires ADMIN role (not accessible to STUDENT or INSTRUCTOR)</description>
+      <impact>Restore endpoints and deleted records UI must verify session.user.role === 'ADMIN'</impact>
+    </constraint>
+
+    <constraint type="data-integrity">
+      <description>Cascade soft delete behavior must preserve referential integrity for 25 database relations</description>
+      <impact>When course is soft-deleted, all related content must be soft-deleted atomically using Prisma transactions</impact>
+    </constraint>
+
+    <constraint type="performance">
+      <description>Indexes on deletedAt columns ensure filtered queries remain fast (< 100ms latency)</description>
+      <impact>All models with deletedAt field must include @@index([deletedAt]) in Prisma schema</impact>
+    </constraint>
+
+    <constraint type="compliance">
+      <description>GDPR "right to erasure" may require hard deletion for EU users (deferred to post-MVP)</description>
+      <impact>Document legal review requirement for data retention policy before production launch</impact>
+    </constraint>
+
+    <constraint type="testing">
+      <description>Coverage target: 100% for soft delete utilities (critical compliance feature)</description>
+      <impact>All soft delete functions must have comprehensive unit and integration tests</impact>
+    </constraint>
+  </constraints>
+
+  <interfaces>
+    <interface type="prisma-middleware">
+      <name>Soft Delete Query Filtering Middleware</name>
+      <description>Prisma middleware that automatically excludes soft-deleted records from all queries by default</description>
+      <location>/src/lib/soft-delete.ts</location>
+      <pattern>
+        prisma.$use(async (params, next) => {
+          const softDeleteModels = ['user', 'course', 'assignment', 'grade', 'discussion'];
+          if (softDeleteModels.includes(params.model?.toLowerCase() || '')) {
+            // Inject where: { deletedAt: null } for findMany, findFirst, findUnique
+          }
+          return next(params);
+        });
+      </pattern>
+    </interface>
+
+    <interface type="utility-function">
+      <name>softDelete&lt;T&gt;(model, id): Promise&lt;T&gt;</name>
+      <description>Generic soft delete function that updates deletedAt to current timestamp</description>
+      <location>/src/lib/soft-delete.ts</location>
+      <signature>
+        export async function softDelete&lt;T extends { deletedAt?: Date | null }&gt;(
+          model: any,
+          id: string
+        ): Promise&lt;T&gt;
+      </signature>
+    </interface>
+
+    <interface type="utility-function">
+      <name>restore&lt;T&gt;(model, id): Promise&lt;T&gt;</name>
+      <description>Generic restore function that sets deletedAt to null</description>
+      <location>/src/lib/soft-delete.ts</location>
+      <signature>
+        export async function restore&lt;T extends { deletedAt?: Date | null }&gt;(
+          model: any,
+          id: string
+        ): Promise&lt;T&gt;
+      </signature>
+    </interface>
+
+    <interface type="utility-function">
+      <name>cascadeSoftDeleteCourse(courseId): Promise&lt;void&gt;</name>
+      <description>Cascade soft delete function for Course model - soft-deletes course and all related records</description>
+      <location>/src/lib/soft-delete.ts</location>
+      <signature>
+        export async function cascadeSoftDeleteCourse(courseId: string): Promise&lt;void&gt;
+      </signature>
+    </interface>
+
+    <interface type="api-endpoint">
+      <name>POST /api/admin/deleted-records/[id]/restore</name>
+      <description>Admin-only API endpoint to restore soft-deleted records</description>
+      <location>/src/app/api/admin/deleted-records/[id]/restore/route.ts</location>
+      <request>
+        {
+          "model": "user" | "course" | "assignment" | "grade" | "discussion"
+        }
+      </request>
+      <response>
+        {
+          "data": { id: string, deletedAt: null, ... }
+        }
+      </response>
+    </interface>
+
+    <interface type="ui-component">
+      <name>Admin Deleted Records Page</name>
+      <description>Admin UI for viewing and restoring soft-deleted records</description>
+      <location>/src/app/admin/deleted-records/page.tsx</location>
+      <features>
+        - Filter/tabs for each model type (Users, Courses, Assignments, Grades, Discussions)
+        - Display soft-deleted records with deletedAt timestamp
+        - "Restore" button with confirmation dialog
+        - Refresh UI after successful restoration
+      </features>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      <standard>Unit Testing: 100% coverage for soft delete utilities (critical compliance feature)</standard>
+      <standard>Integration Testing: All DELETE endpoints verify soft delete instead of hard delete</standard>
+      <standard>E2E Testing: Admin workflow - soft delete → verify hidden → restore → verify reappears</standard>
+      <standard>Test cascade: Soft delete course → verify assignments, discussions, content soft-deleted</standard>
+    </standards>
+
+    <locations>
+      <location>__tests__/unit/lib/soft-delete.test.ts - Unit tests for soft delete functions</location>
+      <location>__tests__/integration/api/instructor/courses.test.ts - Integration tests for course soft delete</location>
+      <location>__tests__/integration/api/instructor/assignments.test.ts - Integration tests for assignment soft delete</location>
+      <location>__tests__/e2e/admin.spec.ts - E2E test for admin viewing/restoring soft-deleted records</location>
+    </locations>
+
+    <ideas>
+      <idea mapped-to="AC1">
+        <description>Unit test: Verify Prisma schema includes deletedAt field for 5 models (User, Course, Assignment, Grade, Discussion)</description>
+        <test-type>unit</test-type>
+        <assertion>Expect schema to have deletedAt: DateTime? and @@index([deletedAt])</assertion>
+      </idea>
+
+      <idea mapped-to="AC2">
+        <description>Integration test: Verify queries automatically exclude soft-deleted records</description>
+        <test-type>integration</test-type>
+        <assertion>Soft delete user → findMany() should not return user → findMany with includeSoftDeleted: true should return user</assertion>
+      </idea>
+
+      <idea mapped-to="AC3">
+        <description>E2E test: Admin navigates to deleted records page, sees soft-deleted records with timestamps</description>
+        <test-type>e2e</test-type>
+        <assertion>Login as admin → navigate to /admin/deleted-records → verify deleted users visible with deletedAt timestamp</assertion>
+      </idea>
+
+      <idea mapped-to="AC4">
+        <description>Unit test: Verify no hard delete calls exist - only soft delete operations</description>
+        <test-type>unit</test-type>
+        <assertion>Codebase scan finds zero instances of .delete() or .deleteMany() in API routes (except Prisma middleware internals)</assertion>
+      </idea>
+
+      <idea mapped-to="AC5">
+        <description>Integration test: Cascade soft delete - delete course → verify assignments, discussions, content soft-deleted</description>
+        <test-type>integration</test-type>
+        <assertion>cascadeSoftDeleteCourse(courseId) → all related records have matching deletedAt timestamp</assertion>
+      </idea>
+
+      <idea mapped-to="AC6">
+        <description>Integration test: Soft delete user → restore via API → verify deletedAt = null</description>
+        <test-type>integration</test-type>
+        <assertion>POST /api/admin/deleted-records/[id]/restore → user.deletedAt should be null</assertion>
+      </idea>
+
+      <idea mapped-to="AC7">
+        <description>Manual review: Data retention policy documentation exists and specifies 1-year retention</description>
+        <test-type>manual</test-type>
+        <assertion>File /docs/data-retention-policy.md exists and contains "1 year" retention period</assertion>
+      </idea>
+
+      <idea mapped-to="AC8">
+        <description>Integration test: Run Prisma migration → verify deletedAt columns created with correct nullable type</description>
+        <test-type>integration</test-type>
+        <assertion>npx prisma migrate dev → database schema includes deletedAt DATETIME NULL columns with indexes</assertion>
+      </idea>
+    </ideas>
+  </tests>
+
+</story-context>

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { softDelete, notDeleted } from '@/lib/soft-delete'
 
 export async function GET(
   request: NextRequest,
@@ -182,21 +183,19 @@ export async function DELETE(
     const discussion = await prisma.discussion.findUnique({
       where: {
         id: discussionId,
-        courseId: id
+        courseId: id,
+        ...notDeleted,
       }
     })
 
     if (!discussion) {
-      return NextResponse.json({ error: 'Discussion not found' }, { status: 404 })
+      return NextResponse.json({ error: 'Discussion not found or has been archived' }, { status: 404 })
     }
 
-    await prisma.discussion.delete({
-      where: {
-        id: discussionId
-      }
-    })
+    // Soft delete discussion
+    await softDelete(prisma.discussion, discussionId)
 
-    return NextResponse.json({ message: 'Discussion deleted successfully' })
+    return NextResponse.json({ message: 'Discussion archived successfully' })
   } catch (error) {
     console.error('Error deleting discussion:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

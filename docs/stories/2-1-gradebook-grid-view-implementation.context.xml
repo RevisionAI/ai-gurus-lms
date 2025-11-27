@@ -1,0 +1,838 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>2.1</story-id>
+    <story-key>2-1-gradebook-grid-view-implementation</story-key>
+    <epic-id>2</epic-id>
+    <epic-name>Feature Completion &amp; Admin Capabilities</epic-name>
+    <generated-date>2025-11-26</generated-date>
+  </metadata>
+
+  <story-summary>
+    <title>Gradebook Grid View Implementation</title>
+    <description>
+      Implement a complete gradebook grid view that displays a matrix of students (rows) by assignments (columns),
+      showing all grades at a glance with color-coded status indicators, performance metrics (total points, percentage, GPA),
+      and support for large datasets through virtualization. The grid must load within 2 seconds for 50 students × 20 assignments
+      and provide a mobile-friendly list view alternative.
+    </description>
+    <user-story>
+      As an instructor, I want a complete gradebook grid view showing all students × all assignments,
+      so that I can see all grades at a glance and identify patterns quickly.
+    </user-story>
+  </story-summary>
+
+  <acceptance-criteria>
+    <criterion id="AC-2.1.1">
+      Gradebook page displays matrix with students as rows and assignments as columns
+    </criterion>
+    <criterion id="AC-2.1.2">
+      Grid shows student name, individual assignment scores, total points, percentage, and course GPA
+    </criterion>
+    <criterion id="AC-2.1.3">
+      Empty cells indicate "not submitted" (dash) vs "pending grade" (clock icon) states
+    </criterion>
+    <criterion id="AC-2.1.4">
+      Color coding applied: graded (green), pending (yellow), late (orange), missing (red)
+    </criterion>
+    <criterion id="AC-2.1.5">
+      Grid supports horizontal/vertical scrolling for datasets exceeding viewport
+    </criterion>
+    <criterion id="AC-2.1.6">
+      Grid loads within 2 seconds for 50 students × 20 assignments
+    </criterion>
+    <criterion id="AC-2.1.7">
+      Mobile view displays list format instead of grid
+    </criterion>
+    <criterion id="AC-2.1.8">
+      Unit tests cover grid data aggregation logic
+    </criterion>
+    <criterion id="AC-2.1.9">
+      Integration tests verify gradebook API returns correct structure
+    </criterion>
+    <criterion id="AC-2.1.10">
+      E2E test validates instructor sees correct student/assignment matrix
+    </criterion>
+  </acceptance-criteria>
+
+  <technical-context>
+    <architecture>
+      <pattern>Full-stack Next.js 15 monolith with App Router</pattern>
+      <database>Neon PostgreSQL with Prisma 6.9 ORM</database>
+      <authentication>NextAuth 4.24 with database sessions</authentication>
+      <file-storage>Cloudflare R2 (S3-compatible)</file-storage>
+      <styling>Tailwind CSS 4 + Radix UI components</styling>
+    </architecture>
+
+    <key-constraints>
+      <constraint type="performance">
+        Grid must load within 2 seconds for 50 students × 20 assignments (p95).
+        Use Prisma include to avoid N+1 queries. Implement virtualization for datasets &gt; 50 rows.
+      </constraint>
+      <constraint type="responsive">
+        Mobile view (&lt;768px) must display list format instead of grid to maintain usability.
+        Use CSS media queries or Tailwind responsive utilities.
+      </constraint>
+      <constraint type="authorization">
+        All gradebook endpoints must verify the requesting user is an instructor for the requested course.
+        Return 403 Forbidden if authorization fails.
+      </constraint>
+      <constraint type="data-integrity">
+        GPA calculation must use the existing /src/lib/gpa.ts utility with weighted assignment grades.
+        Grade percentages calculated as: (totalPoints / totalPossible) × 100.
+      </constraint>
+      <constraint type="accessibility">
+        Grid must support keyboard navigation, ARIA labels for screen readers, and sufficient color contrast (WCAG AA).
+      </constraint>
+    </key-constraints>
+
+    <data-models>
+      <model name="User">
+        <description>Students and instructors with role-based access</description>
+        <key-fields>id, email, name, role (STUDENT|INSTRUCTOR|ADMIN), deletedAt</key-fields>
+        <location>prisma/schema.prisma (lines 11-39)</location>
+      </model>
+      <model name="Course">
+        <description>Course offerings with instructor assignment</description>
+        <key-fields>id, title, code, instructorId, isActive, deletedAt</key-fields>
+        <location>prisma/schema.prisma (lines 41-64)</location>
+      </model>
+      <model name="Enrollment">
+        <description>Student-course relationships</description>
+        <key-fields>id, userId, courseId, enrolledAt</key-fields>
+        <location>prisma/schema.prisma (lines 66-78)</location>
+      </model>
+      <model name="Assignment">
+        <description>Course assignments with due dates and points</description>
+        <key-fields>id, courseId, title, dueDate, maxPoints, isPublished, deletedAt</key-fields>
+        <location>prisma/schema.prisma (lines 80-101)</location>
+      </model>
+      <model name="Submission">
+        <description>Student assignment submissions</description>
+        <key-fields>id, assignmentId, studentId, submittedAt, s3Key</key-fields>
+        <location>prisma/schema.prisma (lines 103-118)</location>
+      </model>
+      <model name="Grade">
+        <description>Assignment grades with feedback</description>
+        <key-fields>id, assignmentId, studentId, points, feedback, gradedAt, deletedAt</key-fields>
+        <location>prisma/schema.prisma (lines 120-138)</location>
+      </model>
+    </data-models>
+
+    <interfaces>
+      <interface name="GradebookMatrix">
+        <description>
+          Complete gradebook data structure representing students × assignments matrix
+          with calculated performance metrics.
+        </description>
+        <definition>
+{
+  students: {
+    id: string;
+    name: string;
+    email: string;
+    grades: {
+      assignmentId: string;
+      score: number | null;
+      status: 'graded' | 'pending' | 'late' | 'missing';
+      submissionId: string | null;
+    }[];
+    totalPoints: number;
+    percentage: number;
+    gpa: number | null;
+  }[];
+  assignments: {
+    id: string;
+    title: string;
+    maxPoints: number;
+    dueDate: Date;
+  }[];
+}
+        </definition>
+        <location>tech-spec-epic-2.md (lines 156-179)</location>
+      </interface>
+
+      <interface name="GradeInput">
+        <description>Input structure for GPA calculation from lib/gpa.ts</description>
+        <definition>
+{
+  points: number;
+  maxPoints: number;
+  weight?: number;
+  isGraded?: boolean;
+}
+        </definition>
+        <location>src/lib/gpa.ts (lines 8-20)</location>
+      </interface>
+
+      <interface name="GPAResult">
+        <description>GPA calculation result with percentage and letter grade</description>
+        <definition>
+{
+  gpa: number;            // On configured scale (default: 4.0)
+  percentage: number;     // 0-100
+  letterGrade: string;    // A, B, C, D, F
+  gradedCount: number;    // Number of graded assignments
+  totalWeight: number;    // Total weight of assignments
+}
+        </definition>
+        <location>src/lib/gpa.ts (lines 22-36)</location>
+      </interface>
+    </interfaces>
+
+    <api-endpoints>
+      <endpoint method="GET" path="/api/instructor/gradebook/[courseId]">
+        <description>Fetch complete gradebook matrix data for a course</description>
+        <authorization>Instructor must own the course (instructorId check)</authorization>
+        <query-params>
+          studentFilter?: string    // Student name search
+          assignmentId?: string     // Filter to single assignment
+          status?: 'all' | 'graded' | 'pending' | 'late' | 'missing'
+          dateFrom?: string         // ISO date string
+          dateTo?: string           // ISO date string
+        </query-params>
+        <response>{ data: GradebookMatrix }</response>
+        <error-responses>
+          401 Unauthorized - Not authenticated
+          403 Forbidden - Not instructor for this course
+          404 Not Found - Course does not exist
+        </error-responses>
+        <spec-location>tech-spec-epic-2.md (lines 209-234)</spec-location>
+      </endpoint>
+    </api-endpoints>
+
+    <performance-requirements>
+      <requirement>
+        Database query must use Prisma include to fetch enrollments with nested
+        user, course, assignments, submissions, and grades in a single query to avoid N+1 issues.
+      </requirement>
+      <requirement>
+        Grid component must implement virtualization (react-window or react-virtualized)
+        for datasets exceeding 50 rows to maintain performance.
+      </requirement>
+      <requirement>
+        API response must complete within performance budget of 2 seconds (p95)
+        for 50 students × 20 assignments.
+      </requirement>
+      <requirement>
+        Component rendering optimized with React.memo for GradebookCell to prevent
+        unnecessary re-renders during scroll or data updates.
+      </requirement>
+    </performance-requirements>
+  </technical-context>
+
+  <existing-code-context>
+    <existing-file path="/src/app/instructor/gradebook/page.tsx">
+      <description>
+        Current gradebook implementation exists but is incomplete. Uses client-side rendering
+        with separate API calls per assignment (N+1 pattern). Displays basic table with
+        student rows and assignment columns, but missing:
+        - Dedicated gradebook API endpoint (uses generic assignment endpoints)
+        - Status indicators for not submitted vs pending
+        - GPA calculation integration
+        - Mobile responsive list view
+        - Virtualization for large datasets
+        - Performance optimization (currently fetches all assignments sequentially)
+      </description>
+      <key-patterns>
+        - Uses ProtectedRoute component for role-based access control
+        - Implements CSV export functionality client-side
+        - Color codes grades by percentage (green ≥90%, blue ≥80%, yellow ≥70%, orange ≥60%, red &lt;60%)
+        - Calculates average grade as simple percentage (totalPoints / maxPossiblePoints × 100)
+      </key-patterns>
+      <reusable-logic>
+        - getGradeDisplay() helper for rendering grade text
+        - getGradeColorClass() helper for color coding
+        - CSV export generation logic (handleExportGrades)
+        - Course dropdown selector pattern
+      </reusable-logic>
+      <needs-refactoring>
+        - Replace N+1 API calls with single gradebook endpoint
+        - Move data aggregation logic from client to server (API route)
+        - Integrate GPA calculation from /src/lib/gpa.ts
+        - Add submission status detection (not submitted, pending, late)
+        - Implement responsive design with mobile list view
+        - Add virtualization for large datasets
+      </needs-refactoring>
+    </existing-file>
+
+    <existing-file path="/src/lib/gpa.ts">
+      <description>
+        Complete GPA calculation utility implementing weighted grade averaging
+        with configurable grading scale (default 4.0). Provides functions for:
+        - calculateGPA(grades): Weighted GPA calculation
+        - percentageToGPA(percentage): Percentage to GPA conversion
+        - percentageToLetterGrade(percentage): Letter grade assignment
+        - calculateSimpleGPA(grades): Unweighted GPA calculation
+      </description>
+      <grading-scale>
+        90-100% = A = 4.0
+        80-89%  = B = 3.0
+        70-79%  = C = 2.0
+        60-69%  = D = 1.0
+        &lt;60%    = F = 0.0
+      </grading-scale>
+      <usage-example>
+const grades = [
+  { points: 90, maxPoints: 100, weight: 1 },
+  { points: 85, maxPoints: 100, weight: 2 },
+];
+const result = calculateGPA(grades);
+// result.percentage = 86.67
+// result.gpa = 3.0
+// result.letterGrade = 'B'
+      </usage-example>
+      <integration-notes>
+        Import calculateGPA and use in gradebook API route to compute student GPAs.
+        Pass array of {points, maxPoints, weight} for all graded assignments.
+        Handle null return value when no grades exist.
+      </integration-notes>
+    </existing-file>
+
+    <related-components>
+      <component path="/src/components/Navbar.tsx">
+        Navigation bar used across all pages
+      </component>
+      <component path="/src/components/ProtectedRoute.tsx">
+        Role-based route protection (requires INSTRUCTOR role for gradebook)
+      </component>
+      <component path="/src/app/api/instructor/courses/route.ts">
+        Instructor course listing endpoint (existing pattern for authorization)
+      </component>
+      <component path="/src/app/api/instructor/assignments/[id]/submissions/route.ts">
+        Assignment submissions endpoint (existing data structure reference)
+      </component>
+    </related-components>
+  </existing-code-context>
+
+  <implementation-guidance>
+    <task-breakdown>
+      <task id="1" name="Database Query &amp; API Development" priority="high">
+        <description>
+          Design GradebookMatrix interface, create API route with optimized Prisma query,
+          implement data aggregation logic and cell state determination.
+        </description>
+        <subtasks>
+          1.1 - Define TypeScript interfaces (GradebookMatrix, GradebookStudent, GradebookCell)
+          1.2 - Create /src/app/api/instructor/gradebook/[courseId]/route.ts with authorization
+          1.3 - Implement optimized Prisma query with include for enrollments/assignments/submissions/grades
+          1.4 - Transform Prisma results into GradebookMatrix structure with metrics calculation
+          1.5 - Implement cell state determination (graded, pending, not submitted, late)
+          1.6 - Add performance monitoring and error handling
+        </subtasks>
+        <key-decisions>
+          - Use single Prisma query with nested includes to avoid N+1 queries
+          - Calculate totalPoints, percentage, and GPA server-side for accuracy
+          - Determine cell states based on submission and grade existence + due date comparison
+          - Log query execution time to ensure &lt;2 second performance budget
+        </key-decisions>
+      </task>
+
+      <task id="2" name="Core Grid Component Development" priority="high">
+        <description>
+          Create reusable grid components (GradebookGrid, GradebookRow, GradebookCell)
+          with sticky headers/columns, scroll behavior, and virtualization.
+        </description>
+        <subtasks>
+          2.1 - Create GradebookGrid component with CSS Grid layout and sticky positioning
+          2.2 - Implement GradebookRow component with student info and assignment cells
+          2.3 - Implement GradebookCell component with score display, status icons, color coding
+          2.4 - Add horizontal/vertical scroll with sticky header row and first column
+          2.5 - Integrate virtualization (react-window) for datasets &gt;50 rows
+          2.6 - Add loading and error states with skeleton loader
+        </subtasks>
+        <component-structure>
+/src/components/gradebook/
+  ├── GradebookGrid.tsx     # Main grid container with layout
+  ├── GradebookRow.tsx      # Student row with cells
+  ├── GradebookCell.tsx     # Individual grade cell
+  └── types.ts              # Shared TypeScript types
+        </component-structure>
+      </task>
+
+      <task id="3" name="Responsive Design &amp; Mobile View" priority="medium">
+        <description>
+          Implement responsive breakpoints and mobile list view as alternative to grid.
+        </description>
+        <subtasks>
+          3.1 - Define responsive breakpoints (mobile &lt;768px, tablet 768-1024px, desktop &gt;1024px)
+          3.2 - Create GradebookList component for mobile with expandable student cards
+          3.3 - Implement view switching logic based on viewport width (useMediaQuery hook)
+          3.4 - Style mobile components with touch-friendly targets (44×44px minimum)
+        </subtasks>
+        <design-patterns>
+          - Use Tailwind responsive utilities (md:, lg:) for breakpoint styles
+          - Conditionally render Grid vs List based on window width
+          - Maintain color coding consistency across both views
+          - Ensure accessibility (keyboard nav, screen reader labels)
+        </design-patterns>
+      </task>
+
+      <task id="4" name="Gradebook Page Integration" priority="medium">
+        <description>
+          Update existing gradebook page to use new API endpoint and grid components.
+        </description>
+        <subtasks>
+          4.1 - Refactor page.tsx to use new gradebook API endpoint
+          4.2 - Replace existing table with GradebookGrid component
+          4.3 - Add page header with course name, breadcrumbs, and navigation tabs
+          4.4 - Integrate loading states, empty states, and error handling
+        </subtasks>
+        <migration-notes>
+          - Preserve existing CSV export functionality (reuse handleExportGrades logic)
+          - Maintain course dropdown selector pattern
+          - Keep ProtectedRoute wrapper with INSTRUCTOR role check
+          - Update color coding to match new status-based system
+        </migration-notes>
+      </task>
+
+      <task id="5" name="Unit Testing" priority="high">
+        <description>
+          Write comprehensive unit tests for data aggregation, GPA calculation, and components.
+        </description>
+        <test-coverage>
+          - Data aggregation: calculateTotalPoints, calculatePercentage, determineCellState
+          - GPA integration: Test calculateGPA function with gradebook data
+          - Component tests: Grid renders correct rows/columns, cells display scores, colors apply
+          - Responsive tests: Grid view on desktop, list view on mobile
+        </test-coverage>
+        <test-location>__tests__/unit/components/gradebook/</test-location>
+      </task>
+
+      <task id="6" name="Integration Testing" priority="high">
+        <description>
+          Verify API endpoint returns correct structure, handles authorization, and performs well.
+        </description>
+        <test-scenarios>
+          - GET /api/instructor/gradebook/[courseId] returns 200 with GradebookMatrix
+          - Endpoint returns 401 for unauthenticated requests
+          - Endpoint returns 403 for non-instructor users
+          - Endpoint returns 404 for invalid courseId
+          - Query performance test with 50 students × 20 assignments
+        </test-scenarios>
+        <test-location>__tests__/integration/api/instructor/gradebook.test.ts</test-location>
+      </task>
+
+      <task id="7" name="End-to-End Testing" priority="medium">
+        <description>
+          Validate complete instructor gradebook workflow with Playwright.
+        </description>
+        <e2e-scenarios>
+          - Instructor navigates to gradebook, selects course, sees grid
+          - Grid displays correct number of students and assignments
+          - Cell states display correctly (graded=green, pending=yellow, late=orange, missing=red)
+          - Summary columns show correct totals, percentages, and GPAs
+          - Mobile viewport switches to list view
+          - Horizontal/vertical scroll works with sticky headers
+        </e2e-scenarios>
+        <test-location>__tests__/e2e/instructor-gradebook.spec.ts</test-location>
+      </task>
+    </task-breakdown>
+
+    <coding-patterns>
+      <pattern name="Authorization Check">
+        <description>Verify instructor ownership of course in API route</description>
+        <example>
+const session = await getServerSession(authOptions);
+if (!session || session.user.role !== 'INSTRUCTOR') {
+  return NextResponse.json(
+    { error: { code: 'UNAUTHORIZED', message: 'Instructor access required' } },
+    { status: 401 }
+  );
+}
+
+const course = await prisma.course.findUnique({
+  where: { id: courseId },
+  select: { instructorId: true }
+});
+
+if (!course || course.instructorId !== session.user.id) {
+  return NextResponse.json(
+    { error: { code: 'FORBIDDEN', message: 'Not instructor for this course' } },
+    { status: 403 }
+  );
+}
+        </example>
+      </pattern>
+
+      <pattern name="Optimized Database Query">
+        <description>Single query with nested includes to avoid N+1</description>
+        <example>
+const gradebookData = await prisma.enrollment.findMany({
+  where: {
+    courseId,
+    user: { deletedAt: null }  // Filter soft-deleted users
+  },
+  include: {
+    user: {
+      select: { id: true, name: true, email: true }
+    }
+  }
+});
+
+const assignments = await prisma.assignment.findMany({
+  where: {
+    courseId,
+    deletedAt: null  // Filter soft-deleted assignments
+  },
+  include: {
+    grades: {
+      where: { student: { deletedAt: null } }
+    },
+    submissions: {
+      where: { student: { deletedAt: null } }
+    }
+  },
+  orderBy: { dueDate: 'asc' }
+});
+        </example>
+      </pattern>
+
+      <pattern name="Cell State Determination">
+        <description>Determine grade cell status based on submission and grade data</description>
+        <example>
+function determineCellState(
+  submission: Submission | null,
+  grade: Grade | null,
+  assignment: Assignment
+): 'graded' | 'pending' | 'late' | 'missing' {
+  if (grade) return 'graded';
+
+  if (submission) {
+    const dueDate = assignment.dueDate ? new Date(assignment.dueDate) : null;
+    const submittedAt = new Date(submission.submittedAt);
+
+    if (dueDate &amp;&amp; submittedAt &gt; dueDate) return 'late';
+    return 'pending';
+  }
+
+  // No submission and past due date
+  const now = new Date();
+  const dueDate = assignment.dueDate ? new Date(assignment.dueDate) : null;
+  if (dueDate &amp;&amp; now &gt; dueDate) return 'missing';
+
+  return 'missing';
+}
+        </example>
+      </pattern>
+
+      <pattern name="GPA Integration">
+        <description>Calculate student GPA using lib/gpa.ts utility</description>
+        <example>
+import { calculateGPA, GradeInput } from '@/lib/gpa';
+
+// Build grade inputs for student
+const gradeInputs: GradeInput[] = grades.map(grade =&gt; ({
+  points: grade.points,
+  maxPoints: assignments.find(a =&gt; a.id === grade.assignmentId)!.maxPoints,
+  weight: 1,  // Equal weighting (can be customized per assignment)
+  isGraded: true
+}));
+
+// Calculate GPA
+const gpaResult = calculateGPA(gradeInputs);
+const studentGPA = gpaResult?.gpa ?? null;
+const percentage = gpaResult?.percentage ?? 0;
+        </example>
+      </pattern>
+
+      <pattern name="Color Coding by Status">
+        <description>Apply consistent color coding across components</description>
+        <example>
+function getStatusColor(status: CellStatus): string {
+  switch (status) {
+    case 'graded':
+      return 'bg-green-100 text-green-800 border-green-300';
+    case 'pending':
+      return 'bg-yellow-100 text-yellow-800 border-yellow-300';
+    case 'late':
+      return 'bg-orange-100 text-orange-800 border-orange-300';
+    case 'missing':
+      return 'bg-red-100 text-red-800 border-red-300';
+  }
+}
+        </example>
+      </pattern>
+    </coding-patterns>
+
+    <critical-validations>
+      <validation>
+        Verify instructor authorization before returning any gradebook data.
+        Check session.user.role === 'INSTRUCTOR' AND course.instructorId === session.user.id.
+      </validation>
+      <validation>
+        Filter out soft-deleted records (deletedAt !== null) for users, courses, assignments, grades.
+        Use Prisma where clauses: { deletedAt: null }.
+      </validation>
+      <validation>
+        Ensure GPA calculation handles edge cases: no grades (return null), all zeros (return 0.0),
+        single assignment, different weights.
+      </validation>
+      <validation>
+        Validate performance: log query execution time and fail CI if exceeds 2 second threshold.
+        Use Prisma query logging or manual timing with console.time/timeEnd.
+      </validation>
+      <validation>
+        Test responsive behavior: Grid view renders on desktop (≥768px), List view on mobile (&lt;768px).
+        Mock window.matchMedia in tests.
+      </validation>
+    </critical-validations>
+  </implementation-guidance>
+
+  <testing-requirements>
+    <test-approach>
+      This story follows test-driven development (TDD) with automated CI/CD validation.
+      All tests must pass before story is considered complete (Definition of Done).
+    </test-approach>
+
+    <unit-tests>
+      <test-file path="__tests__/unit/lib/gpa.test.ts">
+        <description>GPA calculation logic tests (existing file)</description>
+        <scenarios>
+          - All assignments graded → correct weighted average
+          - No grades → returns null
+          - Partial grades → calculates from available
+          - All zeros → returns 0.0
+          - All perfect scores → returns 4.0
+          - Mixed grades → correct 4.0 scale mapping
+        </scenarios>
+      </test-file>
+
+      <test-file path="__tests__/unit/components/gradebook/GradebookGrid.test.tsx">
+        <description>Grid component rendering tests</description>
+        <scenarios>
+          - Grid renders with correct number of rows and columns
+          - Student names display correctly in first column
+          - Assignment headers display with point values
+          - Summary columns (total, percentage, GPA) display correctly
+          - Empty state shown when no students enrolled
+        </scenarios>
+      </test-file>
+
+      <test-file path="__tests__/unit/components/gradebook/GradebookCell.test.tsx">
+        <description>Cell component display and color coding tests</description>
+        <scenarios>
+          - Cell displays score when graded (green background)
+          - Cell displays dash when not submitted (red background)
+          - Cell displays clock icon when pending grade (yellow background)
+          - Cell displays orange background for late submissions
+          - Color coding matches expected Tailwind classes
+        </scenarios>
+      </test-file>
+
+      <test-file path="__tests__/unit/utils/gradebook.test.ts">
+        <description>Data aggregation utility tests</description>
+        <scenarios>
+          - calculateTotalPoints sums graded assignments correctly
+          - calculatePercentage computes (total/max) × 100
+          - determineCellState correctly identifies graded/pending/late/missing
+          - transformToMatrix converts Prisma data to GradebookMatrix
+        </scenarios>
+      </test-file>
+    </unit-tests>
+
+    <integration-tests>
+      <test-file path="__tests__/integration/api/instructor/gradebook.test.ts">
+        <description>API endpoint integration tests</description>
+        <scenarios>
+          - GET returns 200 with valid GradebookMatrix structure
+          - GET returns 401 for unauthenticated users
+          - GET returns 403 for non-instructor users
+          - GET returns 403 when instructor doesn't own course
+          - GET returns 404 for invalid courseId
+          - Response includes all enrolled students
+          - Response includes all assignments for course
+          - Grades correctly mapped to student/assignment combinations
+          - GPA calculations match expected values
+          - Query performance under 2 seconds for 50 students × 20 assignments
+        </scenarios>
+      </test-file>
+    </integration-tests>
+
+    <e2e-tests>
+      <test-file path="__tests__/e2e/instructor-gradebook.spec.ts">
+        <description>End-to-end instructor gradebook workflow</description>
+        <scenarios>
+          - Instructor logs in and navigates to gradebook page
+          - Page loads without errors
+          - Course dropdown displays instructor's courses
+          - Selecting course loads gradebook grid
+          - Grid displays correct number of student rows (10 students)
+          - Grid displays correct number of assignment columns (5 assignments)
+          - Student names and emails display in first column
+          - Assignment names display in header row with point values
+          - Graded cells show score with green color
+          - Pending cells show clock icon with yellow color
+          - Late cells show orange color
+          - Missing cells show dash with red color
+          - Total points column sums correctly
+          - Percentage column calculates correctly
+          - GPA column displays 4.0 scale values
+          - Horizontal scroll works for wide grids
+          - Vertical scroll works for long grids
+          - Header row remains visible during vertical scroll (sticky)
+          - First column remains visible during horizontal scroll (sticky)
+          - Mobile viewport (375×667) switches to list view
+          - List view displays same data as grid view
+        </scenarios>
+      </test-file>
+
+      <test-file path="__tests__/e2e/gradebook-performance.spec.ts">
+        <description>Performance validation test</description>
+        <scenarios>
+          - Page loads within 2 seconds for 50 students × 20 assignments
+          - Time to interactive (TTI) measured with Playwright timing API
+          - No console errors or warnings during load
+          - Grid renders without visible lag or jank
+        </scenarios>
+      </test-file>
+    </e2e-tests>
+
+    <test-data-setup>
+      <description>
+        E2E tests require seeded database with test course, students, assignments, and grades.
+        Use Prisma seed script to generate consistent test data.
+      </description>
+      <test-data-structure>
+        - 1 test course (CS101 - Introduction to AI)
+        - 10 enrolled students (student1@test.com - student10@test.com)
+        - 5 assignments with varying due dates
+        - Mix of submission states:
+          * 3 students with all assignments graded
+          * 2 students with pending grades (submitted, not graded)
+          * 2 students with late submissions (submitted after due date)
+          * 3 students with missing assignments (not submitted, past due)
+      </test-data-structure>
+    </test-data-setup>
+
+    <coverage-requirements>
+      <requirement>Unit test coverage ≥80% for new code (grid components, utilities)</requirement>
+      <requirement>Integration tests cover all API endpoint success and error paths</requirement>
+      <requirement>E2E tests validate critical user journey (instructor views gradebook)</requirement>
+      <requirement>All tests pass in CI/CD pipeline before PR merge</requirement>
+    </coverage-requirements>
+  </testing-requirements>
+
+  <dependencies>
+    <blocked-by>
+      <dependency epic="1" story="1.1">
+        PostgreSQL Migration - Database must be migrated to Neon PostgreSQL
+      </dependency>
+      <dependency epic="1" story="1.2">
+        Prisma Schema Updates - Soft delete fields (deletedAt) must be added
+      </dependency>
+      <dependency epic="1.5" story="1.5.1">
+        Testing Infrastructure - Jest and React Testing Library must be configured
+      </dependency>
+      <dependency epic="1.5" story="1.5.2">
+        E2E Testing Setup - Playwright must be configured for E2E tests
+      </dependency>
+    </blocked-by>
+
+    <blocks>
+      <dependency story="2.2">
+        Inline Grade Editing - Grid component must exist before adding edit functionality
+      </dependency>
+      <dependency story="2.3">
+        Filtering &amp; CSV Export - Gradebook API endpoint must exist for filtering
+      </dependency>
+    </blocks>
+
+    <related-stories>
+      <related story="2.4">
+        GPA Calculation Implementation - Uses same lib/gpa.ts utility
+      </related>
+      <related story="2.7">
+        Feedback Templates - May integrate with gradebook for inline feedback
+      </related>
+    </related-stories>
+  </dependencies>
+
+  <reference-documentation>
+    <reference type="story-file" path="/docs/stories/2-1-gradebook-grid-view-implementation.md">
+      Complete story specification with detailed task breakdown and definition of done
+    </reference>
+    <reference type="tech-spec" path="/docs/tech-spec-epic-2.md">
+      Epic 2 technical specification including API contracts and data models
+    </reference>
+    <reference type="architecture" path="/docs/architecture.md">
+      System architecture document with technology stack and design patterns
+    </reference>
+    <reference type="prd" path="/docs/prd.md">
+      Product Requirements Document with functional requirements and user journeys
+    </reference>
+    <reference type="schema" path="/prisma/schema.prisma">
+      Database schema with User, Course, Enrollment, Assignment, Submission, Grade models
+    </reference>
+    <reference type="utility" path="/src/lib/gpa.ts">
+      GPA calculation utility with weighted grade averaging
+    </reference>
+    <reference type="existing-page" path="/src/app/instructor/gradebook/page.tsx">
+      Current gradebook implementation (to be refactored)
+    </reference>
+    <reference type="api-docs" path="/docs/api-contracts.md">
+      API endpoint documentation for 42 existing endpoints
+    </reference>
+  </reference-documentation>
+
+  <implementation-notes>
+    <note priority="critical">
+      Performance Optimization: Use Prisma include to fetch all related data in a single query.
+      Avoid N+1 queries by fetching enrollments with nested user data, then separately fetching
+      assignments with nested grades and submissions. Do NOT loop through assignments making
+      individual API calls (current anti-pattern in existing code).
+    </note>
+
+    <note priority="high">
+      GPA Calculation: Import and use calculateGPA() from /src/lib/gpa.ts. Do NOT reimplement
+      GPA logic. Pass array of {points, maxPoints, weight} for all graded assignments. Handle
+      null return value (no grades exist) by displaying "N/A" in grid.
+    </note>
+
+    <note priority="high">
+      Cell Status Logic: Implement determineCellState() function to classify each cell as:
+      - graded: grade exists with score (display points, green background)
+      - pending: submission exists but no grade (display clock icon, yellow background)
+      - late: submission after due date, no grade yet (display warning icon, orange background)
+      - missing: no submission and past due date (display dash, red background)
+    </note>
+
+    <note priority="medium">
+      Responsive Design: Use Tailwind responsive utilities (hidden md:block, md:hidden) to
+      conditionally show/hide grid vs list views. Grid visible on md+ breakpoints (≥768px),
+      list visible on mobile (&lt;768px). Do NOT duplicate data fetching logic.
+    </note>
+
+    <note priority="medium">
+      Virtualization: For datasets exceeding 50 rows, integrate react-window FixedSizeList
+      to render only visible rows. This prevents DOM bloat and maintains 60fps scroll performance.
+      Calculate row height based on cell content (single line text vs multi-line).
+    </note>
+
+    <note priority="low">
+      CSV Export Migration: Preserve existing handleExportGrades() logic from current gradebook
+      page. Refactor to use new GradebookMatrix data structure instead of separate API calls.
+      Include GPA column in CSV output.
+    </note>
+
+    <note priority="low">
+      Accessibility: Add ARIA labels to grid cells for screen readers. Ensure keyboard navigation
+      works (Tab to navigate cells, Enter to select). Test with NVDA/JAWS screen readers.
+      Verify color contrast meets WCAG AA standards (use Lighthouse accessibility audit).
+    </note>
+  </implementation-notes>
+
+  <success-criteria>
+    <criterion>All 10 acceptance criteria met and verified</criterion>
+    <criterion>Grid displays student × assignment matrix with color-coded status</criterion>
+    <criterion>Performance requirement met: &lt;2 second load for 50 students × 20 assignments</criterion>
+    <criterion>GPA calculation accurate using lib/gpa.ts utility</criterion>
+    <criterion>Mobile view switches to list format on &lt;768px viewport</criterion>
+    <criterion>Unit test coverage ≥80% for new components and utilities</criterion>
+    <criterion>Integration tests pass for gradebook API endpoint</criterion>
+    <criterion>E2E test validates instructor can view gradebook successfully</criterion>
+    <criterion>No console errors or warnings during grid interaction</criterion>
+    <criterion>Code review approved by senior developer</criterion>
+    <criterion>All tests passing in CI/CD pipeline</criterion>
+  </success-criteria>
+</story-context>

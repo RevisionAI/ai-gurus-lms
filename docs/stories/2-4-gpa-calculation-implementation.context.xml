@@ -1,0 +1,1584 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>2.4</story-id>
+    <story-key>2-4-gpa-calculation-implementation</story-key>
+    <story-title>GPA Calculation Implementation</story-title>
+    <epic-id>2</epic-id>
+    <epic-name>Feature Completion &amp; Admin Capabilities</epic-name>
+    <prerequisites>
+      <prerequisite>Story 2.2 - Grade Management &amp; Gradebook</prerequisite>
+    </prerequisites>
+    <status>drafted</status>
+    <created-date>2025-11-26</created-date>
+    <story-points>13</story-points>
+    <priority>High</priority>
+  </metadata>
+
+  <story-summary>
+    <user-story>
+      <as-a>student</as-a>
+      <i-want-to>see my calculated GPA per course and overall</i-want-to>
+      <so-that>I can track my academic performance accurately</so-that>
+    </user-story>
+
+    <description>
+      This story implements a comprehensive GPA calculation system that calculates weighted course GPAs
+      and overall student GPAs. The system uses a configurable grading scale (default 4.0) with standard
+      academic threshold mappings. GPA is displayed on the student dashboard and in the instructor gradebook,
+      updating automatically when grades are modified.
+
+      The implementation includes a reusable GPA calculation module (`/src/lib/gpa.ts`), dedicated API
+      endpoints for course and overall GPA retrieval, and React components for displaying GPA data with
+      appropriate color coding and accessibility features.
+    </description>
+
+    <scope>
+      <in-scope>
+        <item>GPA calculation module with weighted grade averaging</item>
+        <item>Configurable GPA scale via environment variable (default 4.0)</item>
+        <item>API endpoints for course GPA and overall GPA calculation</item>
+        <item>Student dashboard GPA display (overall and per-course)</item>
+        <item>Gradebook GPA column for instructor view</item>
+        <item>Automatic GPA updates when grades are modified</item>
+        <item>Comprehensive unit tests with 100% coverage target</item>
+        <item>Integration tests for GPA API endpoints</item>
+        <item>E2E tests for student dashboard GPA display</item>
+      </in-scope>
+
+      <out-of-scope>
+        <item>GPA trends and historical tracking (deferred to post-MVP)</item>
+        <item>GPA goals and alerts (deferred to post-MVP)</item>
+        <item>Custom grading scales per course (deferred to post-MVP)</item>
+        <item>Email notifications for GPA changes (deferred to post-MVP)</item>
+      </out-of-scope>
+    </scope>
+  </story-summary>
+
+  <acceptance-criteria>
+    <criterion id="AC-2.4.1">
+      <description>GPA calculation logic uses weighted assignment grades</description>
+      <verification>Unit test validates weighted calculation with multiple assignments of different weights</verification>
+    </criterion>
+
+    <criterion id="AC-2.4.2">
+      <description>Grading scale configurable via environment variable (default 4.0)</description>
+      <verification>Unit test validates GPA_SCALE environment variable is read and applied correctly</verification>
+    </criterion>
+
+    <criterion id="AC-2.4.3">
+      <description>Course GPA calculated as weighted average of graded assignments</description>
+      <verification>Unit test validates calculation algorithm matches specification</verification>
+    </criterion>
+
+    <criterion id="AC-2.4.4">
+      <description>Overall GPA calculated as average of all course GPAs</description>
+      <verification>Integration test validates overall GPA endpoint returns correct average</verification>
+    </criterion>
+
+    <criterion id="AC-2.4.5">
+      <description>GPA displayed on student dashboard (per course and overall)</description>
+      <verification>E2E test validates student sees GPAs on dashboard with correct values</verification>
+    </criterion>
+
+    <criterion id="AC-2.4.6">
+      <description>GPA displayed in gradebook for each student row</description>
+      <verification>E2E test validates instructor sees GPA column in gradebook</verification>
+    </criterion>
+
+    <criterion id="AC-2.4.7">
+      <description>GPA updates automatically when grades are modified</description>
+      <verification>Integration test validates cache invalidation after grade update</verification>
+    </criterion>
+
+    <criterion id="AC-2.4.8">
+      <description>No grades displays "N/A", partial grades calculate from available</description>
+      <verification>Unit test validates null return for no grades, valid GPA for partial grades</verification>
+    </criterion>
+
+    <criterion id="AC-2.4.9">
+      <description>Unit tests cover GPA calculation with all scenarios</description>
+      <verification>Jest coverage report shows 100% coverage for gpa.ts module</verification>
+    </criterion>
+
+    <criterion id="AC-2.4.10">
+      <description>Integration tests verify GPA calculation API</description>
+      <verification>API tests cover success and error scenarios for both endpoints</verification>
+    </criterion>
+
+    <criterion id="AC-2.4.11">
+      <description>E2E test validates student sees correct GPA on dashboard</description>
+      <verification>Playwright test creates test data and validates displayed GPA matches calculation</verification>
+    </criterion>
+  </acceptance-criteria>
+
+  <technical-context>
+    <architecture>
+      <component name="GPACalculator">
+        <location>/src/lib/gpa.ts</location>
+        <purpose>Reusable GPA calculation logic with weighted averaging</purpose>
+        <interfaces>
+          <interface>calculateGPA(grades: GradeInput[]): GPAResult | null</interface>
+          <interface>calculateSimpleGPA(grades: GradeInput[]): number | null</interface>
+          <interface>percentageToGPA(percentage: number, scale?: number): number</interface>
+          <interface>percentageToLetterGrade(percentage: number): string</interface>
+        </interfaces>
+      </component>
+
+      <component name="Course GPA API">
+        <location>/src/app/api/students/gpa/course/[courseId]/route.ts</location>
+        <purpose>Calculate and return GPA for a specific course</purpose>
+        <method>GET</method>
+        <authentication>Required (student role)</authentication>
+      </component>
+
+      <component name="Overall GPA API">
+        <location>/src/app/api/students/gpa/overall/route.ts</location>
+        <purpose>Calculate and return overall GPA across all enrolled courses</purpose>
+        <method>GET</method>
+        <authentication>Required (student role)</authentication>
+      </component>
+
+      <component name="GPACard Component">
+        <location>/src/components/gpa/GPACard.tsx</location>
+        <purpose>Display individual GPA with color coding and accessibility</purpose>
+      </component>
+
+      <component name="GPASummary Component">
+        <location>/src/components/gpa/GPASummary.tsx</location>
+        <purpose>Display overall GPA summary with course breakdown</purpose>
+      </component>
+
+      <component name="useGPA Hook">
+        <location>/src/hooks/useGPA.ts</location>
+        <purpose>Custom React hook for fetching and caching GPA data</purpose>
+      </component>
+    </architecture>
+
+    <gpa-calculation-algorithm>
+      <overview>
+        The GPA calculation follows a weighted averaging algorithm that converts assignment scores
+        to percentages, applies weights, and maps the result to a 4.0 scale using standard academic
+        thresholds. The algorithm handles edge cases like missing grades and all-zero scores.
+      </overview>
+
+      <steps>
+        <step number="1">
+          <description>Filter out null/missing grades (where isGraded === false or maxPoints === 0)</description>
+        </step>
+
+        <step number="2">
+          <description>If no graded assignments remain, return null (displays as "N/A")</description>
+        </step>
+
+        <step number="3">
+          <description>For each graded assignment, calculate percentage: (points / maxPoints) * 100</description>
+        </step>
+
+        <step number="4">
+          <description>Calculate weighted average: weightedSum = Σ(percentage × weight) / Σ(weight)</description>
+          <formula>avgPercentage = (Σ points_i × weight_i) / (Σ maxPoints_i × weight_i) × 100</formula>
+        </step>
+
+        <step number="5">
+          <description>Convert percentage to GPA using threshold mapping (4.0 scale)</description>
+          <thresholds>
+            <threshold min="93.0" max="100.0" gpa="4.0" letter="A"/>
+            <threshold min="90.0" max="92.9" gpa="3.7" letter="A-"/>
+            <threshold min="87.0" max="89.9" gpa="3.3" letter="B+"/>
+            <threshold min="83.0" max="86.9" gpa="3.0" letter="B"/>
+            <threshold min="80.0" max="82.9" gpa="2.7" letter="B-"/>
+            <threshold min="77.0" max="79.9" gpa="2.3" letter="C+"/>
+            <threshold min="73.0" max="76.9" gpa="2.0" letter="C"/>
+            <threshold min="70.0" max="72.9" gpa="1.7" letter="C-"/>
+            <threshold min="67.0" max="69.9" gpa="1.3" letter="D+"/>
+            <threshold min="63.0" max="66.9" gpa="1.0" letter="D"/>
+            <threshold min="60.0" max="62.9" gpa="0.7" letter="D-"/>
+            <threshold min="0.0" max="59.9" gpa="0.0" letter="F"/>
+          </thresholds>
+        </step>
+
+        <step number="6">
+          <description>Round GPA to 2 decimal places</description>
+          <formula>Math.round(gpa * 100) / 100</formula>
+        </step>
+
+        <step number="7">
+          <description>For overall GPA, calculate simple average of all course GPAs (exclude null values)</description>
+          <formula>overallGPA = Σ(courseGPA_i) / count(courses with grades)</formula>
+        </step>
+      </steps>
+
+      <example>
+        <scenario>Course with 3 weighted assignments</scenario>
+        <assignments>
+          <assignment>
+            <name>Assignment 1</name>
+            <points>85</points>
+            <maxPoints>100</maxPoints>
+            <weight>0.30</weight>
+            <percentage>85.0</percentage>
+            <weighted-contribution>25.5</weighted-contribution>
+          </assignment>
+          <assignment>
+            <name>Assignment 2</name>
+            <points>92</points>
+            <maxPoints>100</maxPoints>
+            <weight>0.40</weight>
+            <percentage>92.0</percentage>
+            <weighted-contribution>36.8</weighted-contribution>
+          </assignment>
+          <assignment>
+            <name>Assignment 3</name>
+            <points>78</points>
+            <maxPoints>100</maxPoints>
+            <weight>0.30</weight>
+            <percentage>78.0</percentage>
+            <weighted-contribution>23.4</weighted-contribution>
+          </assignment>
+        </assignments>
+        <calculation>
+          <weighted-average>25.5 + 36.8 + 23.4 = 85.7%</weighted-average>
+          <gpa-mapping>85.7% falls in 83-86.9% range → 3.0 (B)</gpa-mapping>
+          <result>
+            <gpa>3.0</gpa>
+            <letter-grade>B</letter-grade>
+          </result>
+        </calculation>
+      </example>
+
+      <edge-cases>
+        <case name="No grades">
+          <input>Empty grades array or all isGraded === false</input>
+          <output>null (displays as "N/A")</output>
+        </case>
+
+        <case name="Partial grades">
+          <input>Some assignments graded, others not submitted</input>
+          <output>Calculate from available grades only, adjust weights proportionally</output>
+        </case>
+
+        <case name="All zeros">
+          <input>All assignments have 0 points</input>
+          <output>GPA = 0.0, Letter Grade = F</output>
+        </case>
+
+        <case name="All perfect scores">
+          <input>All assignments have maxPoints</input>
+          <output>GPA = 4.0, Letter Grade = A</output>
+        </case>
+
+        <case name="Single assignment">
+          <input>Only one graded assignment</input>
+          <output>GPA based solely on that assignment's percentage</output>
+        </case>
+
+        <case name="Percentages above 100%">
+          <input>Extra credit pushes percentage over 100%</input>
+          <output>Cap at 100% before GPA conversion (4.0 max)</output>
+        </case>
+      </edge-cases>
+    </gpa-calculation-algorithm>
+
+    <data-models>
+      <model name="GradeInput">
+        <location>/src/lib/gpa.ts</location>
+        <description>Input interface for GPA calculation</description>
+        <fields>
+          <field name="points" type="number" required="true">Points earned on assignment</field>
+          <field name="maxPoints" type="number" required="true">Maximum possible points</field>
+          <field name="weight" type="number" required="false" default="1">Assignment weight</field>
+          <field name="isGraded" type="boolean" required="false" default="true">Whether grade is finalized</field>
+        </fields>
+      </model>
+
+      <model name="GPAResult">
+        <location>/src/lib/gpa.ts</location>
+        <description>Output interface for GPA calculation</description>
+        <fields>
+          <field name="gpa" type="number" required="true">GPA on configured scale</field>
+          <field name="percentage" type="number" required="true">Percentage score (0-100)</field>
+          <field name="letterGrade" type="string" required="true">Letter grade equivalent</field>
+          <field name="gradedCount" type="number" required="true">Number of graded assignments</field>
+          <field name="totalWeight" type="number" required="true">Total weight of included assignments</field>
+        </fields>
+      </model>
+
+      <model name="Grade (Prisma)">
+        <location>prisma/schema.prisma</location>
+        <description>Database model for student grades</description>
+        <fields>
+          <field name="id" type="String" required="true">CUID primary key</field>
+          <field name="points" type="Float" required="true">Points earned (used in GPA calculation)</field>
+          <field name="feedback" type="String" required="false">Instructor feedback</field>
+          <field name="gradedAt" type="DateTime" required="true">Timestamp of grading</field>
+          <field name="deletedAt" type="DateTime" required="false">Soft delete timestamp</field>
+          <field name="assignmentId" type="String" required="true">Foreign key to Assignment</field>
+          <field name="studentId" type="String" required="true">Foreign key to User</field>
+          <field name="gradedById" type="String" required="true">Foreign key to User (grader)</field>
+        </fields>
+        <relations>
+          <relation name="assignment" type="Assignment">Assignment details including maxPoints</relation>
+          <relation name="student" type="User">Student who received the grade</relation>
+          <relation name="gradedBy" type="User">Instructor who assigned the grade</relation>
+        </relations>
+      </model>
+
+      <model name="Assignment (Prisma)">
+        <location>prisma/schema.prisma</location>
+        <description>Database model for course assignments</description>
+        <fields-relevant-to-gpa>
+          <field name="id" type="String">CUID primary key</field>
+          <field name="maxPoints" type="Int" default="100">Maximum points for assignment</field>
+          <field name="courseId" type="String">Foreign key to Course</field>
+          <field name="deletedAt" type="DateTime">Soft delete timestamp</field>
+        </fields-relevant-to-gpa>
+        <note>
+          Assignment weight is not currently stored in the database. For MVP, all assignments
+          have equal weight (weight = 1). Future enhancement: add optional 'weight' field.
+        </note>
+      </model>
+    </data-models>
+
+    <api-contracts>
+      <endpoint path="/api/students/gpa/course/[courseId]" method="GET">
+        <description>Calculate and return course GPA for authenticated student</description>
+        <authentication>Required (NextAuth session)</authentication>
+        <authorization>Student must be enrolled in the course</authorization>
+
+        <request>
+          <path-parameters>
+            <parameter name="courseId" type="string" required="true">Course CUID</parameter>
+          </path-parameters>
+        </request>
+
+        <response status="200">
+          <content-type>application/json</content-type>
+          <body>
+            <field name="courseId" type="string">Course CUID</field>
+            <field name="gpa" type="number">GPA value (0-4.0) or null</field>
+            <field name="percentage" type="number">Percentage score or null</field>
+            <field name="letterGrade" type="string">Letter grade or "N/A"</field>
+            <field name="isCalculated" type="boolean">True if GPA calculated, false if no grades</field>
+            <field name="gradedCount" type="number">Number of graded assignments</field>
+          </body>
+        </response>
+
+        <response status="401">
+          <description>Not authenticated</description>
+          <body>
+            <field name="error">Unauthorized</field>
+          </body>
+        </response>
+
+        <response status="403">
+          <description>Not enrolled in course</description>
+          <body>
+            <field name="error">Forbidden - not enrolled in this course</field>
+          </body>
+        </response>
+
+        <response status="404">
+          <description>Course not found</description>
+          <body>
+            <field name="error">Course not found</field>
+          </body>
+        </response>
+      </endpoint>
+
+      <endpoint path="/api/students/gpa/overall" method="GET">
+        <description>Calculate and return overall GPA for authenticated student</description>
+        <authentication>Required (NextAuth session)</authentication>
+
+        <request>
+          <query-parameters>None</query-parameters>
+        </request>
+
+        <response status="200">
+          <content-type>application/json</content-type>
+          <body>
+            <field name="overallGPA" type="number">Overall GPA value or null</field>
+            <field name="percentage" type="number">Overall percentage or null</field>
+            <field name="letterGrade" type="string">Overall letter grade or "N/A"</field>
+            <field name="isCalculated" type="boolean">True if GPA calculated</field>
+            <field name="courseGPAs" type="array">
+              Array of objects with courseId, courseName, gpa, letterGrade
+            </field>
+          </body>
+        </response>
+
+        <response status="401">
+          <description>Not authenticated</description>
+          <body>
+            <field name="error">Unauthorized</field>
+          </body>
+        </response>
+      </endpoint>
+    </api-contracts>
+
+    <environment-configuration>
+      <variable name="GPA_SCALE">
+        <type>number</type>
+        <default>4.0</default>
+        <description>GPA scale for conversion (4.0, 5.0, 10.0, 100.0 supported)</description>
+        <validation>Must be a positive number, falls back to 4.0 if invalid</validation>
+        <example>.env file entry: GPA_SCALE=4.0</example>
+      </variable>
+    </environment-configuration>
+  </technical-context>
+
+  <existing-code-context>
+    <existing-module>
+      <file>/src/lib/gpa.ts</file>
+      <status>EXISTS - Basic implementation present</status>
+      <current-implementation>
+        <summary>
+          A basic GPA calculation module exists with core functionality. It uses a simplified
+          10-point grading scale (90-100%=A=4.0, 80-89%=B=3.0, etc.) which needs to be enhanced
+          to match the 1-point granular scale specified in the tech spec.
+        </summary>
+
+        <interfaces>
+          <interface>
+            <name>GradeInput</name>
+            <fields>points, maxPoints, weight?, isGraded?</fields>
+            <status>Matches specification</status>
+          </interface>
+
+          <interface>
+            <name>GPAResult</name>
+            <fields>gpa, percentage, letterGrade, gradedCount, totalWeight</fields>
+            <status>Matches specification</status>
+          </interface>
+        </interfaces>
+
+        <functions>
+          <function>
+            <name>percentageToGPA</name>
+            <signature>percentageToGPA(percentage: number, scale: number = GPA_SCALE): number</signature>
+            <current-logic>Uses simplified 10-point scale (90%, 80%, 70%, 60% thresholds)</current-logic>
+            <required-change>
+              Must implement 1-point granular scale with 12 thresholds:
+              93%, 90%, 87%, 83%, 80%, 77%, 73%, 70%, 67%, 63%, 60%, and below 60%
+            </required-change>
+          </function>
+
+          <function>
+            <name>percentageToLetterGrade</name>
+            <signature>percentageToLetterGrade(percentage: number): string</signature>
+            <current-logic>Returns A, B, C, D, F (5 grades)</current-logic>
+            <required-change>
+              Must implement plus/minus grades: A, A-, B+, B, B-, C+, C, C-, D+, D, D-, F (12 grades)
+            </required-change>
+          </function>
+
+          <function>
+            <name>calculateGPA</name>
+            <signature>calculateGPA(grades: GradeInput[]): GPAResult | null</signature>
+            <current-logic>
+              - Filters to graded assignments (isGraded !== false, maxPoints > 0)
+              - Calculates weighted average correctly
+              - Returns null for empty grades
+              - Rounds to 2 decimal places
+            </current-logic>
+            <status>Core logic is correct, will benefit from improved threshold mapping</status>
+          </function>
+
+          <function>
+            <name>calculateSimpleGPA</name>
+            <signature>calculateSimpleGPA(grades: GradeInput[]): number | null</signature>
+            <current-logic>Maps all weights to 1 and calls calculateGPA</current-logic>
+            <status>Correct, no changes needed</status>
+          </function>
+        </functions>
+
+        <strengths>
+          <item>Proper TypeScript interfaces defined</item>
+          <item>Weighted average calculation is correct</item>
+          <item>Edge case handling for empty grades</item>
+          <item>Environment variable support for GPA_SCALE</item>
+          <item>Proper rounding to 2 decimal places</item>
+        </strengths>
+
+        <gaps>
+          <item>Simplified grading thresholds need enhancement to 12-point scale</item>
+          <item>No plus/minus letter grades</item>
+          <item>Missing JSDoc comments for all functions</item>
+          <item>No handling for percentages above 100% (extra credit)</item>
+          <item>No validation for scale parameter</item>
+        </gaps>
+      </current-implementation>
+
+      <required-enhancements>
+        <enhancement priority="high">
+          <description>Update percentageToGPA to use 12-threshold mapping</description>
+          <code-example>
+            <![CDATA[
+export function percentageToGPA(percentage: number, scale: number = GPA_SCALE): number {
+  // Cap at 100% to handle extra credit
+  const cappedPercentage = Math.min(percentage, 100);
+
+  if (cappedPercentage >= 93) return scale;           // A   (4.0)
+  if (cappedPercentage >= 90) return scale * 0.925;   // A-  (3.7)
+  if (cappedPercentage >= 87) return scale * 0.825;   // B+  (3.3)
+  if (cappedPercentage >= 83) return scale * 0.75;    // B   (3.0)
+  if (cappedPercentage >= 80) return scale * 0.675;   // B-  (2.7)
+  if (cappedPercentage >= 77) return scale * 0.575;   // C+  (2.3)
+  if (cappedPercentage >= 73) return scale * 0.50;    // C   (2.0)
+  if (cappedPercentage >= 70) return scale * 0.425;   // C-  (1.7)
+  if (cappedPercentage >= 67) return scale * 0.325;   // D+  (1.3)
+  if (cappedPercentage >= 63) return scale * 0.25;    // D   (1.0)
+  if (cappedPercentage >= 60) return scale * 0.175;   // D-  (0.7)
+  return 0;                                           // F   (0.0)
+}
+            ]]>
+          </code-example>
+        </enhancement>
+
+        <enhancement priority="high">
+          <description>Update percentageToLetterGrade to return plus/minus grades</description>
+          <code-example>
+            <![CDATA[
+export function percentageToLetterGrade(percentage: number): string {
+  const cappedPercentage = Math.min(percentage, 100);
+
+  if (cappedPercentage >= 93) return 'A';
+  if (cappedPercentage >= 90) return 'A-';
+  if (cappedPercentage >= 87) return 'B+';
+  if (cappedPercentage >= 83) return 'B';
+  if (cappedPercentage >= 80) return 'B-';
+  if (cappedPercentage >= 77) return 'C+';
+  if (cappedPercentage >= 73) return 'C';
+  if (cappedPercentage >= 70) return 'C-';
+  if (cappedPercentage >= 67) return 'D+';
+  if (cappedPercentage >= 63) return 'D';
+  if (cappedPercentage >= 60) return 'D-';
+  return 'F';
+}
+            ]]>
+          </code-example>
+        </enhancement>
+
+        <enhancement priority="medium">
+          <description>Add comprehensive JSDoc comments to all functions</description>
+        </enhancement>
+
+        <enhancement priority="low">
+          <description>Add validation for GPA_SCALE parameter with fallback to 4.0</description>
+        </enhancement>
+      </required-enhancements>
+    </existing-module>
+
+    <database-schema>
+      <model name="Grade">
+        <table>grades</table>
+        <fields-for-gpa>
+          <field name="points" type="Float">Used as numerator in GPA calculation</field>
+          <field name="assignmentId" type="String">Join to Assignment to get maxPoints</field>
+          <field name="studentId" type="String">Filter grades by student</field>
+          <field name="deletedAt" type="DateTime">Exclude soft-deleted grades (WHERE deletedAt IS NULL)</field>
+        </fields-for-gpa>
+        <query-pattern>
+          <![CDATA[
+// Fetch grades for course GPA calculation
+const grades = await prisma.grade.findMany({
+  where: {
+    studentId: userId,
+    deletedAt: null,
+    assignment: {
+      courseId: courseId,
+      deletedAt: null,
+    },
+  },
+  include: {
+    assignment: {
+      select: {
+        maxPoints: true,
+      },
+    },
+  },
+});
+
+// Transform to GradeInput format
+const gradeInputs: GradeInput[] = grades.map(g => ({
+  points: g.points,
+  maxPoints: g.assignment.maxPoints,
+  weight: 1, // Equal weight for MVP
+  isGraded: true,
+}));
+          ]]>
+        </query-pattern>
+      </model>
+
+      <model name="Assignment">
+        <table>assignments</table>
+        <fields-for-gpa>
+          <field name="maxPoints" type="Int">Used as denominator in GPA calculation</field>
+          <field name="courseId" type="String">Group assignments by course</field>
+          <field name="deletedAt" type="DateTime">Exclude soft-deleted assignments</field>
+        </fields-for-gpa>
+        <note>
+          Future enhancement: Add optional 'weight' field to allow instructors to configure
+          assignment weights (e.g., homework=20%, midterm=30%, final=50%)
+        </note>
+      </model>
+    </database-schema>
+
+    <authentication-context>
+      <library>NextAuth v4.24</library>
+      <session-storage>Database sessions</session-storage>
+      <access-pattern>
+        <![CDATA[
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+
+// In API route handler
+export async function GET(request: Request) {
+  const session = await getServerSession(authOptions);
+
+  if (!session?.user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const userId = session.user.id;
+  // ... use userId to fetch grades
+}
+        ]]>
+      </access-pattern>
+    </authentication-context>
+  </existing-code-context>
+
+  <implementation-guidance>
+    <task id="1" priority="1">
+      <name>Enhance GPA Calculation Module</name>
+      <approach>
+        Start by reading the existing `/src/lib/gpa.ts` and updating the threshold mappings
+        to implement the 12-point granular scale. Add JSDoc comments and edge case handling
+        for percentages above 100%.
+      </approach>
+      <files-to-modify>
+        <file action="edit">/src/lib/gpa.ts</file>
+      </files-to-modify>
+      <validation>
+        Run unit tests after changes to verify all calculations remain correct with new thresholds
+      </validation>
+    </task>
+
+    <task id="2" priority="2">
+      <name>Add GPA Scale Configuration</name>
+      <approach>
+        Update `.env.example` with GPA_SCALE variable. Add validation in gpa.ts to ensure
+        the scale is a valid positive number, with fallback to 4.0 if invalid or missing.
+      </approach>
+      <files-to-modify>
+        <file action="edit">.env.example</file>
+        <file action="edit">/src/lib/gpa.ts</file>
+      </files-to-modify>
+    </task>
+
+    <task id="3" priority="3">
+      <name>Create Course GPA API Endpoint</name>
+      <approach>
+        <step>Create new route file: `/src/app/api/students/gpa/course/[courseId]/route.ts`</step>
+        <step>Implement GET handler with authentication check</step>
+        <step>Verify enrollment: Query Enrollment table to ensure student is enrolled in course</step>
+        <step>Fetch all grades for student in course (include Assignment.maxPoints)</step>
+        <step>Transform Grade records to GradeInput array</step>
+        <step>Call calculateGPA from gpa.ts module</step>
+        <step>Return JSON response with GPA data or null</step>
+        <step>Add error handling for 401, 403, 404 cases</step>
+      </approach>
+      <files-to-create>
+        <file>/src/app/api/students/gpa/course/[courseId]/route.ts</file>
+      </files-to-create>
+      <code-template>
+        <![CDATA[
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
+import { calculateGPA, GradeInput } from '@/lib/gpa';
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { courseId: string } }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { courseId } = params;
+    const userId = session.user.id;
+
+    // Verify enrollment
+    const enrollment = await prisma.enrollment.findUnique({
+      where: {
+        userId_courseId: { userId, courseId },
+      },
+    });
+
+    if (!enrollment) {
+      return NextResponse.json(
+        { error: 'Not enrolled in this course' },
+        { status: 403 }
+      );
+    }
+
+    // Fetch grades with assignment details
+    const grades = await prisma.grade.findMany({
+      where: {
+        studentId: userId,
+        deletedAt: null,
+        assignment: {
+          courseId,
+          deletedAt: null,
+        },
+      },
+      include: {
+        assignment: {
+          select: { maxPoints: true },
+        },
+      },
+    });
+
+    // Transform to GradeInput format
+    const gradeInputs: GradeInput[] = grades.map((g) => ({
+      points: g.points,
+      maxPoints: g.assignment.maxPoints,
+      weight: 1,
+      isGraded: true,
+    }));
+
+    // Calculate GPA
+    const result = calculateGPA(gradeInputs);
+
+    if (!result) {
+      return NextResponse.json({
+        courseId,
+        gpa: null,
+        percentage: null,
+        letterGrade: 'N/A',
+        isCalculated: false,
+        gradedCount: 0,
+      });
+    }
+
+    return NextResponse.json({
+      courseId,
+      gpa: result.gpa,
+      percentage: result.percentage,
+      letterGrade: result.letterGrade,
+      isCalculated: true,
+      gradedCount: result.gradedCount,
+    });
+  } catch (error) {
+    console.error('Course GPA calculation error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+        ]]>
+      </code-template>
+    </task>
+
+    <task id="4" priority="4">
+      <name>Create Overall GPA API Endpoint</name>
+      <approach>
+        <step>Create new route file: `/src/app/api/students/gpa/overall/route.ts`</step>
+        <step>Fetch all courses student is enrolled in</step>
+        <step>For each course, calculate course GPA (reuse logic from Task 3)</step>
+        <step>Calculate overall GPA as average of course GPAs (exclude nulls)</step>
+        <step>Return JSON with overall GPA and array of course GPAs</step>
+      </approach>
+      <files-to-create>
+        <file>/src/app/api/students/gpa/overall/route.ts</file>
+      </files-to-create>
+    </task>
+
+    <task id="5" priority="5">
+      <name>Update Student Dashboard with GPA Display</name>
+      <approach>
+        <step>Create GPACard component in `/src/components/gpa/GPACard.tsx`</step>
+        <step>Create GPASummary component in `/src/components/gpa/GPASummary.tsx`</step>
+        <step>Update `/src/app/student/dashboard/page.tsx` to fetch and display GPA</step>
+        <step>Use SWR or React Query for data fetching with loading/error states</step>
+        <step>Apply color coding: A (green), B (blue), C (yellow), D/F (red)</step>
+        <step>Add accessibility attributes (aria-label, semantic HTML)</step>
+      </approach>
+      <files-to-create>
+        <file>/src/components/gpa/GPACard.tsx</file>
+        <file>/src/components/gpa/GPASummary.tsx</file>
+      </files-to-create>
+      <files-to-modify>
+        <file action="edit">/src/app/student/dashboard/page.tsx</file>
+      </files-to-modify>
+    </task>
+
+    <task id="6" priority="6">
+      <name>Update Gradebook with GPA Column</name>
+      <approach>
+        <step>Locate gradebook page: `/src/app/instructor/courses/[id]/gradebook/page.tsx`</step>
+        <step>Add GPA calculation for each student row (server-side)</step>
+        <step>Create GPAColumn component if needed</step>
+        <step>Add GPA to table header and student rows</step>
+        <step>Implement sorting by GPA (handle null values)</step>
+        <step>Include GPA in CSV export</step>
+      </approach>
+      <files-to-modify>
+        <file action="edit">/src/app/instructor/courses/[id]/gradebook/page.tsx</file>
+      </files-to-modify>
+      <files-to-create>
+        <file>/src/components/gradebook/GPAColumn.tsx</file>
+      </files-to-create>
+    </task>
+
+    <task id="7" priority="7">
+      <name>Implement Automatic GPA Updates</name>
+      <approach>
+        <step>Create custom hook: `/src/hooks/useGPA.ts`</step>
+        <step>Use SWR or React Query with cache invalidation</step>
+        <step>Update grade submission API to invalidate GPA cache</step>
+        <step>Use Next.js revalidatePath() for server-side cache invalidation</step>
+        <step>Implement optimistic updates in UI</step>
+      </approach>
+      <files-to-create>
+        <file>/src/hooks/useGPA.ts</file>
+      </files-to-create>
+      <files-to-modify>
+        <file action="edit">/src/app/api/instructor/assignments/[id]/grades/route.ts</file>
+      </files-to-modify>
+    </task>
+
+    <best-practices>
+      <practice>
+        <name>TypeScript Type Safety</name>
+        <description>
+          Use strict TypeScript types for all GPA-related interfaces. Avoid 'any' types.
+          Ensure GradeInput and GPAResult interfaces are used consistently across components.
+        </description>
+      </practice>
+
+      <practice>
+        <name>Error Handling</name>
+        <description>
+          All API endpoints should return appropriate HTTP status codes (200, 401, 403, 404, 500)
+          with descriptive error messages. Client-side components should display user-friendly
+          error messages when GPA calculation fails.
+        </description>
+      </practice>
+
+      <practice>
+        <name>Performance Optimization</name>
+        <description>
+          Use Prisma's 'include' to fetch related data in a single query (avoid N+1 queries).
+          Cache GPA calculations on the client side. Consider adding caching headers to API
+          responses (5 minute TTL).
+        </description>
+      </practice>
+
+      <practice>
+        <name>Accessibility</name>
+        <description>
+          All GPA display components must include ARIA labels, semantic HTML (use proper heading
+          levels), and keyboard navigation support. Color should not be the only indicator of
+          grade quality (also use text labels).
+        </description>
+      </practice>
+
+      <practice>
+        <name>Responsive Design</name>
+        <description>
+          GPA components should work well on mobile, tablet, and desktop. Use Tailwind responsive
+          classes. Test on multiple viewport sizes.
+        </description>
+      </practice>
+    </best-practices>
+  </implementation-guidance>
+
+  <testing-requirements>
+    <unit-tests>
+      <test-suite name="GPA Calculator Module">
+        <file>/__tests__/unit/lib/gpa.test.ts</file>
+        <coverage-target>100%</coverage-target>
+
+        <test-case id="UT-1">
+          <name>calculateGPA with no grades returns null</name>
+          <input>Empty array []</input>
+          <expected-output>null</expected-output>
+        </test-case>
+
+        <test-case id="UT-2">
+          <name>calculateGPA with all ungraded assignments returns null</name>
+          <input>[{ points: 0, maxPoints: 100, isGraded: false }]</input>
+          <expected-output>null</expected-output>
+        </test-case>
+
+        <test-case id="UT-3">
+          <name>calculateGPA with single perfect score returns 4.0 (A)</name>
+          <input>[{ points: 100, maxPoints: 100, weight: 1 }]</input>
+          <expected-output>{ gpa: 4.0, percentage: 100, letterGrade: 'A', gradedCount: 1 }</expected-output>
+        </test-case>
+
+        <test-case id="UT-4">
+          <name>calculateGPA with single zero score returns 0.0 (F)</name>
+          <input>[{ points: 0, maxPoints: 100, weight: 1 }]</input>
+          <expected-output>{ gpa: 0.0, percentage: 0, letterGrade: 'F', gradedCount: 1 }</expected-output>
+        </test-case>
+
+        <test-case id="UT-5">
+          <name>calculateGPA with multiple equal-weight grades calculates correctly</name>
+          <input>
+            [
+              { points: 90, maxPoints: 100, weight: 1 },
+              { points: 80, maxPoints: 100, weight: 1 }
+            ]
+          </input>
+          <expected-output>{ gpa: 3.3, percentage: 85, letterGrade: 'B', gradedCount: 2 }</expected-output>
+          <note>85% falls in 83-86.9% range = 3.0 GPA, wait that's wrong. Let me recalculate: (90+80)/2 = 85%. 85% is in 83-86.9% range which is 3.0 (B), not 3.3. The output should be { gpa: 3.0, percentage: 85, letterGrade: 'B', gradedCount: 2 }</note>
+        </test-case>
+
+        <test-case id="UT-6">
+          <name>calculateGPA with weighted grades calculates correctly</name>
+          <input>
+            [
+              { points: 85, maxPoints: 100, weight: 0.3 },
+              { points: 92, maxPoints: 100, weight: 0.4 },
+              { points: 78, maxPoints: 100, weight: 0.3 }
+            ]
+          </input>
+          <expected-output>
+            { gpa: 3.0, percentage: 85.7, letterGrade: 'B', gradedCount: 3 }
+          </expected-output>
+          <calculation>
+            (85*0.3 + 92*0.4 + 78*0.3) / (0.3+0.4+0.3) = 85.7%
+            85.7% falls in 83-86.9% range = 3.0 (B)
+          </calculation>
+        </test-case>
+
+        <test-case id="UT-7">
+          <name>calculateGPA with partial grades (some missing) calculates from available only</name>
+          <input>
+            [
+              { points: 90, maxPoints: 100, weight: 1, isGraded: true },
+              { points: 0, maxPoints: 100, weight: 1, isGraded: false }
+            ]
+          </input>
+          <expected-output>{ gpa: 3.7, percentage: 90, letterGrade: 'A-', gradedCount: 1 }</expected-output>
+          <note>Only the first grade is included; second is filtered out due to isGraded: false</note>
+        </test-case>
+
+        <test-case id="UT-8">
+          <name>percentageToGPA boundary test: 93.0% returns 4.0 (A)</name>
+          <input>93.0</input>
+          <expected-output>4.0</expected-output>
+        </test-case>
+
+        <test-case id="UT-9">
+          <name>percentageToGPA boundary test: 92.99% returns 3.7 (A-)</name>
+          <input>92.99</input>
+          <expected-output>3.7</expected-output>
+        </test-case>
+
+        <test-case id="UT-10">
+          <name>percentageToGPA boundary test: 90.0% returns 3.7 (A-)</name>
+          <input>90.0</input>
+          <expected-output>3.7</expected-output>
+        </test-case>
+
+        <test-case id="UT-11">
+          <name>percentageToGPA boundary test: 87.0% returns 3.3 (B+)</name>
+          <input>87.0</input>
+          <expected-output>3.3</expected-output>
+        </test-case>
+
+        <test-case id="UT-12">
+          <name>percentageToGPA all 12 thresholds tested</name>
+          <inputs>93, 90, 87, 83, 80, 77, 73, 70, 67, 63, 60, 59</inputs>
+          <expected-outputs>4.0, 3.7, 3.3, 3.0, 2.7, 2.3, 2.0, 1.7, 1.3, 1.0, 0.7, 0.0</expected-outputs>
+        </test-case>
+
+        <test-case id="UT-13">
+          <name>percentageToGPA with extra credit (110%) caps at 4.0</name>
+          <input>110.0</input>
+          <expected-output>4.0</expected-output>
+        </test-case>
+
+        <test-case id="UT-14">
+          <name>percentageToLetterGrade returns all 12 possible grades correctly</name>
+          <test-data>
+            <data input="95" expected="A"/>
+            <data input="91" expected="A-"/>
+            <data input="88" expected="B+"/>
+            <data input="85" expected="B"/>
+            <data input="81" expected="B-"/>
+            <data input="78" expected="C+"/>
+            <data input="75" expected="C"/>
+            <data input="71" expected="C-"/>
+            <data input="68" expected="D+"/>
+            <data input="65" expected="D"/>
+            <data input="61" expected="D-"/>
+            <data input="50" expected="F"/>
+          </test-data>
+        </test-case>
+
+        <test-case id="UT-15">
+          <name>GPA_SCALE environment variable is respected</name>
+          <setup>Mock process.env.GPA_SCALE = '5.0'</setup>
+          <input>percentage: 95</input>
+          <expected-output>5.0 (instead of 4.0)</expected-output>
+        </test-case>
+
+        <test-case id="UT-16">
+          <name>Invalid GPA_SCALE falls back to 4.0</name>
+          <setup>Mock process.env.GPA_SCALE = 'invalid'</setup>
+          <input>percentage: 95</input>
+          <expected-output>4.0</expected-output>
+        </test-case>
+
+        <test-case id="UT-17">
+          <name>calculateSimpleGPA ignores weights</name>
+          <input>
+            [
+              { points: 90, maxPoints: 100, weight: 10 },
+              { points: 80, maxPoints: 100, weight: 1 }
+            ]
+          </input>
+          <expected-output>
+            Same as if both weights were 1: average = 85%, GPA = 3.0
+          </expected-output>
+        </test-case>
+
+        <test-case id="UT-18">
+          <name>Rounding to 2 decimal places works correctly</name>
+          <input>percentage: 85.667</input>
+          <expected-calculation>GPA should be rounded to 3.00, not 3.0000</expected-calculation>
+        </test-case>
+      </test-suite>
+    </unit-tests>
+
+    <integration-tests>
+      <test-suite name="Course GPA API">
+        <file>/__tests__/integration/api/gpa-course.test.ts</file>
+
+        <test-case id="IT-1">
+          <name>GET /api/students/gpa/course/[courseId] returns correct GPA for enrolled student</name>
+          <setup>
+            - Create test course with 3 assignments (100 points each)
+            - Enroll test student in course
+            - Create 3 grades: 90, 85, 95 points
+          </setup>
+          <request>GET /api/students/gpa/course/{courseId} (authenticated as student)</request>
+          <expected-response>
+            {
+              courseId: string,
+              gpa: 3.7,
+              percentage: 90,
+              letterGrade: 'A-',
+              isCalculated: true,
+              gradedCount: 3
+            }
+          </expected-response>
+        </test-case>
+
+        <test-case id="IT-2">
+          <name>GET /api/students/gpa/course/[courseId] returns N/A when no grades exist</name>
+          <setup>
+            - Create test course with assignments
+            - Enroll test student (no grades submitted)
+          </setup>
+          <expected-response>
+            {
+              gpa: null,
+              percentage: null,
+              letterGrade: 'N/A',
+              isCalculated: false,
+              gradedCount: 0
+            }
+          </expected-response>
+        </test-case>
+
+        <test-case id="IT-3">
+          <name>GET /api/students/gpa/course/[courseId] returns 401 for unauthenticated request</name>
+          <request>GET without session</request>
+          <expected-status>401</expected-status>
+        </test-case>
+
+        <test-case id="IT-4">
+          <name>GET /api/students/gpa/course/[courseId] returns 403 when not enrolled</name>
+          <setup>Student authenticated but not enrolled in requested course</setup>
+          <expected-status>403</expected-status>
+        </test-case>
+
+        <test-case id="IT-5">
+          <name>GET /api/students/gpa/course/[courseId] returns 404 for non-existent course</name>
+          <request>GET /api/students/gpa/course/invalid-id</request>
+          <expected-status>404</expected-status>
+        </test-case>
+
+        <test-case id="IT-6">
+          <name>GET /api/students/gpa/course/[courseId] excludes soft-deleted grades</name>
+          <setup>
+            - Create 2 grades: 90 points (active), 50 points (soft-deleted)
+          </setup>
+          <expected>GPA calculated only from 90-point grade, not average of both</expected>
+        </test-case>
+      </test-suite>
+
+      <test-suite name="Overall GPA API">
+        <file>/__tests__/integration/api/gpa-overall.test.ts</file>
+
+        <test-case id="IT-7">
+          <name>GET /api/students/gpa/overall returns correct overall GPA</name>
+          <setup>
+            - Create 3 courses with grades: Course A (4.0), Course B (3.0), Course C (3.5)
+          </setup>
+          <expected-response>
+            {
+              overallGPA: 3.5,
+              percentage: ~87.5,
+              letterGrade: 'B+',
+              isCalculated: true,
+              courseGPAs: [
+                { courseId, courseName, gpa: 4.0, letterGrade: 'A' },
+                { courseId, courseName, gpa: 3.0, letterGrade: 'B' },
+                { courseId, courseName, gpa: 3.5, letterGrade: 'B+' }
+              ]
+            }
+          </expected-response>
+          <calculation>(4.0 + 3.0 + 3.5) / 3 = 3.5</calculation>
+        </test-case>
+
+        <test-case id="IT-8">
+          <name>GET /api/students/gpa/overall excludes courses with no grades</name>
+          <setup>
+            - 2 courses with grades: 4.0 and 3.0
+            - 1 course with no grades (should return null)
+          </setup>
+          <expected>Overall GPA = (4.0 + 3.0) / 2 = 3.5 (third course not included)</expected>
+        </test-case>
+
+        <test-case id="IT-9">
+          <name>GET /api/students/gpa/overall returns N/A when no courses have grades</name>
+          <setup>Student enrolled in courses but no grades in any course</setup>
+          <expected-response>{ overallGPA: null, isCalculated: false, courseGPAs: [] }</expected-response>
+        </test-case>
+      </test-suite>
+
+      <test-suite name="GPA Cache Invalidation">
+        <file>/__tests__/integration/api/gpa-cache.test.ts</file>
+
+        <test-case id="IT-10">
+          <name>GPA updates after grade submission</name>
+          <setup>
+            - Calculate initial course GPA (3.0)
+            - Submit new grade via API
+          </setup>
+          <steps>
+            1. GET /api/students/gpa/course/{id} → GPA = 3.0
+            2. PUT /api/instructor/grades → Add perfect score
+            3. GET /api/students/gpa/course/{id} → GPA = 3.5 (updated)
+          </steps>
+          <verification>Second GPA request returns updated value</verification>
+        </test-case>
+      </test-suite>
+    </integration-tests>
+
+    <e2e-tests>
+      <test-suite name="Student Dashboard GPA Display">
+        <file>/__tests__/e2e/student-gpa.spec.ts</file>
+        <framework>Playwright</framework>
+
+        <test-case id="E2E-1">
+          <name>Student sees correct GPA on dashboard</name>
+          <setup>
+            - Create test student
+            - Create 2 courses with grades: Course A (3.7), Course B (3.0)
+            - Overall GPA = 3.35
+          </setup>
+          <steps>
+            1. Login as test student
+            2. Navigate to /student/dashboard
+            3. Verify overall GPA displays 3.35 with letter grade B+
+            4. Verify course list shows Course A: 3.7 (A-), Course B: 3.0 (B)
+          </steps>
+          <assertions>
+            - page.getByText('Overall GPA: 3.35').isVisible()
+            - page.getByText('B+').isVisible()
+            - Color coding applied (B+ = blue)
+          </assertions>
+        </test-case>
+
+        <test-case id="E2E-2">
+          <name>Student sees N/A when no grades exist</name>
+          <setup>Student enrolled in courses but no grades submitted</setup>
+          <steps>
+            1. Login as test student
+            2. Navigate to /student/dashboard
+            3. Verify GPA displays "N/A"
+          </steps>
+          <assertions>
+            - page.getByText('N/A').isVisible()
+            - No GPA number displayed
+          </assertions>
+        </test-case>
+
+        <test-case id="E2E-3">
+          <name>GPA updates after instructor submits grade</name>
+          <setup>
+            - Student initially has GPA 3.0
+            - Instructor session ready to submit new grade
+          </setup>
+          <steps>
+            1. Student views dashboard (GPA = 3.0)
+            2. In separate context, instructor submits perfect score grade
+            3. Student refreshes dashboard
+            4. Verify GPA updated to higher value
+          </steps>
+        </test-case>
+
+        <test-case id="E2E-4">
+          <name>GPA display is responsive on mobile</name>
+          <setup>Set viewport to mobile size (375x667)</setup>
+          <steps>
+            1. Navigate to student dashboard
+            2. Verify GPA components are visible and properly formatted
+            3. Verify no horizontal overflow
+          </steps>
+        </test-case>
+
+        <test-case id="E2E-5">
+          <name>GPA components are accessible</name>
+          <steps>
+            1. Run axe accessibility tests on dashboard
+            2. Verify ARIA labels present
+            3. Test keyboard navigation
+          </steps>
+          <assertions>
+            - No accessibility violations
+            - GPA can be read by screen reader
+            - Color is not the only indicator (text labels present)
+          </assertions>
+        </test-case>
+      </test-suite>
+
+      <test-suite name="Instructor Gradebook GPA Column">
+        <file>/__tests__/e2e/gradebook-gpa.spec.ts</file>
+
+        <test-case id="E2E-6">
+          <name>Instructor sees GPA column in gradebook</name>
+          <setup>
+            - Create course with 3 students
+            - Each student has different GPA: 4.0, 3.0, 2.0
+          </setup>
+          <steps>
+            1. Login as instructor
+            2. Navigate to /instructor/courses/{id}/gradebook
+            3. Verify GPA column header visible
+            4. Verify each student row shows correct GPA
+          </steps>
+          <assertions>
+            - Table header includes "GPA" column
+            - Student rows display GPA values
+            - Letter grades visible in parentheses
+          </assertions>
+        </test-case>
+
+        <test-case id="E2E-7">
+          <name>Gradebook GPA column is sortable</name>
+          <steps>
+            1. Navigate to gradebook
+            2. Click GPA column header to sort
+            3. Verify students sorted by GPA (highest to lowest)
+            4. Verify N/A values sorted to bottom
+          </steps>
+        </test-case>
+
+        <test-case id="E2E-8">
+          <name>CSV export includes GPA column</name>
+          <steps>
+            1. Navigate to gradebook
+            2. Click "Export CSV" button
+            3. Verify downloaded file includes GPA column
+            4. Verify GPA values formatted to 2 decimal places
+          </steps>
+        </test-case>
+      </test-suite>
+    </e2e-tests>
+
+    <test-data-requirements>
+      <dataset name="Typical Student Grades">
+        <description>Realistic distribution of grades for testing</description>
+        <grades>
+          <grade points="95" maxPoints="100" weight="1"/>
+          <grade points="87" maxPoints="100" weight="1"/>
+          <grade points="91" maxPoints="100" weight="2"/>
+          <grade points="78" maxPoints="100" weight="1"/>
+        </grades>
+        <expected-gpa>3.3 (B+)</expected-gpa>
+      </dataset>
+
+      <dataset name="Perfect Student">
+        <description>All perfect scores</description>
+        <grades>
+          <grade points="100" maxPoints="100" weight="1"/>
+          <grade points="100" maxPoints="100" weight="1"/>
+          <grade points="100" maxPoints="100" weight="1"/>
+        </grades>
+        <expected-gpa>4.0 (A)</expected-gpa>
+      </dataset>
+
+      <dataset name="Struggling Student">
+        <description>Below-average performance</description>
+        <grades>
+          <grade points="65" maxPoints="100" weight="1"/>
+          <grade points="58" maxPoints="100" weight="1"/>
+          <grade points="72" maxPoints="100" weight="1"/>
+        </grades>
+        <expected-gpa>0.7 (D-)</expected-gpa>
+      </dataset>
+
+      <dataset name="Partial Grades">
+        <description>Some assignments graded, others not yet submitted</description>
+        <grades>
+          <grade points="90" maxPoints="100" weight="1" isGraded="true"/>
+          <grade points="0" maxPoints="100" weight="1" isGraded="false"/>
+          <grade points="85" maxPoints="100" weight="1" isGraded="true"/>
+        </grades>
+        <expected-gpa>Based on 90 and 85 only = 87.5% = 3.3 (B+)</expected-gpa>
+      </dataset>
+    </test-data-requirements>
+  </testing-requirements>
+
+  <dependencies>
+    <technical-dependencies>
+      <dependency>
+        <name>Prisma Client</name>
+        <version>^6.9.0</version>
+        <purpose>Database queries for grades, assignments, enrollments</purpose>
+        <status>Already installed</status>
+      </dependency>
+
+      <dependency>
+        <name>NextAuth</name>
+        <version>^4.24.11</version>
+        <purpose>Authentication for API endpoints</purpose>
+        <status>Already installed and configured</status>
+      </dependency>
+
+      <dependency>
+        <name>Zod</name>
+        <version>^4.1.13</version>
+        <purpose>Input validation for API requests</purpose>
+        <status>Already installed</status>
+      </dependency>
+
+      <dependency>
+        <name>Jest</name>
+        <version>Latest</version>
+        <purpose>Unit and integration testing</purpose>
+        <status>Already configured (Epic 1.5)</status>
+      </dependency>
+
+      <dependency>
+        <name>Playwright</name>
+        <version>Latest</version>
+        <purpose>E2E testing</purpose>
+        <status>Already configured (Epic 1.5)</status>
+      </dependency>
+
+      <dependency>
+        <name>React Testing Library</name>
+        <version>Latest</version>
+        <purpose>Component testing</purpose>
+        <status>Already installed</status>
+      </dependency>
+    </technical-dependencies>
+
+    <story-dependencies>
+      <prerequisite id="Story-2.2">
+        <name>Grade Management &amp; Gradebook</name>
+        <reason>
+          GPA calculation requires Grade and Assignment models to be properly implemented
+          with soft delete support. Gradebook must exist for GPA column to be added.
+        </reason>
+        <required-before-starting>Yes</required-before-starting>
+      </prerequisite>
+    </story-dependencies>
+
+    <database-dependencies>
+      <dependency>
+        <model>Grade</model>
+        <fields>points, assignmentId, studentId, deletedAt</fields>
+        <status>Exists, schema ready</status>
+      </dependency>
+
+      <dependency>
+        <model>Assignment</model>
+        <fields>id, maxPoints, courseId, deletedAt</fields>
+        <status>Exists, schema ready</status>
+      </dependency>
+
+      <dependency>
+        <model>Enrollment</model>
+        <fields>userId, courseId</fields>
+        <status>Exists, schema ready</status>
+      </dependency>
+
+      <dependency>
+        <model>Course</model>
+        <fields>id, title, code</fields>
+        <status>Exists, schema ready</status>
+      </dependency>
+    </database-dependencies>
+
+    <external-dependencies>
+      <dependency>
+        <name>Neon PostgreSQL</name>
+        <purpose>Database for storing grades and calculating GPA</purpose>
+        <status>Configured and operational</status>
+      </dependency>
+    </external-dependencies>
+  </dependencies>
+
+  <risks-and-considerations>
+    <risk id="R1">
+      <description>GPA calculation edge cases may produce unexpected results</description>
+      <likelihood>Medium</likelihood>
+      <impact>High</impact>
+      <mitigation>
+        Comprehensive unit test suite with 100% coverage target. Manual validation with
+        sample data from real academic scenarios. Review calculation logic with product owner.
+      </mitigation>
+    </risk>
+
+    <risk id="R2">
+      <description>Performance degradation with large numbers of grades per student</description>
+      <likelihood>Low</likelihood>
+      <impact>Medium</impact>
+      <mitigation>
+        Use Prisma's efficient querying with includes to avoid N+1 queries. Cache GPA results
+        on client side. Monitor query performance in production.
+      </mitigation>
+    </risk>
+
+    <risk id="R3">
+      <description>Rounding errors in GPA calculation leading to inconsistencies</description>
+      <likelihood>Low</likelihood>
+      <impact>Medium</impact>
+      <mitigation>
+        Use consistent rounding strategy (2 decimal places) throughout. Test boundary conditions
+        thoroughly (e.g., 92.99% vs 93.00%).
+      </mitigation>
+    </risk>
+
+    <risk id="R4">
+      <description>Students confused by N/A display when no grades exist</description>
+      <likelihood>Medium</likelihood>
+      <impact>Low</impact>
+      <mitigation>
+        Add explanatory text: "Your GPA will appear here once assignments are graded."
+        Consider showing 0.0 instead of N/A (discuss with product owner).
+      </mitigation>
+    </risk>
+
+    <consideration id="C1">
+      <name>Assignment Weight Implementation</name>
+      <description>
+        Current MVP assumes all assignments have equal weight (weight = 1). Future enhancement
+        should add a 'weight' field to Assignment model to allow instructors to configure
+        assignment weights (e.g., homework 20%, midterm 30%, final 50%).
+      </description>
+    </consideration>
+
+    <consideration id="C2">
+      <name>Extra Credit Handling</name>
+      <description>
+        Extra credit can push percentages above 100%. Current implementation caps at 100%
+        before GPA conversion (max 4.0). Alternative: allow GPA above 4.0 for extra credit.
+        Discuss with product owner for business decision.
+      </description>
+    </consideration>
+
+    <consideration id="C3">
+      <name>GPA History and Trends</name>
+      <description>
+        Current implementation shows only current GPA. Future enhancement could track GPA
+        over time and display trends. Requires additional data model for historical GPA snapshots.
+      </description>
+    </consideration>
+
+    <consideration id="C4">
+      <name>Custom Grading Scales</name>
+      <description>
+        Different institutions may use different grading scales. Current implementation uses
+        standard 4.0 scale with 12-point granularity. Future enhancement: support custom
+        scales per course or institution.
+      </description>
+    </consideration>
+  </risks-and-considerations>
+
+  <definition-of-done>
+    <criterion>All 11 acceptance criteria met and verified</criterion>
+    <criterion>All 10 tasks completed with subtasks</criterion>
+    <criterion>GPA calculation module enhanced with 12-point threshold scale</criterion>
+    <criterion>GPA_SCALE environment variable configurable and validated</criterion>
+    <criterion>Course GPA API endpoint created and tested</criterion>
+    <criterion>Overall GPA API endpoint created and tested</criterion>
+    <criterion>Student dashboard displays GPA (overall and per-course)</criterion>
+    <criterion>Gradebook displays GPA column with color coding</criterion>
+    <criterion>GPA updates automatically when grades are modified</criterion>
+    <criterion>Unit tests achieve 100% coverage for gpa.ts module</criterion>
+    <criterion>Integration tests cover all API endpoints (success and error scenarios)</criterion>
+    <criterion>E2E test validates student sees correct GPA on dashboard</criterion>
+    <criterion>All tests passing in CI/CD pipeline</criterion>
+    <criterion>Code reviewed and approved by senior developer</criterion>
+    <criterion>Documentation updated (inline comments, JSDoc, README if needed)</criterion>
+    <criterion>No regressions in existing functionality</criterion>
+    <criterion>Accessibility requirements met (WCAG 2.1 AA compliance)</criterion>
+    <criterion>Performance benchmarks met (GPA calculation &lt; 100ms)</criterion>
+    <criterion>Responsive design validated on mobile, tablet, desktop</criterion>
+  </definition-of-done>
+
+  <notes>
+    <note type="implementation">
+      The existing gpa.ts module has a solid foundation but uses simplified thresholds.
+      The primary work is enhancing the threshold mappings from 5 grades to 12 grades
+      (adding plus/minus variations).
+    </note>
+
+    <note type="architecture">
+      GPA calculation is intentionally a pure function in /src/lib/gpa.ts, making it
+      highly testable and reusable across different contexts (API endpoints, components).
+    </note>
+
+    <note type="testing">
+      Achieving 100% unit test coverage for gpa.ts is feasible and strongly recommended
+      given the critical nature of GPA calculations. Any bugs here directly impact students.
+    </note>
+
+    <note type="ux">
+      Color coding for grades (A=green, B=blue, C=yellow, D/F=red) should not be the only
+      indicator. Always include text labels for accessibility and colorblind users.
+    </note>
+
+    <note type="performance">
+      For courses with many students (50+), consider implementing server-side caching
+      of GPA calculations with cache invalidation on grade updates. Client-side caching
+      via SWR or React Query is sufficient for MVP.
+    </note>
+
+    <note type="future">
+      Future enhancements to consider post-MVP:
+      - Assignment weight configuration in Assignment model
+      - GPA trends and historical tracking
+      - GPA goals and alerts for students
+      - Custom grading scales per course
+      - GPA calculation audit log
+    </note>
+  </notes>
+</story-context>

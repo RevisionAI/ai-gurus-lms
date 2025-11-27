@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Gurus LMS - Color Theme Explorer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+            color: #1a1a1a;
+        }
+
+        header p {
+            color: #666;
+            font-size: 16px;
+        }
+
+        .navigation {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .nav-btn {
+            padding: 12px 24px;
+            border: 2px solid #e0e0e0;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .nav-btn:hover {
+            border-color: #0066cc;
+            background: #f0f7ff;
+        }
+
+        .nav-btn.active {
+            background: #0066cc;
+            color: white;
+            border-color: #0066cc;
+        }
+
+        .theme-section {
+            display: none;
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .theme-section.active {
+            display: block;
+        }
+
+        .theme-header {
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .theme-header h2 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .theme-meta {
+            display: flex;
+            gap: 30px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .theme-meta-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .theme-meta-item label {
+            font-size: 12px;
+            text-transform: uppercase;
+            color: #666;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        .theme-meta-item span {
+            font-size: 14px;
+            color: #333;
+        }
+
+        .palette-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .color-group {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .color-group-header {
+            background: #f8f8f8;
+            padding: 12px 15px;
+            font-weight: 600;
+            font-size: 14px;
+            color: #333;
+        }
+
+        .color-swatch {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .color-swatch:last-child {
+            border-bottom: none;
+        }
+
+        .color-preview {
+            width: 50px;
+            height: 50px;
+            border-radius: 6px;
+            margin-right: 15px;
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+
+        .color-info {
+            flex: 1;
+        }
+
+        .color-name {
+            font-weight: 500;
+            font-size: 14px;
+            margin-bottom: 3px;
+        }
+
+        .color-hex {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .color-usage {
+            font-size: 11px;
+            color: #888;
+            margin-top: 3px;
+        }
+
+        .components-section {
+            margin-top: 40px;
+        }
+
+        .components-section h3 {
+            font-size: 22px;
+            margin-bottom: 25px;
+            color: #333;
+        }
+
+        .component-group {
+            margin-bottom: 40px;
+        }
+
+        .component-group h4 {
+            font-size: 16px;
+            margin-bottom: 15px;
+            color: #666;
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .component-examples {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .form-input {
+            width: 100%;
+            max-width: 400px;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+        }
+
+        .card {
+            border-radius: 8px;
+            padding: 24px;
+            max-width: 400px;
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .card-text {
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .alert {
+            padding: 16px 20px;
+            border-radius: 6px;
+            font-size: 14px;
+            max-width: 600px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .alert-icon {
+            font-size: 20px;
+        }
+
+        .progress-bar-container {
+            max-width: 600px;
+            margin-top: 10px;
+        }
+
+        .progress-label {
+            font-size: 14px;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .progress-bar {
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+
+        .comparison-note {
+            background: #fff8dc;
+            border-left: 4px solid #ffa500;
+            padding: 20px;
+            margin-top: 30px;
+            border-radius: 4px;
+        }
+
+        .comparison-note h4 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        @media (max-width: 768px) {
+            .palette-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎨 AI Gurus LMS Color Theme Explorer</h1>
+            <p>Explore 4 distinct color themes designed for professional education. Each theme includes complete color palettes and live UI components.</p>
+        </header>
+
+        <nav class="navigation">
+            <button class="nav-btn active" onclick="showTheme(1)">Theme 1: Professional Trust</button>
+            <button class="nav-btn" onclick="showTheme(2)">Theme 2: Strategic Clarity</button>
+            <button class="nav-btn" onclick="showTheme(3)">Theme 3: Confident Authority</button>
+            <button class="nav-btn" onclick="showTheme(4)">Theme 4: AI-Forward</button>
+        </nav>
+
+        <!-- THEME 1: Professional Trust -->
+        <div id="theme1" class="theme-section active">
+            <div class="theme-header">
+                <h2>Theme 1: Professional Trust</h2>
+                <p style="color: #666; margin-top: 10px;">Classic professional blue theme inspired by LinkedIn and Coursera. Trustworthy, familiar, and widely accepted in corporate education.</p>
+                <div class="theme-meta">
+                    <div class="theme-meta-item">
+                        <label>Personality</label>
+                        <span>Trustworthy, Professional, Reliable</span>
+                    </div>
+                    <div class="theme-meta-item">
+                        <label>Best For</label>
+                        <span>Executives who value proven, professional aesthetics</span>
+                    </div>
+                    <div class="theme-meta-item">
+                        <label>Style</label>
+                        <span>Corporate, Clean, Balanced</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="palette-grid">
+                <div class="color-group">
+                    <div class="color-group-header">Primary & Secondary</div>
+                    <div class="color-swatch">
+                        <div class="color-preview" style="background: #0066cc;"></div>
+                        <div class="color-info">
+                            <div class="color-name">Primary Blue</div>
+                            <div class="color-hex">#0066cc</div>
+                            <div class="color-usage">Main actions, links, key elements</div>
+                        </div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-preview" style="background: #004c99;"></div>
+                        <div class="color-info">
+                            <div class="color-name">Primary Dark</div>
+                            <div class="color-hex">#004c99</div>
+                            <div class="color-usage">Hover states, darker accents</div>
+                        </div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-preview" style="background: #5a9fd4;"></div>
+                        <div class="color-info">
+                            <div class="color-name">Secondary Blue</div>
+                            <div class="color-hex">#5a9fd4</div>
+                            <div class="color-usage">Supporting actions, badges</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="color-group">
+                    <div class="color-group-header">Semantic Colors</div>
+                    <div class="color-swatch">
+                        <div class="color-preview" style="background: #28a745;"></div>
+                        <div class="color-info">
+                            <div class="color-name">Success</div>
+                            <div class="color-hex">#28a745</div>
+                            <div class="color-usage">Completed, submitted, success states</div>
+                        </div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-preview" style="background: #ffc107;"></div>
+                        <div class="color-info">
+                            <div class="color-name">Warning</div>
+                            <div class="color-hex">#ffc107</div>
+                            <div class="color-usage">Pending, due soon, attention needed</div>
+                        </div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-preview" style="background: #dc3545;"></div>
+                        <div class="color-info">
+                            <div class="color-name">Error</div>
+                            <div class="color-hex">#dc3545</div>
+                            <div class="color-usage">Errors, overdue, critical issues</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="color-group">
+                    <div class="color-group-header">Neutrals & Text</div>
+                    <div class="color-swatch">
+                        <div class="color-preview" style="background: #1a1a1a;"></div>
+                        <div class="color-info">
+                            <div class="color-name">Text Primary</div>
+                            <div class="color-hex">#1a1a1a</div>
+                            <div class="color-usage">Headings, primary text</div>
+                        </div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-preview" style="background: #4a4a4a;"></div>
+                        <div class="color-info">
+                            <div class="color-name">Text Secondary</div>
+                            <div class="color-hex">#4a4a4a</div>
+                            <div class="color-usage">Body text, descriptions</div>
+                        </div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-preview" style="background: #f8f9fa;"></div>
+                        <div class="color-info">
+                            <div class="color-name">Background</div>
+                            <div class="color-hex">#f8f9fa</div>
+                            <div class="color-usage">Page background, cards</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="components-section">
+                <h3>Live Component Examples</h3>
+
+                <div class="component-group">
+                    <h4>Buttons</h4>
+                    <div class="component-examples">
+                        <button class="btn" style="background: #0066cc; color: white;">Primary Button</button>
+                        <button class="btn" style="background: #5a9fd4; color: white;">Secondary Button</button>
+                        <button class="btn" style="background: white; color: #0066cc; border: 2px solid #0066cc;">Outline Button</button>
+                        <button class="btn" style="background: #e0e0e0; color: #999; cursor: not-allowed;">Disabled</button>
+                    </div>
+                </div>
+
+                <div class="component-group">
+                    <h4>Form Inputs</h4>
+                    <div class="form-group">
+                        <label class="form-label" style="color: #1a1a1a;">Email Address</label>
+                        <input type="email" class="form-input" placeholder="your.email@company.com" style="border: 1px solid #d0d0d0; color: #1a1a1a;">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" style="color: #1a1a1a;">Course Title</label>
+                        <input type="text" class="form-input" value="AI Strategy Fundamentals" style="border: 2px solid #0066cc; background: #f0f7ff; color: #1a1a1a;">
+                    </div>
+                </div>
+
+                <div class="component-group">
+                    <h4>Cards</h4>
+                    <div class="card" style="border: 1px solid #e0e0e0; background: white;">
+                        <div class="card-title" style="color: #1a1a1a;">AI Implementation Roadmap</div>
+                        <div class="card-text" style="color: #4a4a4a;">Learn to architect 6-12 month AI implementation plans for your organization with strategic clarity.</div>
+                        <div style="margin-top: 15px;">
+                            <span class="btn" style="background: #0066cc; color: white; font-size: 12px; padding: 8px 16px;">Enroll Now</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="component-group">
+                    <h4>Alerts & Status Messages</h4>
+                    <div style="display: flex; flex-direction: column; gap: 15px;">
+                        <div class="alert" style="background: #d4edda; border: 1px solid #c3e6cb; color: #155724;">
+                            <span class="alert-icon">✓</span>
+                            <div>Assignment submitted successfully! Your instructor will review within 48 hours.</div>
+                        </div>
+                        <div class="alert" style="background: #fff3cd; border: 1px solid #ffeaa7; color: #856404;">
+                            <span class="alert-icon">⚠</span>
+                            <div>Assignment due in 2 days. Complete Module 3 content before submission.</div>
+                        </div>
+                        <div class="alert" style="background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24;">
+                            <span class="alert-icon">✕</span>
+                            <div>Missing required fields: Assignment description and file upload.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="component-group">
+                    <h4>Progress Bars</h4>
+                    <div class="progress-bar-container">
+                        <div class="progress-label" style="color: #1a1a1a;">Course Progress: 65%</div>
+                        <div class="progress-bar" style="background: #e0e0e0;">
+                            <div class="progress-fill" style="width: 65%; background: #0066cc;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="comparison-note">
+                <h4>Why This Theme Works</h4>
+                <p><strong>Pros:</strong> Familiar to executives who use LinkedIn/Coursera, conveys trust and professionalism, proven in corporate environments</p>
+                <p style="margin-top: 8px;"><strong>Considerations:</strong> Very safe choice, doesn't differentiate from competitors, may feel "corporate generic"</p>
+            </div>
+        </div>
+
+        <!-- THEME 2: Strategic Clarity -->
+        <div id="theme2" class="theme-section">
+            <div class="theme-header">
+                <h2>Theme 2: Strategic Clarity</h2>
+                <p style="color: #666; margin-top: 10px;">Modern slate gray theme with strategic green accent. Clean, sophisticated, cuts through noise—perfect for "clarity over complexity."</p>
+                <div class="theme-meta">
+                    <div class="theme-meta-item">
+                        <label>Personality</label>
+                        <span>Clear, Sophisticated, Strategic</span>
+                    </div>
+                    <div class="theme-meta-item">
+                        <label>Best For</label>
+                        <span>Professional but differentiated from typical blue LMS</span>
+                    </div>
+                    <div class="theme-meta-item">
+                        <label>Style</label>
+                        <span>Modern, Clean, Minimal</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="palette-grid">
+                <div class="color-group">
+                    <div class="color-group-header">Primary & Secondary</div>
+                    <div class="color-swatch">
+                        <div class="color-preview" style="background: #2d3748;"></div>
+                        <div class="color-info">
+                            <div class="color-name">Primary Slate</div>
+                            <div class="color-hex">#2d3748</div>
+                            <div class="color-usage">Navigation, headers, dark elements</div>
+                        </div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-preview" style="background: #10b981;"></div>
+                        <div class="color-info">
+                            <div class="color-name">Strategic Green</div>
+                            <div class="color-hex">#10b981</div>
+                            <div class="color-usage">Primary actions, key highlights</div>
+                        </div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-preview" style="background: #6366f1;"></div>
+                        <div class="color-info">
+                            <div class="color-name">Accent Indigo</div>
+                            <div class="color-hex">#6366f1</div>
+                            <div class="color-usage">Links, secondary actions</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="color-group">
+                    <div class="color-group-header">Semantic Colors</div>
+                    <div class="color-swatch">
+                        <div class="color-preview" style="background: #10b981;"></div>
+                        <div class="color-info">
+                            <div class="color-name">Success</div>
+                            <div class="color-hex">#10b981</div>
+                            <div class="color-usage">Completed, growth, positive</div>
+                        </div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-preview" style="background: #f59e0b;"></div>
+                        <div class="color-info">
+                            <div class="color-name">Warning</div>
+                            <div class="color-hex">#f59e0b</div>
+                            <div class="color-usage">Attention, pending, review</div>
+                        </div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-preview" style="background: #ef4444;"></div>
+                        <div class="color-info">
+                            <div class="color-name">Error</div>
+                            <div class="color-hex">#ef4444</div>
+                            <div class="color-usage">Critical, overdue, errors</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="color-group">
+                    <div class="color-group-header">Neutrals & Text</div>
+                    <div class="color-swatch">
+                        <div class="color-preview" style="background: #111827;"></div>
+                        <div class="color-info">
+                            <div class="color-name">Text Primary</div>
+                            <div class="color-hex">#111827</div>
+                            <div class="color-usage">Headings, emphasis</div>
+                        </div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-preview" style="background: #4b5563;"></div>
+                        <div class="color-info">
+                            <div class="color-name">Text Secondary</div>
+                            <div class="color-hex">#4b5563</div>
+                            <div class="color-usage">Body text, descriptions</div>
+                        </div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-preview" style="background: #f9fafb;"></div>
+                        <div class="color-info">
+                            <div class="color-name">Background</div>
+                            <div class="color-hex">#f9fafb</div>
+                            <div class="color-usage">Page background</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="components-section">
+                <h3>Live Component Examples</h3>
+
+                <div class="component-group">
+                    <h4>Buttons</h4>
+                    <div class="component-examples">
+                        <button class="btn" style="background: #10b981; color: white;">Primary Button</button>
+                        <button class="btn" style="background: #2d3748; color: white;">Secondary Button</button>
+                        <button class="btn" style="background: white; color: #10b981; border: 2px solid #10b981;">Outline Button</button>
+                        <button class="btn" style="background: #e5e7eb; color: #9ca3af; cursor: not-allowed;">Disabled</button>
+                    </div>
+                </div>
+
+                <div class="component-group">
+                    <h4>Form Inputs</h4>
+                    <div class="form-group">
+                        <label class="form-label" style="color: #111827;">Email Address</label>
+                        <input type="email" class="form-input" placeholder="your.email@company.com" style="border: 1px solid #d1d5db; color: #111827;">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" style="color: #111827;">Course Title</label>
+                        <input type="text" class="form-input" value="AI Strategy Fundamentals" style="border: 2px solid #10b981; background: #f0fdf4; color: #111827;">
+                    </div>
+                </div>
+
+                <div class="component-group">
+                    <h4>Cards</h4>
+                    <div class="card" style="border: 1px solid #e5e7eb; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                        <div class="card-title" style="color: #111827;">AI Implementation Roadmap</div>
+                        <div class="card-text" style="color: #4b5563;">Learn to architect 6-12 month AI implementation plans for your organization with strategic clarity.</div>
+                        <div style="margin-top: 15px;">
+                            <span class="btn" style="background: #10b981; color: white; font-size: 12px; padding: 8px 16px;">Enroll Now</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="component-group">
+                    <h4>Alerts & Status Messages</h4>
+                    <div style="display: flex; flex-direction: column; gap: 15px;">
+                        <div class="alert" style="background: #d1fae5; border-left: 4px solid #10b981; color: #065f46;">
+                            <span class="alert-icon">✓</span>
+                            <div>Assignment submitted successfully! Your instructor will review within 48 hours.</div>
+                        </div>
+                        <div class="alert" style="background: #fef3c7; border-left: 4px solid #f59e0b; color: #92400e;">
+                            <span class="alert-icon">⚠</span>
+                            <div>Assignment due in 2 days. Complete Module 3 content before submission.</div>
+                        </div>
+                        <div class="alert" style="background: #fee2e2; border-left: 4px solid #ef4444; color: #991b1b;">
+                            <span class="alert-icon">✕</span>
+                            <div>Missing required fields: Assignment description and file upload.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="component-group">
+                    <h4>Progress Bars</h4>
+                    <div class="progress-bar-container">
+                        <div class="progress-label" style="color: #111827;">Course Progress: 65%</div>
+                        <div class="progress-bar" style="background: #e5e7eb;">
+                            <div class="progress-fill" style="width: 65%; background: linear-gradient(90deg, #10b981, #059669);"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="comparison-note">
+                <h4>Why This Theme Works</h4>
+                <p><strong>Pros:</strong> Modern and differentiated, green conveys growth/clarity (vs. corporate blue), sophisticated slate feels premium, clean aesthetic</p>
+                <p style="margin-top: 8px;"><strong>Considerations:</strong> Less familiar than blue, green might feel "environmental" to some (though strategic green avoids this)</p>
+            </div>
+        </div>
+
+        <!-- THEME 3: Confident Authority -->
+        <div id="theme3" class="theme-section">
+            <div class="theme-header">
+                <h2>Theme 3: Confident Authority</h2>
+                <p style="color: #666; margin-top: 10px;">Deep navy and purple theme. Premium, executive-level aesthetic. Conveys authority and strategic depth—"we teach AI leadership."</p>
+                <div class="theme-meta">
+                    <div class="theme-meta-item">
+                        <label>Personality</label>
+                        <span>Authoritative, Premium, Executive</span>
+                    </div>
+                    <div class="theme-meta-item">
+                        <label>Best For</label>
+                        <span>Emphasizing executive-level, premium positioning</span>
+                    </div>
+                    <div class="theme-meta-item">
+                        <label>Style</label>
+                        <span>Bold, Confident, Premium</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="palette-grid">
+                <div class="color-group">
+                    <div class="color-group-header">Primary & Secondary</div>
+                    <div class="color-swatch">
+                        <div class="color-preview" style="background: #1e293b;"></div>
+                        <div class="color-info">
+                            <div class="color-name">Navy Primary</div>
+                            <div class="color-hex">#1e293b</div>
+                            <div class="color-usage">Headers, navigation, authority</div>
+                        </div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-preview" style="background: #7c3aed;"></div>
+                        <div class="color-info">
+                            <div class="color-name">Royal Purple</div>
+                            <div class="color-hex">#7c3aed</div>
+                            <div class="color-usage">Primary actions, premium accents</div>
+                        </div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-preview" style="background: #06b6d4;"></div>
+                        <div class="color-info">
+                            <div class="color-name">Cyan Accent</div>
+                            <div class="color-hex">#06b6d4</div>
+                            <div class="color-usage">Links, tech elements</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="color-group">
+                    <div class="color-group-header">Semantic Colors</div>
+                    <div class="color-swatch">
+                        <div class="color-preview" style="background: #22c55e;"></div>
+                        <div class="color-info">
+                            <div class="color-name">Success</div>
+                            <div class="color-hex">#22c55e</div>
+                            <div class="color-usage">Completion, success states</div>
+                        </div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-preview" style="background: #eab308;"></div>
+                        <div class="color-info">
+                            <div class="color-name">Warning</div>
+                            <div class="color-hex">#eab308</div>
+                            <div class="color-usage">Pending, attention</div>
+                        </div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-preview" style="background: #f43f5e;"></div>
+                        <div class="color-info">
+                            <div class="color-name">Error</div>
+                            <div class="color-hex">#f43f5e</div>
+                            <div class="color-usage">Critical issues, errors</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="color-group">
+                    <div class="color-group-header">Neutrals & Text</div>
+                    <div class="color-swatch">
+                        <div class="color-preview" style="background: #0f172a;"></div>
+                        <div class="color-info">
+                            <div class="color-name">Text Primary</div>
+                            <div class="color-hex">#0f172a</div>
+                            <div class="color-usage">Headings, high contrast</div>
+                        </div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-preview" style="background: #475569;"></div>
+                        <div class="color-info">
+                            <div class="color-name">Text Secondary</div>
+                            <div class="color-hex">#475569</div>
+                            <div class="color-usage">Body text</div>
+                        </div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-preview" style="background: #f8fafc;"></div>
+                        <div class="color-info">
+                            <div class="color-name">Background</div>
+                            <div class="color-hex">#f8fafc</div>
+                            <div class="color-usage">Light backgrounds</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="components-section">
+                <h3>Live Component Examples</h3>
+
+                <div class="component-group">
+                    <h4>Buttons</h4>
+                    <div class="component-examples">
+                        <button class="btn" style="background: linear-gradient(135deg, #7c3aed, #a855f7); color: white; box-shadow: 0 4px 6px rgba(124, 58, 237, 0.3);">Primary Button</button>
+                        <button class="btn" style="background: #1e293b; color: white;">Secondary Button</button>
+                        <button class="btn" style="background: white; color: #7c3aed; border: 2px solid #7c3aed;">Outline Button</button>
+                        <button class="btn" style="background: #e2e8f0; color: #94a3b8; cursor: not-allowed;">Disabled</button>
+                    </div>
+                </div>
+
+                <div class="component-group">
+                    <h4>Form Inputs</h4>
+                    <div class="form-group">
+                        <label class="form-label" style="color: #0f172a;">Email Address</label>
+                        <input type="email" class="form-input" placeholder="your.email@company.com" style="border: 1px solid #cbd5e1; color: #0f172a;">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" style="color: #0f172a;">Course Title</label>
+                        <input type="text" class="form-input" value="AI Strategy Fundamentals" style="border: 2px solid #7c3aed; background: #f5f3ff; color: #0f172a;">
+                    </div>
+                </div>
+
+                <div class="component-group">
+                    <h4>Cards</h4>
+                    <div class="card" style="border: 1px solid #e2e8f0; background: white; box-shadow: 0 4px 6px rgba(0,0,0,0.07);">
+                        <div class="card-title" style="color: #0f172a;">AI Implementation Roadmap</div>
+                        <div class="card-text" style="color: #475569;">Learn to architect 6-12 month AI implementation plans for your organization with strategic clarity.</div>
+                        <div style="margin-top: 15px;">
+                            <span class="btn" style="background: linear-gradient(135deg, #7c3aed, #a855f7); color: white; font-size: 12px; padding: 8px 16px;">Enroll Now</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="component-group">
+                    <h4>Alerts & Status Messages</h4>
+                    <div style="display: flex; flex-direction: column; gap: 15px;">
+                        <div class="alert" style="background: #dcfce7; border-left: 4px solid #22c55e; color: #14532d;">
+                            <span class="alert-icon">✓</span>
+                            <div>Assignment submitted successfully! Your instructor will review within 48 hours.</div>
+                        </div>
+                        <div class="alert" style="background: #fef9c3; border-left: 4px solid #eab308; color: #713f12;">
+                            <span class="alert-icon">⚠</span>
+                            <div>Assignment due in 2 days. Complete Module 3 content before submission.</div>
+                        </div>
+                        <div class="alert" style="background: #ffe4e6; border-left: 4px solid #f43f5e; color: #881337;">
+                            <span class="alert-icon">✕</span>
+                            <div>Missing required fields: Assignment description and file upload.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="component-group">
+                    <h4>Progress Bars</h4>
+                    <div class="progress-bar-container">
+                        <div class="progress-label" style="color: #0f172a;">Course Progress: 65%</div>
+                        <div class="progress-bar" style="background: #e2e8f0;">
+                            <div class="progress-fill" style="width: 65%; background: linear-gradient(90deg, #7c3aed, #a855f7);"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="comparison-note">
+                <h4>Why This Theme Works</h4>
+                <p><strong>Pros:</strong> Premium positioning, purple = creativity/wisdom (fits AI leadership), bold and confident, executive-level aesthetic</p>
+                <p style="margin-top: 8px;"><strong>Considerations:</strong> Purple might feel too creative/playful for some executives, darker palette requires careful contrast management</p>
+            </div>
+        </div>
+
+        <!-- THEME 4: AI-Forward -->
+        <div id="theme4" class="theme-section">
+            <div class="theme-header">
+                <h2>Theme 4: AI-Forward</h2>
+                <p style="color: #666; margin-top: 10px;">Modern tech-inspired theme with warm orange accent. Balances tech credibility with human warmth—"AI that serves people."</p>
+                <div class="theme-meta">
+                    <div class="theme-meta-item">
+                        <label>Personality</label>
+                        <span>Tech-Forward, Warm, Approachable</span>
+                    </div>
+                    <div class="theme-meta-item">
+                        <label>Best For</label>
+                        <span>Modern tech aesthetic without cold corporate feel</span>
+                    </div>
+                    <div class="theme-meta-item">
+                        <label>Style</label>
+                        <span>Contemporary, Tech, Human-Centered</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="palette-grid">
+                <div class="color-group">
+                    <div class="color-group-header">Primary & Secondary</div>
+                    <div class="color-swatch">
+                        <div class="color-preview" style="background: #334155;"></div>
+                        <div class="color-info">
+                            <div class="color-name">Tech Slate</div>
+                            <div class="color-hex">#334155</div>
+                            <div class="color-usage">Headers, tech elements</div>
+                        </div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-preview" style="background: #f97316;"></div>
+                        <div class="color-info">
+                            <div class="color-name">Warm Orange</div>
+                            <div class="color-hex">#f97316</div>
+                            <div class="color-usage">Primary actions, energy, focus</div>
+                        </div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-preview" style="background: #3b82f6;"></div>
+                        <div class="color-info">
+                            <div class="color-name">Tech Blue</div>
+                            <div class="color-hex">#3b82f6</div>
+                            <div class="color-usage">Links, secondary actions</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="color-group">
+                    <div class="color-group-header">Semantic Colors</div>
+                    <div class="color-swatch">
+                        <div class="color-preview" style="background: #16a34a;"></div>
+                        <div class="color-info">
+                            <div class="color-name">Success</div>
+                            <div class="color-hex">#16a34a</div>
+                            <div class="color-usage">Completion, positive outcomes</div>
+                        </div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-preview" style="background: #f59e0b;"></div>
+                        <div class="color-info">
+                            <div class="color-name">Warning</div>
+                            <div class="color-hex">#f59e0b</div>
+                            <div class="color-usage">Attention, pending</div>
+                        </div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-preview" style="background: #dc2626;"></div>
+                        <div class="color-info">
+                            <div class="color-name">Error</div>
+                            <div class="color-hex">#dc2626</div>
+                            <div class="color-usage">Errors, critical</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="color-group">
+                    <div class="color-group-header">Neutrals & Text</div>
+                    <div class="color-swatch">
+                        <div class="color-preview" style="background: #1e293b;"></div>
+                        <div class="color-info">
+                            <div class="color-name">Text Primary</div>
+                            <div class="color-hex">#1e293b</div>
+                            <div class="color-usage">Headings, emphasis</div>
+                        </div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-preview" style="background: #64748b;"></div>
+                        <div class="color-info">
+                            <div class="color-name">Text Secondary</div>
+                            <div class="color-hex">#64748b</div>
+                            <div class="color-usage">Body text</div>
+                        </div>
+                    </div>
+                    <div class="color-swatch">
+                        <div class="color-preview" style="background: #fafafa;"></div>
+                        <div class="color-info">
+                            <div class="color-name">Background</div>
+                            <div class="color-hex">#fafafa</div>
+                            <div class="color-usage">Page background</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="components-section">
+                <h3>Live Component Examples</h3>
+
+                <div class="component-group">
+                    <h4>Buttons</h4>
+                    <div class="component-examples">
+                        <button class="btn" style="background: #f97316; color: white; box-shadow: 0 2px 4px rgba(249, 115, 22, 0.3);">Primary Button</button>
+                        <button class="btn" style="background: #334155; color: white;">Secondary Button</button>
+                        <button class="btn" style="background: white; color: #f97316; border: 2px solid #f97316;">Outline Button</button>
+                        <button class="btn" style="background: #e2e8f0; color: #94a3b8; cursor: not-allowed;">Disabled</button>
+                    </div>
+                </div>
+
+                <div class="component-group">
+                    <h4>Form Inputs</h4>
+                    <div class="form-group">
+                        <label class="form-label" style="color: #1e293b;">Email Address</label>
+                        <input type="email" class="form-input" placeholder="your.email@company.com" style="border: 1px solid #cbd5e1; color: #1e293b;">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" style="color: #1e293b;">Course Title</label>
+                        <input type="text" class="form-input" value="AI Strategy Fundamentals" style="border: 2px solid #f97316; background: #fff7ed; color: #1e293b;">
+                    </div>
+                </div>
+
+                <div class="component-group">
+                    <h4>Cards</h4>
+                    <div class="card" style="border: 1px solid #e2e8f0; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.06);">
+                        <div class="card-title" style="color: #1e293b;">AI Implementation Roadmap</div>
+                        <div class="card-text" style="color: #64748b;">Learn to architect 6-12 month AI implementation plans for your organization with strategic clarity.</div>
+                        <div style="margin-top: 15px;">
+                            <span class="btn" style="background: #f97316; color: white; font-size: 12px; padding: 8px 16px;">Enroll Now</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="component-group">
+                    <h4>Alerts & Status Messages</h4>
+                    <div style="display: flex; flex-direction: column; gap: 15px;">
+                        <div class="alert" style="background: #dcfce7; border-left: 4px solid #16a34a; color: #14532d;">
+                            <span class="alert-icon">✓</span>
+                            <div>Assignment submitted successfully! Your instructor will review within 48 hours.</div>
+                        </div>
+                        <div class="alert" style="background: #fef3c7; border-left: 4px solid #f59e0b; color: #78350f;">
+                            <span class="alert-icon">⚠</span>
+                            <div>Assignment due in 2 days. Complete Module 3 content before submission.</div>
+                        </div>
+                        <div class="alert" style="background: #fee2e2; border-left: 4px solid #dc2626; color: #7f1d1d;">
+                            <span class="alert-icon">✕</span>
+                            <div>Missing required fields: Assignment description and file upload.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="component-group">
+                    <h4>Progress Bars</h4>
+                    <div class="progress-bar-container">
+                        <div class="progress-label" style="color: #1e293b;">Course Progress: 65%</div>
+                        <div class="progress-bar" style="background: #e2e8f0;">
+                            <div class="progress-fill" style="width: 65%; background: linear-gradient(90deg, #f97316, #fb923c);"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="comparison-note">
+                <h4>Why This Theme Works</h4>
+                <p><strong>Pros:</strong> Orange adds energy and approachability, balances tech credibility with warmth, modern without being cold, stands out from blue/purple competitors</p>
+                <p style="margin-top: 8px;"><strong>Considerations:</strong> Orange can feel "startup-y" or less corporate, need to balance warmth with professional credibility</p>
+            </div>
+        </div>
+
+        <div style="background: white; padding: 30px; border-radius: 12px; margin-top: 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+            <h3 style="margin-bottom: 15px;">Next Steps</h3>
+            <p style="color: #666; margin-bottom: 20px;">Explore each theme above and consider:</p>
+            <ul style="color: #666; margin-left: 20px; line-height: 1.8;">
+                <li>Which color palette feels most aligned with AI Gurus' brand personality?</li>
+                <li>Which theme conveys "professional credibility" to SME executives?</li>
+                <li>Which stands out from competitors (Coursera blue, LinkedIn blue)?</li>
+                <li>Which balances "cutting through AI hype" with "trustworthy authority"?</li>
+            </ul>
+            <p style="color: #666; margin-top: 20px;">You can also request a hybrid approach: "I like the colors from Theme 2 but the vibe of Theme 3."</p>
+        </div>
+    </div>
+
+    <script>
+        function showTheme(themeNum) {
+            // Hide all themes
+            document.querySelectorAll('.theme-section').forEach(section => {
+                section.classList.remove('active');
+            });
+
+            // Remove active class from all nav buttons
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Show selected theme
+            document.getElementById('theme' + themeNum).classList.add('active');
+
+            // Highlight active button
+            event.target.classList.add('active');
+        }
+    </script>
+</body>
+</html>

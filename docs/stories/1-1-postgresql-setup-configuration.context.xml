@@ -1,0 +1,272 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>1</epicId>
+    <storyId>1</storyId>
+    <title>PostgreSQL Setup & Configuration</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-24</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/1-1-postgresql-setup-configuration.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>DevOps engineer</asA>
+    <iWant>to provision and configure a PostgreSQL database instance</iWant>
+    <soThat>the platform has production-grade database infrastructure ready for migration</soThat>
+    <tasks>
+      - Task 1: Provision Neon PostgreSQL instance (AC: 1, 2)
+        - Create Neon account at https://neon.tech
+        - Create new project for AI Gurus LMS
+        - Provision serverless PostgreSQL database
+        - Copy connection string from Neon dashboard
+        - Create .env.local file with DATABASE_URL and DIRECT_URL
+        - Add DB_CONNECTION_LIMIT=10 environment variable
+        - Verify .env.local is in .gitignore
+
+      - Task 2: Configure Prisma for PostgreSQL connection pooling (AC: 3)
+        - Create or update /src/lib/prisma.ts with connection pooling configuration
+        - Set connection_limit: 10 in Prisma client options
+        - Implement singleton pattern for Prisma client
+        - Add error handling for connection failures
+        - Unit test verifies Prisma client exports connection with correct config
+
+      - Task 3: Test database connection from development environment (AC: 4)
+        - Run npx prisma db push to verify connection
+        - Execute test query: npx prisma studio
+        - Verify connection pooling: check Neon dashboard for active connections
+        - Integration test executes simple query successfully
+
+      - Task 4: Create health check endpoint (AC: 5)
+        - Create /src/app/api/health/db/route.ts API route
+        - Implement GET handler that tests database connection via Prisma
+        - Return JSON response with status, database, timestamp on success
+        - Return 503 status with error details on connection failure
+        - Add connection timeout (5 seconds)
+        - Integration test verifies /api/health/db returns 200 and correct JSON structure
+
+      - Task 5: Create database setup documentation (AC: 6)
+        - Document Neon account creation and database provisioning steps
+        - Document environment variable configuration
+        - Document Prisma configuration and connection pooling rationale
+        - Document health check endpoint usage
+        - Include troubleshooting section
+        - Save to /docs/database-setup.md
+        - Manual review confirms documentation completeness
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    1. PostgreSQL instance provisioned - Neon PostgreSQL database created and accessible
+    2. Database connection credentials stored securely - Environment variables configured (DATABASE_URL, DIRECT_URL, DB_CONNECTION_LIMIT)
+    3. Connection pooling configured in Prisma - connection_limit set appropriately for serverless environment (target: 10 connections)
+    4. Database accessible from development environment - Successful test connection from local development setup
+    5. Health check endpoint created - /api/health/db route returns database connection status
+    6. Documentation created - Database setup and configuration guide saved to /docs/database-setup.md
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture Decision Summary - Database Technology</title>
+        <section>Critical Infrastructure Decisions</section>
+        <snippet>Neon PostgreSQL chosen for serverless auto-scaling with free tier for beta (3GB storage, 10 concurrent connections). Seamless Vercel integration, database branching for development. Cost: Free → $19/month production.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Project Structure - Database Files</title>
+        <section>Project Structure</section>
+        <snippet>Prisma client singleton: /src/lib/prisma.ts. Health check API route: /src/app/api/health/db/route.ts (Next.js 15 App Router). Environment variables: .env.local (gitignored, local development only).</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Data Architecture - Database Configuration</title>
+        <section>Data Architecture</section>
+        <snippet>Prisma ORM with connection pooling (connection_limit configuration). 10 existing data models with 25 relations. Provider migration from SQLite to PostgreSQL required.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Epic 1 Overview - PostgreSQL Migration</title>
+        <section>Overview</section>
+        <snippet>Epic 1 transforms development prototype into production-ready platform by replacing SQLite with PostgreSQL. Story 1.1 provisions Neon database, configures connection pooling, and creates health check endpoint.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Detailed Design - Prisma Client Configuration</title>
+        <section>Detailed Design - Services and Modules</section>
+        <snippet>Prisma Client module (src/lib/prisma.ts) handles database connection management, query execution, and connection pooling. Inputs: DATABASE_URL, connection options. Outputs: PrismaClient singleton instance.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Dependencies - Database Driver</title>
+        <section>Dependencies and Integrations</section>
+        <snippet>@neondatabase/serverless v0.9.0 - Neon PostgreSQL driver for serverless environments. Credentials: DATABASE_URL (connection pooling), DIRECT_URL (migrations). DB_CONNECTION_LIMIT=10 to match Neon free tier.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Story 1.1 Acceptance Criteria</title>
+        <section>Acceptance Criteria</section>
+        <snippet>6 criteria: (1) PostgreSQL provisioned, (2) Credentials in env vars, (3) Connection pooling configured, (4) Database accessible from dev, (5) Health check endpoint at /api/health/db, (6) Setup documentation created.</snippet>
+      </doc>
+      <doc>
+        <path>docs/data-models.md</path>
+        <title>Database Schema Overview</title>
+        <section>Core Models</section>
+        <snippet>10 core models: User, Course, Enrollment, Assignment, Submission, Grade, Discussion, DiscussionPost, Announcement, CourseContent. 25 database relations. Migration from SQLite to PostgreSQL required.</snippet>
+      </doc>
+      <doc>
+        <path>docs/data-models.md</path>
+        <title>Migration Strategy - PostgreSQL</title>
+        <section>Migration Strategy</section>
+        <snippet>Update datasource provider to "postgresql" in schema.prisma. Run prisma migrate deploy. Configure connection pooling (Prisma Accelerate or PgBouncer) with appropriate pool size based on traffic.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>src/lib/prisma.ts</path>
+        <kind>service</kind>
+        <symbol>prisma (PrismaClient singleton)</symbol>
+        <lines>1-9</lines>
+        <reason>Existing Prisma client needs to be enhanced with connection pooling configuration for PostgreSQL. Currently uses basic singleton pattern without connection_limit setting.</reason>
+      </artifact>
+      <artifact>
+        <path>prisma/schema.prisma</path>
+        <kind>schema</kind>
+        <symbol>datasource db</symbol>
+        <lines>5-8</lines>
+        <reason>Database configuration currently set to SQLite (line 6: provider = "sqlite"). Needs migration to provider = "postgresql" with proper connection URL configuration.</reason>
+      </artifact>
+      <artifact>
+        <path>prisma/schema.prisma</path>
+        <kind>schema</kind>
+        <symbol>10 data models (User, Course, Enrollment, Assignment, Submission, Grade, Discussion, DiscussionPost, Announcement, CourseContent)</symbol>
+        <lines>10-212</lines>
+        <reason>Complete database schema with 10 models and 25 relations. All models must migrate successfully to PostgreSQL without data loss. Schema includes cascade delete behaviors and unique constraints.</reason>
+      </artifact>
+      <artifact>
+        <path>src/app/api/**/*.ts</path>
+        <kind>api-routes</kind>
+        <symbol>42 existing API endpoints</symbol>
+        <lines>N/A</lines>
+        <reason>All 42 API routes depend on Prisma client from src/lib/prisma.ts. After PostgreSQL migration, all routes must continue functioning without code changes (validates connection abstraction).</reason>
+      </artifact>
+      <artifact>
+        <path>package.json</path>
+        <kind>config</kind>
+        <symbol>dependencies</symbol>
+        <lines>15-36</lines>
+        <reason>Current dependencies include @prisma/client@6.9.0 and prisma@6.9.0. No PostgreSQL-specific driver installed yet. NextAuth@4.24.11 uses Prisma adapter for sessions.</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <node>
+        <package>@prisma/client</package>
+        <version>6.9.0</version>
+        <status>installed</status>
+        <purpose>Prisma ORM client for type-safe database queries</purpose>
+      </node>
+      <node>
+        <package>prisma</package>
+        <version>6.9.0</version>
+        <status>installed</status>
+        <purpose>Prisma CLI for migrations and schema management</purpose>
+      </node>
+      <node>
+        <package>next-auth</package>
+        <version>4.24.11</version>
+        <status>installed</status>
+        <purpose>Authentication library with Prisma adapter for database sessions</purpose>
+      </node>
+      <node>
+        <package>@next-auth/prisma-adapter</package>
+        <version>1.0.7</version>
+        <status>installed</status>
+        <purpose>Prisma adapter for NextAuth database session storage</purpose>
+      </node>
+      <node>
+        <package>next</package>
+        <version>15.3.3</version>
+        <status>installed</status>
+        <purpose>Next.js framework with App Router for API routes</purpose>
+      </node>
+      <node>
+        <package>@neondatabase/serverless</package>
+        <version>REQUIRED</version>
+        <status>missing</status>
+        <purpose>Neon PostgreSQL serverless driver for Edge runtime compatibility</purpose>
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    - **Preserve Existing Code**: Must NOT modify any of the 42 existing API routes during PostgreSQL setup. All changes confined to src/lib/prisma.ts and prisma/schema.prisma
+    - **Zero Data Loss**: Migration from SQLite to PostgreSQL must preserve 100% of existing data with validation
+    - **Connection Pool Limit**: Neon free tier supports maximum 10 concurrent connections; connection_limit must be set to 10
+    - **Environment Variables**: Must use .env.local (gitignored) for DATABASE_URL and DIRECT_URL - never commit credentials
+    - **Singleton Pattern**: Must maintain singleton Prisma client pattern to prevent connection pool exhaustion in Next.js serverless functions
+    - **NextAuth Compatibility**: PostgreSQL setup must maintain compatibility with NextAuth Prisma adapter for session storage
+    - **Development Environment**: Local development must be able to connect to remote Neon database OR use local PostgreSQL for testing
+    - **SSL Requirement**: Neon connections require SSL (sslmode=require in connection string)
+    - **Hot Reload Protection**: Prisma client singleton must handle Next.js development hot reloading without creating duplicate connections
+    - **No Schema Changes**: Story 1.1 focuses on infrastructure setup only; no model changes or field additions during this story
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>PrismaClient Export</name>
+      <kind>TypeScript module export</kind>
+      <signature>export const prisma: PrismaClient</signature>
+      <path>src/lib/prisma.ts</path>
+      <description>Singleton PrismaClient instance exported for use across all API routes. Must be enhanced with connection pooling configuration without changing the export signature.</description>
+    </interface>
+    <interface>
+      <name>Database Health Check API</name>
+      <kind>REST endpoint</kind>
+      <signature>GET /api/health/db → { status: "healthy" | "unhealthy", database: "connected" | "disconnected", timestamp: string }</signature>
+      <path>src/app/api/health/db/route.ts (NEW)</path>
+      <description>New health check endpoint to validate PostgreSQL connectivity. Must return 200 on success, 503 on connection failure with structured JSON response.</description>
+    </interface>
+    <interface>
+      <name>Prisma Schema Datasource</name>
+      <kind>Prisma configuration</kind>
+      <signature>datasource db { provider = "postgresql", url = env("DATABASE_URL") }</signature>
+      <path>prisma/schema.prisma</path>
+      <description>Database provider configuration must change from "sqlite" to "postgresql" while preserving all 10 model definitions and 25 relations unchanged.</description>
+    </interface>
+  </interfaces>
+  <tests>
+    <standards>
+      Testing framework: Jest for unit and integration tests (Epic 1.5).
+      Coverage target: 90%+ for critical paths including /src/lib/prisma.ts.
+      Unit tests verify Prisma client exports connection with correct connection_limit configuration.
+      Integration tests validate actual database connection, health check endpoint returns 200 with correct JSON structure, and connection failure scenarios return 503.
+      Tests must use dedicated test database or Neon branching feature for isolation.
+      All tests must pass before story marked complete.
+    </standards>
+    <locations>
+      - __tests__/unit/lib/prisma.test.ts - Unit tests for Prisma client configuration and singleton pattern
+      - __tests__/integration/api/health/db.test.ts - Integration tests for health check endpoint
+      - __tests__/integration/database/connection.test.ts - Integration tests for PostgreSQL connection and query execution
+    </locations>
+    <ideas>
+      <test id="AC-1.1.3" criterion="Connection pooling configured">
+        Unit test: Verify Prisma client instantiation includes connection_limit: 10 in configuration options
+      </test>
+      <test id="AC-1.1.4" criterion="Database accessible from development environment">
+        Integration test: Execute simple SELECT 1 query successfully from development environment
+      </test>
+      <test id="AC-1.1.5" criterion="Health check endpoint created">
+        Integration test: GET /api/health/db returns 200 status with JSON: { status: "healthy", database: "connected", timestamp: ISO8601 }
+      </test>
+      <test id="AC-1.1.5-failure" criterion="Health check endpoint handles failures">
+        Integration test: Simulate database connection failure, verify /api/health/db returns 503 with error JSON (no credentials exposed)
+      </test>
+      <test id="singleton-pattern" criterion="Prisma client singleton prevents connection exhaustion">
+        Unit test: Verify multiple imports of prisma client return same instance (prevent connection pool exhaustion)
+      </test>
+      <test id="hot-reload" criterion="Development hot reload handling">
+        Unit test: Verify globalForPrisma pattern prevents duplicate client creation during Next.js hot reload
+      </test>
+    </ideas>
+  </tests>
+</story-context>

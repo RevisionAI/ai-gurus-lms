@@ -1,0 +1,15 @@
+# Test Document for E2E Testing
+
+This is a test document used for file upload testing in the AI Gurus LMS E2E test suite.
+
+## Content
+
+This document contains sample educational content for testing purposes.
+
+### Topics Covered:
+- Introduction to neural networks
+- Backpropagation algorithm
+- Activation functions
+- Training methodologies
+
+This document is used to test the file upload functionality in the course content management system.

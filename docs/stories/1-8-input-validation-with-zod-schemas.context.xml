@@ -1,0 +1,555 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context id="1-8-input-validation-with-zod-schemas" v="1.0">
+
+  <metadata>
+    <epicId>1</epicId>
+    <storyId>1.8</storyId>
+    <title>Input Validation with Zod Schemas</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-11-25</generatedAt>
+    <generator>story-context workflow</generator>
+    <sourceStoryPath>docs/stories/1-8-input-validation-with-zod-schemas.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>developer</asA>
+    <iWant>all API endpoints to validate inputs using Zod schemas</iWant>
+    <soThat>invalid data is rejected before processing, preventing injection attacks and data corruption</soThat>
+
+    <tasks>
+      <task id="1" status="pending">
+        <title>Install Zod and configure validation infrastructure</title>
+        <subtasks>
+          <subtask>Install Zod package: npm install zod</subtask>
+          <subtask>Create validation utilities directory: /src/validators/</subtask>
+          <subtask>Create validation helper utility: /src/lib/validation.ts</subtask>
+          <subtask>Implement validateRequest helper function for API route integration</subtask>
+          <subtask>Implement error formatter for Zod validation errors</subtask>
+        </subtasks>
+      </task>
+
+      <task id="2" status="pending">
+        <title>Create user validation schemas</title>
+        <subtasks>
+          <subtask>Create /src/validators/user.ts</subtask>
+          <subtask>Define createUserSchema (email, name, password, role)</subtask>
+          <subtask>Define updateUserSchema (partial of createUserSchema)</subtask>
+          <subtask>Define loginSchema (email, password)</subtask>
+          <subtask>Add email normalization (lowercase, trim)</subtask>
+        </subtasks>
+      </task>
+
+      <task id="3" status="pending">
+        <title>Create course validation schemas</title>
+        <subtasks>
+          <subtask>Create /src/validators/course.ts</subtask>
+          <subtask>Define createCourseSchema with regex validation for course code</subtask>
+          <subtask>Define updateCourseSchema (partial of createCourseSchema)</subtask>
+          <subtask>Define enrollmentSchema (courseId, userId as cuid)</subtask>
+        </subtasks>
+      </task>
+
+      <task id="4" status="pending">
+        <title>Create assignment validation schemas</title>
+        <subtasks>
+          <subtask>Create /src/validators/assignment.ts</subtask>
+          <subtask>Define createAssignmentSchema with future date validation</subtask>
+          <subtask>Define updateAssignmentSchema</subtask>
+          <subtask>Define submissionSchema (content, fileKey optional)</subtask>
+        </subtasks>
+      </task>
+
+      <task id="5" status="pending">
+        <title>Create grade and discussion validation schemas</title>
+        <subtasks>
+          <subtask>Create /src/validators/grade.ts with score range validation</subtask>
+          <subtask>Create /src/validators/discussion.ts</subtask>
+          <subtask>Define discussion and post schemas with content length limits</subtask>
+        </subtasks>
+      </task>
+
+      <task id="6" status="pending">
+        <title>Create announcement validation schema</title>
+      </task>
+
+      <task id="7" status="pending">
+        <title>Integrate validation into user API routes</title>
+        <subtasks>
+          <subtask>Update /src/app/api/auth/register/route.ts with createUserSchema</subtask>
+          <subtask>Update /src/app/api/admin/users/route.ts (POST)</subtask>
+          <subtask>Update /src/app/api/admin/users/[id]/route.ts (PUT)</subtask>
+        </subtasks>
+      </task>
+
+      <task id="8" status="pending">
+        <title>Integrate validation into course API routes</title>
+        <subtasks>
+          <subtask>Update /src/app/api/instructor/courses/route.ts (POST)</subtask>
+          <subtask>Update /src/app/api/instructor/courses/[id]/route.ts (PUT)</subtask>
+          <subtask>Update /src/app/api/student/enroll/route.ts (POST)</subtask>
+        </subtasks>
+      </task>
+
+      <task id="9" status="pending">
+        <title>Integrate validation into assignment API routes</title>
+      </task>
+
+      <task id="10" status="pending">
+        <title>Integrate validation into grade and discussion API routes</title>
+      </task>
+
+      <task id="11" status="pending">
+        <title>Implement XSS sanitization</title>
+        <subtasks>
+          <subtask>Install dompurify and isomorphic-dompurify packages</subtask>
+          <subtask>Create /src/lib/sanitize.ts with sanitizeHtml function</subtask>
+          <subtask>Configure DOMPurify with allowed safe HTML tags</subtask>
+          <subtask>Integrate sanitization into validation schemas via transform step</subtask>
+        </subtasks>
+      </task>
+
+      <task id="12" status="pending">
+        <title>Validate SQL injection prevention</title>
+        <subtasks>
+          <subtask>Audit all Prisma queries across codebase</subtask>
+          <subtask>Verify NO raw SQL queries (parameterized only)</subtask>
+          <subtask>Document Prisma's built-in SQL injection protection</subtask>
+        </subtasks>
+      </task>
+
+      <task id="13" status="pending">
+        <title>Create comprehensive validation test suite</title>
+        <subtasks>
+          <subtask>Create /__tests__/unit/validators/user.test.ts</subtask>
+          <subtask>Create /__tests__/unit/validators/course.test.ts</subtask>
+          <subtask>Create /__tests__/unit/validators/assignment.test.ts</subtask>
+          <subtask>Create /__tests__/unit/validators/grade.test.ts</subtask>
+          <subtask>Create /__tests__/integration/api/validation.test.ts</subtask>
+        </subtasks>
+      </task>
+
+      <task id="14" status="pending">
+        <title>Create validation documentation</title>
+        <subtasks>
+          <subtask>Document validation architecture and patterns</subtask>
+          <subtask>Provide Zod schema examples for common use cases</subtask>
+          <subtask>Document how to add validation to new API endpoints</subtask>
+          <subtask>Document XSS sanitization configuration</subtask>
+          <subtask>Document error response format</subtask>
+          <subtask>Save to /docs/input-validation.md</subtask>
+        </subtasks>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC1" priority="high">
+      <text>Zod schemas defined for all POST/PUT/DELETE endpoints</text>
+      <coverage>User, course, assignment, grade, enrollment, discussion, announcement operations</coverage>
+    </criterion>
+
+    <criterion id="AC2" priority="high">
+      <text>Input validation middleware integrated</text>
+      <detail>Validation logic integrated into API routes with consistent error handling</detail>
+    </criterion>
+
+    <criterion id="AC3" priority="high">
+      <text>Invalid requests return HTTP 400</text>
+      <detail>Malformed or invalid requests return 400 status with clear, actionable error messages</detail>
+      <errorFormat>
+        {
+          "error": {
+            "code": "INVALID_INPUT",
+            "message": "Validation failed",
+            "details": [
+              {"path": ["email"], "message": "Invalid email format"},
+              {"path": ["password"], "message": "Password must be at least 8 characters"}
+            ]
+          }
+        }
+      </errorFormat>
+    </criterion>
+
+    <criterion id="AC4" priority="high">
+      <text>Critical endpoints validated</text>
+      <endpoints>
+        <endpoint>User registration (/api/auth/register)</endpoint>
+        <endpoint>Course creation (/api/instructor/courses)</endpoint>
+        <endpoint>Assignment submission (/api/student/assignments/[id]/submission)</endpoint>
+        <endpoint>Grading (/api/instructor/assignments/[id]/submissions/[submissionId]/grade)</endpoint>
+      </endpoints>
+    </criterion>
+
+    <criterion id="AC5" priority="high">
+      <text>XSS prevention validated</text>
+      <detail>HTML/script tags sanitized in rich text fields (course descriptions, assignment descriptions, discussion posts)</detail>
+      <implementation>DOMPurify with allowed tags: p, strong, em, ul, ol, li, a, br, h1, h2, h3</implementation>
+    </criterion>
+
+    <criterion id="AC6" priority="high">
+      <text>SQL injection prevention validated</text>
+      <detail>Prisma parameterized queries confirmed (no raw SQL allowed)</detail>
+    </criterion>
+
+    <criterion id="AC7" priority="medium">
+      <text>Validation tests written</text>
+      <detail>Unit tests for each schema covering valid inputs, invalid inputs, and edge cases</detail>
+      <target>100% coverage for validator files</target>
+    </criterion>
+
+    <criterion id="AC8" priority="medium">
+      <text>Documentation created</text>
+      <detail>Input validation patterns and schema creation guide saved to /docs/input-validation.md</detail>
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture Document</title>
+        <relevantSections>
+          <section name="Security Architecture - Input Validation">
+            <snippet>
+              Validation Library: Zod
+              Strategy: All POST/PUT/DELETE API endpoints validate inputs with Zod schemas before processing
+              Schema Organization:
+              - /src/validators/user.ts (User-related schemas)
+              - /src/validators/course.ts (Course-related schemas)
+              - /src/validators/assignment.ts (Assignment-related schemas)
+              - /src/validators/index.ts (Barrel exports)
+
+              XSS Prevention:
+              - React automatically escapes JSX content
+              - Rich text (TinyMCE) content sanitized with DOMPurify
+              - CSP headers configured in next.config.js
+
+              SQL Injection Prevention:
+              - Prisma uses parameterized queries (no raw SQL)
+              - All queries type-checked at compile time
+            </snippet>
+          </section>
+
+          <section name="API Architecture - Response Format">
+            <snippet>
+              Validation Error (400):
+              {
+                error: {
+                  code: "INVALID_INPUT",
+                  message: "Validation failed",
+                  details: [
+                    { path: ["email"], message: "Invalid email format" },
+                    { path: ["password"], message: "Password must be at least 8 characters" }
+                  ]
+                }
+              }
+            </snippet>
+          </section>
+        </relevantSections>
+      </doc>
+
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Epic 1 Technical Specification</title>
+        <relevantSections>
+          <section name="APIs and Interfaces - Zod Validation Schemas">
+            <snippet>
+              Zod Validation Schemas (Story 1.8):
+
+              // /src/validators/user.ts
+              export const createUserSchema = z.object({
+                email: z.string().email('Invalid email format').toLowerCase().trim(),
+                name: z.string().min(1, 'Name is required').max(100),
+                password: z.string().min(8).max(100)
+                  .regex(/[A-Z]/, 'Must contain uppercase')
+                  .regex(/[a-z]/, 'Must contain lowercase')
+                  .regex(/[0-9]/, 'Must contain number'),
+                role: z.enum(['STUDENT', 'INSTRUCTOR', 'ADMIN']).optional().default('STUDENT')
+              });
+
+              // /src/validators/course.ts
+              export const createCourseSchema = z.object({
+                code: z.string().regex(/^[A-Z]{2,4}-\d{3,4}$/),
+                title: z.string().min(3).max(200),
+                description: z.string().min(10).max(5000).transform(sanitizeHtml),
+                semester: z.string().regex(/^(Spring|Summer|Fall|Winter) \d{4}$/),
+                active: z.boolean().optional().default(true),
+                thumbnailUrl: z.string().url().nullable().optional()
+              });
+            </snippet>
+          </section>
+
+          <section name="Security - XSS and SQL Injection Prevention">
+            <snippet>
+              XSS Prevention Strategy:
+              1. React Auto-Escaping: All JSX content automatically escaped
+              2. Rich Text Sanitization: DOMPurify sanitizes before storage
+              3. DOMPurify Configuration: Allow safe tags (p, strong, em, ul, ol, li, a, br), strip scripts
+              4. Content Security Policy: CSP headers prevent inline scripts
+
+              SQL Injection Prevention:
+              - Prisma Parameterized Queries: All queries use ORM (automatically parameterized)
+              - No Raw SQL: prisma.$queryRaw only for health checks with parameterized syntax
+              - Input Validation: Zod schemas reject malformed inputs before database layer
+            </snippet>
+          </section>
+        </relevantSections>
+      </doc>
+
+      <doc>
+        <path>docs/PRD.md</path>
+        <title>Product Requirements Document</title>
+        <relevantSections>
+          <section name="Requirements - FR006">
+            <snippet>
+              FR006: System shall validate all API inputs using Zod schemas to prevent injection attacks and data corruption
+            </snippet>
+          </section>
+        </relevantSections>
+      </doc>
+    </docs>
+
+    <code>
+      <file>
+        <path>src/app/api/auth/register/route.ts</path>
+        <kind>API Route</kind>
+        <symbol>POST</symbol>
+        <lines>5-54</lines>
+        <reason>Current registration endpoint with basic validation - needs Zod schema integration</reason>
+        <currentValidation>
+          - Manual field presence checks (line 9)
+          - No email format validation
+          - No password complexity validation
+          - No type validation
+        </currentValidation>
+      </file>
+
+      <file>
+        <path>src/app/api/instructor/courses/route.ts</path>
+        <kind>API Route</kind>
+        <symbol>POST</symbol>
+        <lines>38-83</lines>
+        <reason>Course creation endpoint with basic validation - needs comprehensive Zod schema</reason>
+        <currentValidation>
+          - Manual required field checks (line 48)
+          - No course code format validation
+          - No semester format validation
+          - No XSS sanitization on description
+        </currentValidation>
+      </file>
+
+      <file>
+        <path>prisma/schema.prisma</path>
+        <kind>Database Schema</kind>
+        <symbol>User, Course, Assignment, Grade, Discussion</symbol>
+        <lines>10-212</lines>
+        <reason>Prisma models define field types and constraints - inform Zod schema design</reason>
+        <relevantModels>
+          - User: email (unique), name, surname, password, role, cellNumber, company, position, workAddress
+          - Course: title, description, code (unique), semester, year, isActive
+          - Assignment: title, description, dueDate, maxPoints, isPublished
+          - Grade: points, feedback
+          - Discussion: title, description, isPinned, isLocked
+          - DiscussionPost: content, parentId
+          - Announcement: title, content
+        </relevantModels>
+      </file>
+    </code>
+
+    <dependencies>
+      <existing>
+        <package name="@prisma/client" version="6.9.0">
+          Database ORM with built-in parameterized queries (SQL injection prevention)
+        </package>
+        <package name="bcryptjs" version="3.0.2">
+          Password hashing (used in user validation flow)
+        </package>
+        <package name="next" version="15.3.3">
+          Next.js framework (API routes where validation will be integrated)
+        </package>
+      </existing>
+
+      <new>
+        <package name="zod" version="^3.24.1">
+          TypeScript-first schema validation library
+          Purpose: Define validation schemas for all POST/PUT/DELETE endpoints
+          License: MIT
+        </package>
+        <package name="dompurify" version="^3.2.3">
+          XSS sanitization library for HTML content
+          Purpose: Sanitize rich text fields (descriptions, posts, feedback)
+          License: Apache-2.0 OR MPL-2.0
+        </package>
+        <package name="isomorphic-dompurify" version="^2.19.0">
+          DOMPurify wrapper for Node.js server-side rendering
+          Purpose: Enable DOMPurify usage in Next.js API routes (serverless functions)
+          License: MIT
+        </package>
+      </new>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <development>
+      <constraint>Must preserve existing Next.js 15 + Prisma 6.9.0 architecture</constraint>
+      <constraint>Must maintain backward compatibility with existing API consumers</constraint>
+      <constraint>All validation errors must return consistent error format (AC3)</constraint>
+      <constraint>Validation must not degrade API response time beyond 5ms per request</constraint>
+      <constraint>No raw SQL queries allowed - Prisma ORM only (SQL injection prevention)</constraint>
+    </development>
+
+    <security>
+      <constraint>Password validation must enforce complexity (8+ chars, 1 uppercase, 1 lowercase, 1 number)</constraint>
+      <constraint>Email validation must include format check and normalization (lowercase, trim)</constraint>
+      <constraint>XSS sanitization must allow safe HTML only (p, strong, em, ul, ol, li, a, br, h1-h3)</constraint>
+      <constraint>All user inputs must be validated before processing - fail closed approach</constraint>
+      <constraint>Error messages must not expose internal system details (security principle)</constraint>
+    </security>
+
+    <testing>
+      <constraint>100% test coverage required for all validator files (/src/validators/*.ts)</constraint>
+      <constraint>Integration tests must verify API routes return 400 for invalid inputs</constraint>
+      <constraint>Security tests must validate SQL injection and XSS prevention</constraint>
+    </testing>
+  </constraints>
+
+  <interfaces>
+    <interface name="validateRequest" location="/src/lib/validation.ts">
+      <signature>
+        async function validateRequest&lt;T&gt;(
+          request: Request,
+          schema: ZodSchema&lt;T&gt;
+        ): Promise&lt;{success: true; data: T} | {success: false; response: NextResponse}&gt;
+      </signature>
+      <purpose>Helper function to validate API request body against Zod schema</purpose>
+      <returns>
+        Success: {success: true, data: T} - Validated and typed data
+        Failure: {success: false, response: NextResponse} - Pre-formatted 400 error response
+      </returns>
+      <usage>
+        const validation = await validateRequest(request, createUserSchema);
+        if (!validation.success) return validation.response;
+        const {email, name, password} = validation.data;
+      </usage>
+    </interface>
+
+    <interface name="sanitizeHtml" location="/src/lib/sanitize.ts">
+      <signature>
+        function sanitizeHtml(html: string): string
+      </signature>
+      <purpose>Sanitize HTML content to prevent XSS attacks</purpose>
+      <configuration>
+        ALLOWED_TAGS: ['p', 'strong', 'em', 'u', 'ul', 'ol', 'li', 'a', 'br', 'h1', 'h2', 'h3']
+        ALLOWED_ATTR: ['href', 'target', 'rel']
+        ALLOW_DATA_ATTR: false
+      </configuration>
+      <usage>
+        // In Zod schema
+        description: z.string().min(10).max(5000).transform(sanitizeHtml)
+      </usage>
+    </interface>
+
+    <interface name="Zod Schemas" location="/src/validators/">
+      <schemas>
+        <schema name="createUserSchema" exports="CreateUserInput type">
+          Fields: email (email format, normalized), name (1-100 chars), password (8-100 chars with complexity), role (enum, optional)
+        </schema>
+        <schema name="updateUserSchema" exports="UpdateUserInput type">
+          Partial of createUserSchema, requires at least one field
+        </schema>
+        <schema name="loginSchema" exports="LoginInput type">
+          Fields: email (email format, normalized), password (min 1 char)
+        </schema>
+        <schema name="createCourseSchema" exports="CreateCourseInput type">
+          Fields: code (regex /^[A-Z]{2,4}-\d{3,4}$/), title (3-200 chars), description (10-5000 chars, sanitized), semester (regex), active (boolean), thumbnailUrl (URL nullable)
+        </schema>
+        <schema name="createAssignmentSchema" exports="CreateAssignmentInput type">
+          Fields: title (3-200 chars), description (10-10000 chars, sanitized), dueDate (ISO datetime, future), points (1-1000), courseId (cuid)
+        </schema>
+        <schema name="gradeSubmissionSchema" exports="GradeSubmissionInput type">
+          Fields: submissionId (cuid), score (0-max points validated), feedback (0-5000 chars optional)
+        </schema>
+      </schemas>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      <standard>Unit tests for all validator schemas (valid, invalid, edge cases)</standard>
+      <standard>Integration tests for API routes with validation (400 error responses)</standard>
+      <standard>Security tests for SQL injection and XSS prevention</standard>
+      <standard>Test coverage target: 100% for validator files, 70%+ overall critical paths</standard>
+    </standards>
+
+    <locations>
+      <location>/__tests__/unit/validators/user.test.ts</location>
+      <location>/__tests__/unit/validators/course.test.ts</location>
+      <location>/__tests__/unit/validators/assignment.test.ts</location>
+      <location>/__tests__/unit/validators/grade.test.ts</location>
+      <location>/__tests__/integration/api/validation.test.ts</location>
+    </locations>
+
+    <testIdeas>
+      <idea ac="AC1" priority="high">
+        Test: User validation schema rejects invalid email formats
+        Input: {email: "notanemail", name: "Test", password: "Pass123"}
+        Expected: Validation error with path ["email"]
+      </idea>
+
+      <idea ac="AC1" priority="high">
+        Test: User validation schema rejects weak passwords
+        Input: {email: "test@example.com", name: "Test", password: "short"}
+        Expected: Validation error with path ["password"], message about 8 characters minimum
+      </idea>
+
+      <idea ac="AC1" priority="high">
+        Test: Course validation schema rejects invalid course code format
+        Input: {code: "cs101", title: "Course", semester: "Fall 2025"}
+        Expected: Validation error - code must be uppercase with dash (CS-101)
+      </idea>
+
+      <idea ac="AC3" priority="high">
+        Test: API route returns 400 for invalid registration input
+        POST /api/auth/register with {email: "invalid", password: "weak"}
+        Expected: HTTP 400 with error.code="INVALID_INPUT" and details array
+      </idea>
+
+      <idea ac="AC5" priority="high">
+        Test: XSS sanitization strips malicious script tags
+        Input: description with "&lt;script&gt;alert('xss')&lt;/script&gt;Normal text"
+        Expected: Output "Normal text" (script removed)
+      </idea>
+
+      <idea ac="AC5" priority="high">
+        Test: XSS sanitization preserves safe HTML formatting
+        Input: description with "&lt;p&gt;Text with &lt;strong&gt;bold&lt;/strong&gt;&lt;/p&gt;"
+        Expected: Safe HTML preserved
+      </idea>
+
+      <idea ac="AC6" priority="high">
+        Test: SQL injection attempt rejected by Zod schema
+        POST /api/auth/register with email: "test'; DROP TABLE users;--"
+        Expected: HTTP 400 validation error (Zod rejects invalid email format)
+      </idea>
+
+      <idea ac="AC7" priority="medium">
+        Test: Assignment schema validates future due dates only
+        Input: {dueDate: "2020-01-01T00:00:00Z", ...}
+        Expected: Validation error - due date must be in future
+      </idea>
+
+      <idea ac="AC7" priority="medium">
+        Test: Grade schema validates score within 0-max points range
+        Input: {score: 150, assignmentMaxPoints: 100}
+        Expected: Validation error - score exceeds max points
+      </idea>
+
+      <idea ac="AC7" priority="medium">
+        Test: Email normalization (lowercase, trim whitespace)
+        Input: {email: "  Test@Example.COM  "}
+        Expected: Normalized to "test@example.com"
+      </idea>
+    </testIdeas>
+  </tests>
+
+</story-context>

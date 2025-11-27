@@ -1,0 +1,602 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>4-5-deployment-runbooks-operational-procedures</story-id>
+    <story-title>Deployment Runbooks &amp; Operational Procedures</story-title>
+    <epic>Epic 4: Production Deployment &amp; Monitoring</epic>
+    <generated-date>2025-11-27</generated-date>
+    <status>ready-for-dev</status>
+  </metadata>
+
+  <story-overview>
+    <user-story>
+      As a DevOps engineer,
+      I want comprehensive deployment runbooks and operational procedures,
+      so that any team member can deploy updates, respond to incidents, and maintain the platform.
+    </user-story>
+
+    <scope>
+      Create comprehensive deployment runbooks, incident response playbooks, troubleshooting guides,
+      and monitoring dashboard interpretation guides to enable any team member to operate the
+      production AI Gurus LMS platform with confidence and consistency.
+    </scope>
+
+    <dependencies>
+      <dependency>Story 4.1: Production Hosting Configuration (deployment procedures)</dependency>
+      <dependency>Story 4.2: Automated Database Backup &amp; Recovery (backup procedures)</dependency>
+      <dependency>Story 4.3: Error Tracking &amp; Logging Infrastructure (monitoring tools)</dependency>
+      <dependency>Story 4.4: Performance Monitoring &amp; Uptime Tracking (dashboards)</dependency>
+    </dependencies>
+  </story-overview>
+
+  <acceptance-criteria>
+    <criterion id="AC1">
+      <description>Deployment runbook created (docs/deployment-runbook.md) with pre-deployment checklist, deployment steps, post-deployment validation, rollback procedure</description>
+      <validation>File exists, covers all deployment scenarios, includes checklists and commands</validation>
+    </criterion>
+
+    <criterion id="AC2">
+      <description>Incident response playbook created (docs/incident-response.md) with severity classification, escalation procedures, common incidents and resolutions, post-incident review template</description>
+      <validation>File exists, defines P0/P1/P2/P3 severities, includes response workflows</validation>
+    </criterion>
+
+    <criterion id="AC3">
+      <description>Troubleshooting guide created (docs/troubleshooting.md) with common errors and fixes, log access instructions, database diagnostic queries, performance debugging techniques</description>
+      <validation>File exists, covers common error scenarios, includes diagnostic commands</validation>
+    </criterion>
+
+    <criterion id="AC4">
+      <description>Monitoring dashboard guide created with metric interpretation, escalation thresholds, historical baseline comparisons</description>
+      <validation>Guide covers Sentry, Vercel Analytics, Better Stack dashboards with interpretation</validation>
+    </criterion>
+
+    <criterion id="AC5">
+      <description>All runbooks peer-reviewed by team (ensure clarity and completeness)</description>
+      <validation>Peer review session completed, feedback incorporated, documents finalized</validation>
+    </criterion>
+
+    <criterion id="AC6">
+      <description>Runbook tested via tabletop exercise (simulate incident, follow procedures)</description>
+      <validation>Tabletop exercise completed, procedures validated, gaps documented and addressed</validation>
+    </criterion>
+  </acceptance-criteria>
+
+  <technical-context>
+    <deployment-architecture>
+      <platform>Vercel</platform>
+      <deployment-method>Automatic on push to main branch (GitHub integration)</deployment-method>
+      <deployment-url>https://ai-gurus-lms.vercel.app (custom domain TBD)</deployment-url>
+
+      <deployment-workflow>
+        <step>Developer pushes to main branch</step>
+        <step>GitHub Actions CI/CD runs (lint, type check, unit tests, E2E tests)</step>
+        <step>All tests must pass (blocking)</step>
+        <step>Vercel auto-deploy builds Next.js application</step>
+        <step>Deploy to edge network atomically</step>
+        <step>Post-deployment validation (health check, smoke tests)</step>
+        <step>Monitoring active (Sentry, Better Stack, Vercel Analytics)</step>
+      </deployment-workflow>
+
+      <rollback-procedure>
+        <command>vercel rollback</command>
+        <description>Instantly rollback to previous deployment via Vercel dashboard or CLI</description>
+        <decision-criteria>
+          <criterion>Critical errors detected in Sentry (P0)</criterion>
+          <criterion>Health check endpoint failing</criterion>
+          <criterion>Major feature broken (P1)</criterion>
+          <criterion>Error rate spike (&gt;10x baseline)</criterion>
+        </decision-criteria>
+      </rollback-procedure>
+    </deployment-architecture>
+
+    <database-configuration>
+      <provider>Neon PostgreSQL</provider>
+      <backup-strategy>
+        <frequency>Daily automated backups (midnight UTC)</frequency>
+        <retention>7-day retention for daily backups, 4-week retention for weekly backups</retention>
+        <location>Separate availability zone from primary database</location>
+      </backup-strategy>
+
+      <recovery-procedures>
+        <rto>Recovery Time Objective: &lt; 1 hour</rto>
+        <rpo>Recovery Point Objective: &lt; 24 hours (daily backups)</rpo>
+        <restore-method>Point-in-time restore via Neon dashboard</restore-method>
+      </recovery-procedures>
+
+      <diagnostic-queries>
+        <query name="connection-health">SELECT 1;</query>
+        <query name="active-connections">SELECT count(*) FROM pg_stat_activity;</query>
+        <query name="long-running-queries">
+          SELECT pid, now() - pg_stat_activity.query_start AS duration, query
+          FROM pg_stat_activity
+          WHERE (now() - pg_stat_activity.query_start) &gt; interval '5 seconds';
+        </query>
+        <query name="database-size">SELECT pg_size_pretty(pg_database_size(current_database()));</query>
+        <query name="table-sizes">
+          SELECT schemaname, tablename, pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename))
+          FROM pg_tables
+          ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC;
+        </query>
+      </diagnostic-queries>
+    </database-configuration>
+
+    <monitoring-services>
+      <sentry>
+        <purpose>Error tracking, session replay, performance monitoring</purpose>
+        <dashboard-url>https://sentry.io/organizations/{org}/projects/ai-gurus-lms/</dashboard-url>
+        <key-metrics>
+          <metric>Error trends (last 24h, 7d, 30d)</metric>
+          <metric>Most common errors (grouped by type)</metric>
+          <metric>Error rate by endpoint/route</metric>
+          <metric>Session replay for debugging user-reported issues</metric>
+          <metric>Release tracking (compare error rates across deployments)</metric>
+        </key-metrics>
+        <alert-configuration>
+          <alert severity="P0">Critical errors (auth, data loss) → Immediate Slack + SMS</alert>
+          <alert severity="P1">Major feature broken → Slack + Email within 1 hour</alert>
+          <alert severity="P2">Minor issues → Email within 4 hours</alert>
+          <alert severity="P3">Cosmetic issues → Daily digest</alert>
+        </alert-configuration>
+      </sentry>
+
+      <vercel-analytics>
+        <purpose>Performance monitoring, Core Web Vitals, real user metrics</purpose>
+        <dashboard-url>https://vercel.com/{team}/ai-gurus-lms/analytics</dashboard-url>
+        <key-metrics>
+          <metric>Core Web Vitals: LCP &lt; 2.5s, FID &lt; 100ms, CLS &lt; 0.1</metric>
+          <metric>Page load times: p95 &lt; 2 seconds</metric>
+          <metric>API response times: p95 &lt; 500ms</metric>
+          <metric>Geographic performance breakdown</metric>
+          <metric>Real User Monitoring (RUM) data</metric>
+          <metric>Traffic trends and anomalies</metric>
+        </key-metrics>
+        <performance-targets>
+          <target metric="LCP">Largest Contentful Paint &lt; 2.5s</target>
+          <target metric="FID">First Input Delay &lt; 100ms</target>
+          <target metric="CLS">Cumulative Layout Shift &lt; 0.1</target>
+          <target metric="TTFB">Time to First Byte &lt; 200ms</target>
+          <target metric="FCP">First Contentful Paint &lt; 1.8s</target>
+        </performance-targets>
+      </vercel-analytics>
+
+      <better-stack>
+        <purpose>Uptime monitoring, incident detection, status page</purpose>
+        <dashboard-url>https://uptime.betterstack.com/team/{team}/monitors</dashboard-url>
+        <monitored-endpoints>
+          <endpoint>Homepage: https://ai-gurus-lms.vercel.app/</endpoint>
+          <endpoint>Login: https://ai-gurus-lms.vercel.app/login</endpoint>
+          <endpoint>Health Check: https://ai-gurus-lms.vercel.app/api/health/db</endpoint>
+          <endpoint>Course Catalog: https://ai-gurus-lms.vercel.app/courses</endpoint>
+        </monitored-endpoints>
+        <monitoring-config>
+          <check-frequency>Every 3 minutes</check-frequency>
+          <check-locations>Multiple global regions (US, EU, Asia)</check-locations>
+          <incident-detection>2 consecutive failed checks = downtime incident</incident-detection>
+        </monitoring-config>
+        <alert-configuration>
+          <alert type="downtime">2 consecutive failures → Immediate SMS + Email + Slack</alert>
+          <alert type="slow-response">Response time &gt; 5 seconds → Warning Email + Slack</alert>
+          <alert type="recovery">Service restored → Immediate Email + Slack</alert>
+          <alert type="ssl-expiry">Certificate expires in &lt; 14 days → Warning Email</alert>
+        </alert-configuration>
+        <sla-targets>
+          <target>99.5%+ uptime (7-day rolling average)</target>
+          <target>MTTD (Mean Time to Detect) &lt; 5 minutes</target>
+          <target>MTTR (Mean Time to Recovery) &lt; 1 hour</target>
+        </sla-targets>
+      </better-stack>
+
+      <vercel-logs>
+        <purpose>Application logs, request logs, function logs</purpose>
+        <access>Vercel Dashboard → Project → Logs</access>
+        <filtering>
+          <filter>By function/route</filter>
+          <filter>By status code</filter>
+          <filter>By time range</filter>
+          <filter>By search query (full-text)</filter>
+        </filtering>
+        <log-format>JSON structured logs via Pino (if implemented)</log-format>
+        <retention>7 days (Hobby tier), 3 months (Pro tier)</retention>
+      </vercel-logs>
+    </monitoring-services>
+
+    <incident-severity-classification>
+      <severity level="P0" name="Critical">
+        <description>Site down, data loss risk, security breach</description>
+        <response-time>Immediate response required</response-time>
+        <escalation>All hands on deck, immediate notification</escalation>
+        <examples>
+          <example>Production site completely inaccessible</example>
+          <example>Database connection lost</example>
+          <example>Data breach or security vulnerability exploited</example>
+          <example>Authentication system down (users cannot login)</example>
+        </examples>
+      </severity>
+
+      <severity level="P1" name="High">
+        <description>Major feature broken, significant user impact</description>
+        <response-time>Response within 1 hour</response-time>
+        <escalation>DevOps + Tech Lead notified immediately</escalation>
+        <examples>
+          <example>Course enrollment system failing</example>
+          <example>Assignment submission not working</example>
+          <example>Gradebook inaccessible for instructors</example>
+          <example>Deployment failure blocking releases</example>
+        </examples>
+      </severity>
+
+      <severity level="P2" name="Medium">
+        <description>Minor feature issue, workaround available</description>
+        <response-time>Response within 4 hours</response-time>
+        <escalation>DevOps notified via Slack</escalation>
+        <examples>
+          <example>File upload slow but functional</example>
+          <example>Performance degradation (pages loading slowly)</example>
+          <example>Non-critical errors appearing in Sentry</example>
+          <example>UI glitch affecting specific pages</example>
+        </examples>
+      </severity>
+
+      <severity level="P3" name="Low">
+        <description>Cosmetic issue, minimal impact</description>
+        <response-time>Next business day</response-time>
+        <escalation>Added to backlog, reviewed in daily standup</escalation>
+        <examples>
+          <example>Visual alignment issue</example>
+          <example>Typo in user-facing text</example>
+          <example>Non-critical performance optimization opportunity</example>
+        </examples>
+      </severity>
+    </incident-severity-classification>
+
+    <common-error-scenarios>
+      <scenario name="database-connection-failure">
+        <symptoms>503 errors, health check fails, timeout errors</symptoms>
+        <diagnosis>Check Neon dashboard, verify DATABASE_URL, check connection pool</diagnosis>
+        <resolution>
+          <step>Check Neon status page: https://neon.tech/status</step>
+          <step>Verify DATABASE_URL environment variable is correct</step>
+          <step>Check database connection pool limits (default: 10)</step>
+          <step>Restart Vercel functions (redeploy if needed)</step>
+          <step>If Neon outage, wait for service restoration or restore from backup</step>
+        </resolution>
+      </scenario>
+
+      <scenario name="r2-storage-error">
+        <symptoms>File upload fails, 500 errors, "Failed to upload" messages</symptoms>
+        <diagnosis>Check Cloudflare R2 dashboard, verify credentials, check bucket permissions</diagnosis>
+        <resolution>
+          <step>Check Cloudflare R2 status: https://www.cloudflarestatus.com/</step>
+          <step>Verify R2_ACCESS_KEY_ID and R2_SECRET_ACCESS_KEY in environment variables</step>
+          <step>Verify R2_BUCKET_NAME matches actual bucket name</step>
+          <step>Check bucket CORS configuration allows uploads</step>
+          <step>Test signed URL generation in isolation</step>
+        </resolution>
+      </scenario>
+
+      <scenario name="authentication-error">
+        <symptoms>Login fails, 401 errors, "Unauthorized" messages, session expired</symptoms>
+        <diagnosis>Check NextAuth logs, verify NEXTAUTH_SECRET, check session cookies</diagnosis>
+        <resolution>
+          <step>Verify NEXTAUTH_URL matches production domain</step>
+          <step>Verify NEXTAUTH_SECRET is set and matches across deployments</step>
+          <step>Check browser cookies (clear if stale)</step>
+          <step>Verify database session table is accessible (NextAuth Prisma adapter)</step>
+          <step>Check for CORS issues (credentials not sent)</step>
+        </resolution>
+      </scenario>
+
+      <scenario name="rate-limiting-triggered">
+        <symptoms>429 errors, "Too many requests" messages, rate limit headers</symptoms>
+        <diagnosis>Check Upstash Redis logs, verify rate limit configuration</diagnosis>
+        <resolution>
+          <step>Identify source of excessive requests (check IP address in logs)</step>
+          <step>Determine if legitimate traffic spike or potential abuse</step>
+          <step>If legitimate: Temporarily increase rate limits via environment variables</step>
+          <step>If abuse: Block IP address at Vercel edge level or via middleware</step>
+          <step>Monitor for continued abuse patterns</step>
+        </resolution>
+      </scenario>
+
+      <scenario name="build-deployment-failure">
+        <symptoms>Deployment fails, build errors, TypeScript errors, dependency issues</symptoms>
+        <diagnosis>Check Vercel build logs, review recent code changes</diagnosis>
+        <resolution>
+          <step>Review Vercel build logs for specific error messages</step>
+          <step>If TypeScript errors: Fix type issues and redeploy</step>
+          <step>If dependency issues: Verify package.json and package-lock.json are in sync</step>
+          <step>If out of memory: Optimize build process or upgrade Vercel plan</step>
+          <step>If environment variable missing: Add to Vercel project settings</step>
+          <step>Test build locally: npm run build</step>
+        </resolution>
+      </scenario>
+    </common-error-scenarios>
+
+    <escalation-thresholds>
+      <threshold metric="error-rate">
+        <condition>Error rate &gt; 10x baseline</condition>
+        <severity>P1</severity>
+        <action>Immediate investigation, consider rollback</action>
+      </threshold>
+
+      <threshold metric="uptime">
+        <condition>Uptime &lt; 99.5% (7-day rolling)</condition>
+        <severity>P1</severity>
+        <action>Root cause analysis, preventive measures</action>
+      </threshold>
+
+      <threshold metric="response-time">
+        <condition>p95 response time &gt; 5 seconds</condition>
+        <severity>P2</severity>
+        <action>Performance investigation, database query optimization</action>
+      </threshold>
+
+      <threshold metric="critical-errors">
+        <condition>Any P0 error (auth, data loss)</condition>
+        <severity>P0</severity>
+        <action>Immediate response, all hands on deck</action>
+      </threshold>
+    </escalation-thresholds>
+
+    <monitoring-checklist>
+      <daily-checks>
+        <check>Review Sentry for new critical errors (P0/P1)</check>
+        <check>Check Better Stack uptime (last 24 hours)</check>
+        <check>Review Vercel Analytics for performance anomalies</check>
+        <check>Verify backup completion (Neon dashboard)</check>
+        <check>Check error rate trends (compare to yesterday)</check>
+      </daily-checks>
+
+      <weekly-checks>
+        <check>Review incident history and trends (Better Stack)</check>
+        <check>Analyze performance baselines (compare to previous week)</check>
+        <check>Review error patterns for recurring issues (Sentry)</check>
+        <check>Check storage usage (R2 bucket size via Cloudflare dashboard)</check>
+        <check>Validate monitoring alerts are working (test alert)</check>
+        <check>Review and update runbooks based on new learnings</check>
+      </weekly-checks>
+    </monitoring-checklist>
+  </technical-context>
+
+  <files-to-create>
+    <file>
+      <path>/Users/eddyh/Documents/2025/Q3/Projects/Vibe Tribe/Vibe Tribe/AI GURUS v12claude/ai-gurus-lms/docs/deployment-runbook.md</path>
+      <purpose>Step-by-step deployment procedures for production releases</purpose>
+      <sections>
+        <section>Pre-Deployment Checklist (tests, security scan, migrations, env vars, approval)</section>
+        <section>Deployment Steps (Vercel automatic on push to main, manual via CLI)</section>
+        <section>Post-Deployment Validation (health check, smoke tests, monitoring)</section>
+        <section>Rollback Procedure (decision criteria, Vercel dashboard or CLI, validation)</section>
+        <section>Environment Variable Verification Checklist</section>
+        <section>Zero-Downtime Deployment Strategy (Vercel atomic deployments)</section>
+      </sections>
+    </file>
+
+    <file>
+      <path>/Users/eddyh/Documents/2025/Q3/Projects/Vibe Tribe/Vibe Tribe/AI GURUS v12claude/ai-gurus-lms/docs/incident-response.md</path>
+      <purpose>Incident classification, response workflows, escalation procedures</purpose>
+      <sections>
+        <section>Severity Classification System (P0/P1/P2/P3 definitions)</section>
+        <section>Incident Response Flow (Alert → Classification → Investigation → Resolution → Post-Incident Review)</section>
+        <section>Escalation Procedures (primary contact, secondary contact, stakeholder notification)</section>
+        <section>Common Incident Response Procedures (site down, database unreachable, deployment failure, error spike, performance degradation, auth failures)</section>
+        <section>Post-Incident Review Template (timeline, root cause, resolution, preventive measures, runbook updates)</section>
+        <section>Communication Protocols (when and how to notify stakeholders)</section>
+        <section>Incident Workflow Diagram</section>
+        <section>Monitoring Dashboard Interpretation (Sentry, Vercel Analytics, Better Stack)</section>
+      </sections>
+    </file>
+
+    <file>
+      <path>/Users/eddyh/Documents/2025/Q3/Projects/Vibe Tribe/Vibe Tribe/AI GURUS v12claude/ai-gurus-lms/docs/troubleshooting.md</path>
+      <purpose>Common errors, diagnostic procedures, performance debugging</purpose>
+      <sections>
+        <section>Common Errors and Fixes (database connection, R2 storage, authentication, rate limiting, build failures)</section>
+        <section>Log Access Instructions (Vercel Logs, Sentry errors, filtering and searching)</section>
+        <section>Database Diagnostic Queries (connection health, performance bottleneck queries, data integrity checks)</section>
+        <section>Performance Debugging Techniques (Vercel Analytics, slow queries, frontend profiling, Core Web Vitals)</section>
+        <section>Error Code Reference (HTTP status codes and meaning)</section>
+        <section>Debugging Workflows (step-by-step troubleshooting for each error type)</section>
+      </sections>
+    </file>
+  </files-to-create>
+
+  <environment-variables>
+    <required-for-deployment>
+      <variable>DATABASE_URL (Neon PostgreSQL connection string)</variable>
+      <variable>DIRECT_URL (Neon direct connection for migrations)</variable>
+      <variable>NEXTAUTH_URL (Production domain: https://ai-gurus-lms.vercel.app)</variable>
+      <variable>NEXTAUTH_SECRET (Random 32-char secret)</variable>
+      <variable>R2_ACCOUNT_ID (Cloudflare R2 account ID)</variable>
+      <variable>R2_ACCESS_KEY_ID (Cloudflare R2 access key)</variable>
+      <variable>R2_SECRET_ACCESS_KEY (Cloudflare R2 secret key)</variable>
+      <variable>R2_BUCKET_NAME (Cloudflare R2 bucket name)</variable>
+      <variable>R2_PUBLIC_URL (Cloudflare R2 public CDN URL)</variable>
+      <variable>UPSTASH_REDIS_REST_URL (Upstash Redis REST URL)</variable>
+      <variable>UPSTASH_REDIS_REST_TOKEN (Upstash Redis token)</variable>
+      <variable>NEXT_PUBLIC_SENTRY_DSN (Sentry DSN, if Story 4.3 complete)</variable>
+      <variable>SENTRY_AUTH_TOKEN (Sentry auth token for source maps)</variable>
+    </required-for-deployment>
+
+    <optional>
+      <variable>LOG_LEVEL (default: info in production)</variable>
+      <variable>RATE_LIMIT_IP_MAX (default: 100 req/min)</variable>
+      <variable>RATE_LIMIT_USER_MAX (default: 200 req/min)</variable>
+      <variable>GPA_SCALE (default: 4.0)</variable>
+      <variable>NEXT_PUBLIC_TINYMCE_API_KEY (TinyMCE rich text editor)</variable>
+    </optional>
+  </environment-variables>
+
+  <existing-infrastructure>
+    <health-endpoint>
+      <path>/api/health/db</path>
+      <file>/Users/eddyh/Documents/2025/Q3/Projects/Vibe Tribe/Vibe Tribe/AI GURUS v12claude/ai-gurus-lms/src/app/api/health/db/route.ts</file>
+      <functionality>
+        <feature>Tests database connection with 5-second timeout</feature>
+        <feature>Returns 200 OK if healthy (with status, database, timestamp, responseTime)</feature>
+        <feature>Returns 503 Service Unavailable if unhealthy</feature>
+        <feature>Used by Better Stack for uptime monitoring</feature>
+      </functionality>
+    </health-endpoint>
+
+    <deployment-config>
+      <file>/Users/eddyh/Documents/2025/Q3/Projects/Vibe Tribe/Vibe Tribe/AI GURUS v12claude/ai-gurus-lms/next.config.js</file>
+      <security-headers>
+        <header>Content-Security-Policy (CSP) configured</header>
+        <header>X-Frame-Options: SAMEORIGIN</header>
+        <header>X-Content-Type-Options: nosniff</header>
+        <header>X-XSS-Protection: 1; mode=block</header>
+        <header>Referrer-Policy: strict-origin-when-cross-origin</header>
+        <header>Strict-Transport-Security: max-age=63072000; includeSubDomains; preload</header>
+        <header>Permissions-Policy: camera=(), microphone=(), geolocation=()</header>
+      </security-headers>
+    </deployment-config>
+
+    <npm-scripts>
+      <script name="build">next build (production build)</script>
+      <script name="start">next start (production server)</script>
+      <script name="test">jest (unit tests)</script>
+      <script name="test:e2e">playwright test (E2E tests)</script>
+      <script name="lint">next lint (code quality)</script>
+    </npm-scripts>
+  </existing-infrastructure>
+
+  <reference-documentation>
+    <document>
+      <path>/Users/eddyh/Documents/2025/Q3/Projects/Vibe Tribe/Vibe Tribe/AI GURUS v12claude/ai-gurus-lms/docs/tech-spec-epic-4.md</path>
+      <relevant-sections>
+        <section>Workflows and Sequencing (deployment flow, incident response flow, backup flow)</section>
+        <section>Services and Modules (Vercel, Neon, Sentry, Better Stack, Vercel Analytics)</section>
+        <section>Observability (error tracking, logging, metrics, uptime, traces, alerting, dashboards)</section>
+        <section>Acceptance Criteria (Story 4.5 detailed requirements)</section>
+      </relevant-sections>
+    </document>
+
+    <document>
+      <path>/Users/eddyh/Documents/2025/Q3/Projects/Vibe Tribe/Vibe Tribe/AI GURUS v12claude/ai-gurus-lms/docs/architecture.md</path>
+      <relevant-sections>
+        <section>Deployment Architecture (hosting, environment tiers, deployment workflow)</section>
+        <section>Monitoring &amp; Observability (Sentry, Vercel Analytics, Better Stack, Pino logging)</section>
+        <section>Environment Variables (required variables for production)</section>
+        <section>Security Architecture (headers, authentication, rate limiting)</section>
+      </relevant-sections>
+    </document>
+
+    <document>
+      <path>/Users/eddyh/Documents/2025/Q3/Projects/Vibe Tribe/Vibe Tribe/AI GURUS v12claude/ai-gurus-lms/docs/stories/4-5-deployment-runbooks-operational-procedures.md</path>
+      <relevant-sections>
+        <section>Dev Notes (deployment runbook outline, incident response outline, troubleshooting outline, monitoring dashboard guide outline)</section>
+        <section>Tasks / Subtasks (detailed breakdown of all work items)</section>
+      </relevant-sections>
+    </document>
+  </reference-documentation>
+
+  <implementation-guidance>
+    <deployment-runbook-structure>
+      <pre-deployment>
+        <item>All tests passing in CI/CD (GitHub Actions)</item>
+        <item>Security scan completed (no P0/P1 vulnerabilities)</item>
+        <item>Database migrations prepared and tested (npx prisma migrate deploy)</item>
+        <item>Environment variables validated (all required vars present)</item>
+        <item>Stakeholder approval obtained (if major release)</item>
+      </pre-deployment>
+
+      <deployment-steps>
+        <automatic>
+          <step>Push to main branch triggers Vercel auto-deploy</step>
+          <step>Vercel builds Next.js application</step>
+          <step>Deploys to edge network atomically (zero-downtime)</step>
+          <step>Updates production URL automatically</step>
+        </automatic>
+        <manual>
+          <step>Install Vercel CLI: npm install -g vercel</step>
+          <step>Login: vercel login</step>
+          <step>Deploy to production: vercel --prod</step>
+        </manual>
+      </deployment-steps>
+
+      <post-deployment>
+        <item>Health check endpoint verification: GET /api/health/db returns 200 OK</item>
+        <item>Smoke test execution: Login, course access, file upload</item>
+        <item>Sentry error monitoring: No new critical errors in first 15 minutes</item>
+        <item>Better Stack uptime confirmation: All monitors green</item>
+        <item>Vercel Analytics performance check: Core Web Vitals within targets</item>
+      </post-deployment>
+
+      <rollback>
+        <trigger>Critical errors (P0), health check failing, major feature broken (P1), error spike</trigger>
+        <via-dashboard>Vercel Dashboard → Deployments → Select previous deployment → Promote to Production</via-dashboard>
+        <via-cli>vercel rollback (instantly reverts to previous deployment)</via-cli>
+        <validation>Run post-deployment checks after rollback, communicate to stakeholders</validation>
+      </rollback>
+    </deployment-runbook-structure>
+
+    <incident-response-flow>
+      <step>Alert Triggered (Better Stack, Sentry, manual report)</step>
+      <step>Classify Incident (P0: immediate, P1: 1 hour, P2: 4 hours, P3: next day)</step>
+      <step>Notify Team (Slack alert for P0/P1, email for P2/P3)</step>
+      <step>Investigate Root Cause (check Sentry, Vercel Logs, Neon dashboard, recent deployments)</step>
+      <step>Implement Resolution (hotfix deployment, rollback, configuration change, or service restart)</step>
+      <step>Validate Fix (run smoke tests, monitor for 30 minutes)</step>
+      <step>Post-Incident Review (document timeline, root cause, resolution, preventive measures)</step>
+      <step>Update Runbooks (incorporate learnings, add new scenarios)</step>
+    </incident-response-flow>
+
+    <troubleshooting-approach>
+      <symptom>Identify symptoms (error messages, status codes, user reports)</symptom>
+      <diagnosis>Check monitoring dashboards (Sentry, Better Stack, Vercel Logs, Neon)</diagnosis>
+      <isolation>Isolate issue (specific endpoint, user role, geographic region)</isolation>
+      <reproduction>Reproduce issue (local environment, staging, production)</reproduction>
+      <resolution>Apply fix (code change, configuration update, service restart)</resolution>
+      <validation>Verify fix (smoke tests, monitoring for 24 hours)</validation>
+      <documentation>Document solution in troubleshooting.md</documentation>
+    </troubleshooting-approach>
+
+    <monitoring-interpretation>
+      <sentry-dashboard>
+        <metric>Error trends: Look for spikes or unusual patterns</metric>
+        <metric>Most common errors: Prioritize high-frequency issues (fix root cause)</metric>
+        <metric>Error rate by endpoint: Identify problematic API routes</metric>
+        <metric>Session replay: Use for debugging user-reported issues (see exact steps)</metric>
+        <metric>Release tracking: Compare error rates before/after deployments</metric>
+      </sentry-dashboard>
+
+      <vercel-analytics>
+        <metric>Core Web Vitals: Target LCP &lt; 2.5s, FID &lt; 100ms, CLS &lt; 0.1</metric>
+        <metric>Page load times: p95 should be &lt; 2 seconds</metric>
+        <metric>Geographic performance: Identify regional issues (CDN coverage)</metric>
+        <metric>Real User Monitoring (RUM): Actual user experience data</metric>
+        <metric>Traffic trends: Monitor for unexpected spikes or drops</metric>
+      </vercel-analytics>
+
+      <better-stack>
+        <metric>Uptime percentage: Target 99.5%+ (7-day rolling)</metric>
+        <metric>Incident history: Review patterns and root causes</metric>
+        <metric>Response time trends: Baseline &lt; 500ms, alert &gt; 5s</metric>
+        <metric>Status page: Communicate incidents to users (public or private)</metric>
+        <metric>Multi-location checks: Verify global availability</metric>
+      </better-stack>
+    </monitoring-interpretation>
+  </implementation-guidance>
+
+  <success-metrics>
+    <metric>All 3 documentation files created (deployment-runbook.md, incident-response.md, troubleshooting.md)</metric>
+    <metric>Deployment runbook covers all scenarios from tech spec (pre-deployment, deployment, validation, rollback)</metric>
+    <metric>Incident response playbook defines P0/P1/P2/P3 severities with response times and escalation procedures</metric>
+    <metric>Troubleshooting guide covers common errors with diagnostic steps and resolutions</metric>
+    <metric>Monitoring dashboard guide explains how to interpret Sentry, Vercel Analytics, and Better Stack</metric>
+    <metric>Peer review completed with feedback incorporated</metric>
+    <metric>Tabletop exercise validates procedures (simulate incident, follow runbooks, identify gaps)</metric>
+    <metric>Team can follow procedures without additional guidance</metric>
+  </success-metrics>
+
+  <notes>
+    <note>This is a documentation story, not a code implementation story</note>
+    <note>Focus on clarity and actionability - procedures should be executable by any team member</note>
+    <note>Use concrete examples and commands (not abstract descriptions)</note>
+    <note>Include checklists for easy reference during incidents</note>
+    <note>Link to external resources (Vercel docs, Neon docs, Sentry docs) for deep dives</note>
+    <note>Update runbooks after each incident to incorporate learnings (living documents)</note>
+    <note>Tabletop exercise should test realistic scenarios (e.g., database down, deployment rollback required)</note>
+  </notes>
+</story-context>

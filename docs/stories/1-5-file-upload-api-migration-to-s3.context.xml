@@ -1,0 +1,418 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context id="1-5-file-upload-api-migration-to-s3" v="1.0">
+  <metadata>
+    <epicId>1</epicId>
+    <storyId>1.5</storyId>
+    <title>File Upload API Migration to S3</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-11-25</generatedAt>
+    <generator>story-context workflow (AI agent)</generator>
+    <sourceStoryPath>docs/stories/1-5-file-upload-api-migration-to-s3.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>instructor</asA>
+    <iWant>file uploads to be stored in cloud storage instead of local filesystem</iWant>
+    <soThat>course content and assignments are reliably stored and accessible</soThat>
+    <tasks>
+      <task id="1" title="Create Cloudflare R2 client library" acs="1,2">
+        <subtask>Create /src/lib/r2.ts with AWS SDK S3 client configuration</subtask>
+        <subtask>Configure R2 client with credentials from environment variables (R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY)</subtask>
+        <subtask>Implement generateSignedUploadUrl(bucket, key, contentType, expiresIn) function</subtask>
+        <subtask>Implement generateSignedDownloadUrl(key, expiresIn) function for private files</subtask>
+        <subtask>Add error handling for R2 connection failures</subtask>
+        <subtask>Testing: Unit test verifies R2 client initialization and signed URL generation</subtask>
+      </task>
+      <task id="2" title="Create file upload API endpoints" acs="1,2,3,4,5,7">
+        <subtask>Create /src/app/api/upload/signed-url/route.ts for signed URL generation</subtask>
+        <subtask>Implement POST handler with authentication validation</subtask>
+        <subtask>Validate file metadata input (filename, mimeType, size) via Zod schema</subtask>
+        <subtask>Enforce file size limit (check size against MAX_FILE_SIZE env var)</subtask>
+        <subtask>Validate MIME type against allowed types list</subtask>
+        <subtask>Generate unique S3 key: {userId}/{timestamp}-{sanitizedFilename}</subtask>
+        <subtask>Generate signed upload URL (expires in 5 minutes)</subtask>
+        <subtask>Return JSON: { uploadUrl: string, key: string, expiresIn: number }</subtask>
+        <subtask>Create /src/app/api/upload/complete/route.ts for upload completion</subtask>
+        <subtask>Implement POST handler that validates authentication, receives S3 key, stores metadata in database</subtask>
+        <subtask>Testing: Integration tests verify API endpoints return correct responses</subtask>
+      </task>
+      <task id="3" title="Create Zod validation schemas for file uploads" acs="5,7">
+        <subtask>Create /src/validators/file.ts with file upload schemas</subtask>
+        <subtask>Define fileUploadRequestSchema with filename, mimeType, size, bucket fields</subtask>
+        <subtask>Define allowed MIME types constant (images, videos, documents, spreadsheets, archives)</subtask>
+        <subtask>Add file sanitization utility (remove special characters, prevent path traversal)</subtask>
+        <subtask>Testing: Unit tests verify schema validation rejects invalid inputs</subtask>
+      </task>
+      <task id="4" title="Update course content upload workflow" acs="6">
+        <subtask>Locate existing course content upload UI component (likely /src/components/course/ContentEditor.tsx)</subtask>
+        <subtask>Update upload handler to request signed URL from /api/upload/signed-url</subtask>
+        <subtask>Upload file directly to S3 via signed URL (client-side fetch/XMLHttpRequest)</subtask>
+        <subtask>Call /api/upload/complete to finalize upload and store metadata</subtask>
+        <subtask>Update UI with CDN URL or file reference</subtask>
+        <subtask>Add upload progress indicator (track upload percentage)</subtask>
+        <subtask>Add error handling for upload failures (network timeout, size exceeded, invalid type)</subtask>
+        <subtask>Testing: E2E test verifies instructor can upload course content file</subtask>
+      </task>
+      <task id="5" title="Update assignment submission upload workflow" acs="6">
+        <subtask>Locate existing assignment submission UI component (likely /src/components/assignment/SubmissionForm.tsx)</subtask>
+        <subtask>Update upload handler using same pattern as Task 4 (request signed URL, upload to S3, call completion endpoint)</subtask>
+        <subtask>Ensure file metadata stored in Submission model with S3 key</subtask>
+        <subtask>Testing: E2E test verifies student can submit assignment with file attachment</subtask>
+      </task>
+      <task id="6" title="Implement file retrieval with CDN URLs" acs="6">
+        <subtask>Update CourseContent model to include s3Key and cdnUrl fields (Prisma schema change)</subtask>
+        <subtask>Update Submission model to include s3Key and cdnUrl fields</subtask>
+        <subtask>Create utility function to generate CDN URLs from S3 keys</subtask>
+        <subtask>For public files: Return direct CDN URL (https://pub-xxxxx.r2.dev/{key})</subtask>
+        <subtask>For private files: Generate signed download URL with 1-hour expiration</subtask>
+        <subtask>Update file download/display components to use CDN URLs</subtask>
+        <subtask>Testing: Integration test verifies file retrieval returns correct CDN URL</subtask>
+      </task>
+      <task id="7" title="Add upload error handling and user feedback" acs="7">
+        <subtask>Create error response format for common upload failures (FILE_TOO_LARGE, INVALID_FILE_TYPE, UPLOAD_TIMEOUT, NETWORK_ERROR)</subtask>
+        <subtask>Update UI components to display user-friendly error messages</subtask>
+        <subtask>Add retry button for transient failures (network errors)</subtask>
+        <subtask>Testing: Integration tests verify error responses for each failure scenario</subtask>
+      </task>
+      <task id="8" title="Create file upload migration documentation" acs="8">
+        <subtask>Document R2 bucket setup and configuration steps</subtask>
+        <subtask>Document environment variable configuration (R2_* variables)</subtask>
+        <subtask>Document signed URL workflow (sequence diagram)</subtask>
+        <subtask>Document allowed MIME types and size limits</subtask>
+        <subtask>Document API endpoint usage with examples</subtask>
+        <subtask>Document client-side upload implementation pattern</subtask>
+        <subtask>Document file metadata storage in database</subtask>
+        <subtask>Include troubleshooting section (common upload errors)</subtask>
+        <subtask>Save to /docs/file-upload-migration.md</subtask>
+        <subtask>Testing: Manual review confirms documentation completeness</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC1">File upload API updated to use S3 instead of local filesystem</criterion>
+    <criterion id="AC2">Signed URL generation for secure direct uploads (client → S3, bypassing server)</criterion>
+    <criterion id="AC3">File metadata stored in database (filename, size, MIME type, S3 key)</criterion>
+    <criterion id="AC4">File size limits enforced (configurable via MAX_FILE_SIZE environment variable, default: 50MB)</criterion>
+    <criterion id="AC5">MIME type validation implemented (prevent executable uploads, validate against allowed types)</criterion>
+    <criterion id="AC6">Existing file upload workflows functional (course content upload and assignment submission workflows work with S3)</criterion>
+    <criterion id="AC7">Upload error handling implemented (network failures, size exceeded, invalid MIME type return clear error messages)</criterion>
+    <criterion id="AC8">Documentation created (file upload API changes and migration guide saved to /docs/file-upload-migration.md)</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/architecture.md" title="Architecture Document">
+        <section name="File Storage Architecture">
+          <snippet relevance="critical">
+            - Public Bucket: Course content, thumbnails (publicly accessible via CDN)
+            - Private Bucket: Assignment submissions, instructor files (signed URLs with 1-hour expiration)
+            - Upload Flow: Client → API (signed URL) → Direct upload to R2 → API (metadata storage)
+            - Download Flow: Client → API (CDN URL or signed URL) → Download from R2/CDN
+          </snippet>
+          <snippet relevance="critical">
+            S3 Client Configuration:
+            ```typescript
+            // /src/lib/r2.ts
+            import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+            import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+
+            const r2Client = new S3Client({
+              region: 'auto',
+              endpoint: process.env.CLOUDFLARE_R2_ENDPOINT,
+              credentials: {
+                accessKeyId: process.env.CLOUDFLARE_R2_ACCESS_KEY_ID!,
+                secretAccessKey: process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY!,
+              },
+            });
+            ```
+          </snippet>
+          <snippet relevance="high">
+            Allowed MIME Types:
+            - Documents: application/pdf, application/msword, application/vnd.openxmlformats-officedocument.wordprocessingml.document
+            - Spreadsheets: application/vnd.ms-excel, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+            - Images: image/jpeg, image/png, image/gif, image/webp
+            - Videos: video/mp4, video/quicktime, video/x-msvideo
+            - Archives: application/zip, application/x-rar-compressed
+          </snippet>
+        </section>
+      </doc>
+      <doc path="docs/tech-spec-epic-1.md" title="Epic 1 Technical Specification">
+        <section name="Detailed Design">
+          <snippet relevance="critical">
+            Signed URL Generation Pattern:
+            ```typescript
+            export async function generateSignedUploadUrl(
+              bucket: 'public' | 'private',
+              key: string,
+              contentType: string,
+              expiresIn: number = 300  // 5 minutes
+            ): Promise&lt;string&gt; {
+              const bucketName = bucket === 'public'
+                ? process.env.R2_PUBLIC_BUCKET
+                : process.env.R2_PRIVATE_BUCKET;
+
+              const command = new PutObjectCommand({
+                Bucket: bucketName,
+                Key: key,
+                ContentType: contentType,
+              });
+
+              return await getSignedUrl(r2Client, command, { expiresIn });
+            }
+            ```
+          </snippet>
+          <snippet relevance="high">
+            Environment Variable Naming:
+            ```bash
+            R2_ACCOUNT_ID="your-cloudflare-account-id"
+            R2_ACCESS_KEY_ID="your-r2-access-key"
+            R2_SECRET_ACCESS_KEY="your-r2-secret-key"
+            R2_BUCKET_NAME="ai-gurus-lms-uploads"
+            R2_PUBLIC_BUCKET="ai-gurus-lms-public"
+            R2_PRIVATE_BUCKET="ai-gurus-lms-private"
+            R2_PUBLIC_CDN_URL="https://pub-xxxxx.r2.dev"
+            MAX_FILE_SIZE="52428800"  # 50MB in bytes
+            ALLOWED_MIME_TYPES="image/*,video/*,application/pdf,..."
+            ```
+          </snippet>
+        </section>
+        <section name="Non-Functional Requirements">
+          <snippet relevance="high">
+            File Upload Security:
+            - MIME Type Validation: Prevent executable uploads (.exe, .sh, .bat, .js)
+            - File Size Limits: Prevent DoS attacks via large file uploads (default 50MB, configurable)
+            - Signed URL Expiration: Upload URLs expire in 5 minutes to prevent unauthorized uploads
+            - Filename Sanitization: Remove special characters, prevent path traversal attacks
+            - Authentication Required: All upload endpoints require active NextAuth session
+          </snippet>
+        </section>
+      </doc>
+      <doc path="docs/epics.md" title="Epic Breakdown">
+        <section name="Story 1.5: File Upload API Migration to S3">
+          <snippet relevance="critical">
+            As an instructor, I want file uploads to be stored in cloud storage instead of local filesystem,
+            so that course content and assignments are reliably stored and accessible.
+
+            Acceptance Criteria:
+            1. File upload API updated to use S3 instead of local filesystem
+            2. Signed URL generation for secure direct uploads (client → S3)
+            3. File metadata stored in database
+            4. File size limits enforced (configurable)
+            5. MIME type validation implemented
+            6. Existing file upload workflows functional
+            7. Upload error handling implemented
+            8. Documentation created
+          </snippet>
+        </section>
+      </doc>
+      <doc path="docs/PRD.md" title="Product Requirements Document">
+        <section name="Functional Requirements">
+          <snippet relevance="high">
+            FR002: System shall store all uploaded files (course content, assignments, submissions) in S3-compatible cloud storage with CDN delivery
+            FR008: System shall validate uploaded files for MIME type, size limits, and malware scanning before storage
+            FR012: Instructors shall upload course content files up to configurable size limits with automatic CDN distribution
+          </snippet>
+        </section>
+      </doc>
+    </docs>
+
+    <code>
+      <file path="src/app/api/instructor/courses/[id]/upload/route.ts" kind="api-route" reason="Existing file upload handler using local filesystem - needs migration to S3">
+        <symbol>POST</symbol>
+        <lines>1-122</lines>
+        <snippet>
+          - Currently saves files to public/uploads/courses/{courseId} using fs/promises
+          - File validation: 250MB limit, allowed extensions/types defined
+          - Filename sanitization: replaces special characters with underscore
+          - Returns local fileUrl: /uploads/courses/{id}/{filename}
+          - Pattern to replicate for S3: validation logic, sanitization, error handling
+        </snippet>
+      </file>
+      <file path="src/app/api/student/assignments/[id]/upload/route.ts" kind="api-route" reason="Existing assignment upload handler using local filesystem - needs migration to S3">
+        <symbol>POST</symbol>
+        <lines>1-145</lines>
+        <snippet>
+          - Currently saves files to public/uploads/assignments/{assignmentId} using fs/promises
+          - File validation: 50MB limit for assignments, allowed extensions/types
+          - Authorization: checks student enrollment and assignment due date
+          - Returns local fileUrl: /uploads/assignments/{id}/{filename}
+          - Pattern to replicate for S3: enrollment check, due date validation
+        </snippet>
+      </file>
+      <file path="src/app/api/instructor/courses/[id]/upload-thumbnail/route.ts" kind="api-route" reason="Existing thumbnail upload handler - needs migration to S3">
+        <symbol>POST</symbol>
+        <lines>1-96</lines>
+        <snippet>
+          - Currently saves thumbnails to public/uploads/thumbnails using fs/promises
+          - File validation: 2MB limit, image types only (JPEG, PNG, GIF, WebP)
+          - Returns local thumbnailUrl: /uploads/thumbnails/{filename}
+          - Pattern to replicate for S3: strict image validation, smaller file size limit
+        </snippet>
+      </file>
+      <file path="prisma/schema.prisma" kind="database-schema" reason="Database models that store file references - need s3Key and cdnUrl fields">
+        <symbol>CourseContent</symbol>
+        <lines>181-197</lines>
+        <snippet>
+          model CourseContent {
+            id          String      @id @default(cuid())
+            title       String
+            type        ContentType
+            content     String?
+            fileUrl     String?     // Currently stores local path - migrate to CDN URL
+            thumbnailUrl String?    // Currently stores local path - migrate to CDN URL
+            orderIndex  Int
+            isPublished Boolean     @default(false)
+            createdAt   DateTime    @default(now())
+            courseId    String
+            course      Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+          }
+
+          // NEEDS: s3Key String?, cdnUrl String? fields
+        </snippet>
+      </file>
+      <file path="prisma/schema.prisma" kind="database-schema" reason="Submission model stores assignment file references - need s3Key and cdnUrl fields">
+        <symbol>Submission</symbol>
+        <lines>96-110</lines>
+        <snippet>
+          model Submission {
+            id          String   @id @default(cuid())
+            content     String?
+            fileUrl     String?  // Currently stores local path - migrate to CDN URL
+            submittedAt DateTime @default(now())
+            assignmentId String
+            studentId    String
+            assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+            student      User       @relation(fields: [studentId], references: [id])
+          }
+
+          // NEEDS: s3Key String?, cdnUrl String? fields
+        </snippet>
+      </file>
+    </code>
+
+    <dependencies>
+      <package name="@aws-sdk/client-s3" version="^3.700.0" reason="AWS SDK S3 client for S3-compatible operations with Cloudflare R2" />
+      <package name="@aws-sdk/s3-request-presigner" version="^3.700.0" reason="Generate signed URLs for secure direct uploads and downloads" />
+      <package name="zod" version="^3.24.1" reason="Schema validation for file upload requests (already installed in Story 1.8)" />
+      <existing-package name="@prisma/client" version="^6.9.0" reason="Database operations for storing file metadata" />
+      <existing-package name="next-auth" version="^4.24.11" reason="Session validation for upload endpoints" />
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="security">All upload endpoints must require active NextAuth session - no anonymous uploads allowed</constraint>
+    <constraint type="security">Filename sanitization must prevent path traversal attacks (../../etc/passwd)</constraint>
+    <constraint type="security">Executable file types (.exe, .sh, .bat, .js) must be blocked via MIME type validation</constraint>
+    <constraint type="performance">Signed URL expiration: 5 minutes for uploads (prevent stale URLs, balance with large file upload time)</constraint>
+    <constraint type="performance">Direct client-to-S3 uploads reduce server load and improve upload performance vs. proxying through server</constraint>
+    <constraint type="infrastructure">File size limit default 50MB configurable via MAX_FILE_SIZE environment variable for flexibility</constraint>
+    <constraint type="infrastructure">Public bucket for course content (CDN delivery), private bucket for assignments (signed URLs with 1-hour expiration)</constraint>
+    <constraint type="migration">Database schema changes (s3Key, cdnUrl fields) require Prisma migration: npx prisma migrate dev --name add-s3-fields</constraint>
+    <constraint type="migration">Existing local file storage preserved temporarily for Story 1.6 migration script validation</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface type="api" name="/api/upload/signed-url">
+      <method>POST</method>
+      <authentication>Required (NextAuth session)</authentication>
+      <request>
+        {
+          "filename": "assignment.pdf",
+          "mimeType": "application/pdf",
+          "size": 1048576,
+          "bucket": "public" | "private"
+        }
+      </request>
+      <response>
+        {
+          "data": {
+            "uploadUrl": "https://r2.cloudflare.com/bucket/key?signature=...",
+            "key": "{userId}/{timestamp}-{sanitizedFilename}",
+            "expiresIn": 300
+          }
+        }
+      </response>
+      <errors>
+        - 401: Unauthorized (no session)
+        - 400: FILE_TOO_LARGE (exceeds MAX_FILE_SIZE)
+        - 400: INVALID_FILE_TYPE (MIME type not allowed)
+        - 400: INVALID_INPUT (Zod validation failed)
+      </errors>
+    </interface>
+    <interface type="api" name="/api/upload/complete">
+      <method>POST</method>
+      <authentication>Required (NextAuth session)</authentication>
+      <request>
+        {
+          "key": "{userId}/{timestamp}-{filename}",
+          "filename": "assignment.pdf",
+          "size": 1048576,
+          "mimeType": "application/pdf"
+        }
+      </request>
+      <response>
+        {
+          "data": {
+            "cdnUrl": "https://pub-xxxxx.r2.dev/{key}",
+            "id": "cuid123"
+          }
+        }
+      </response>
+      <errors>
+        - 401: Unauthorized (no session)
+        - 400: INVALID_INPUT (missing key or metadata)
+        - 500: INTERNAL_ERROR (database save failed)
+      </errors>
+    </interface>
+    <interface type="library" name="R2 Client (src/lib/r2.ts)">
+      <function>generateSignedUploadUrl(bucket: 'public' | 'private', key: string, contentType: string, expiresIn?: number): Promise&lt;string&gt;</function>
+      <function>generateSignedDownloadUrl(key: string, expiresIn?: number): Promise&lt;string&gt;</function>
+      <function>getPublicCdnUrl(key: string): string</function>
+    </interface>
+    <interface type="validator" name="File Upload Validators (src/validators/file.ts)">
+      <schema>fileUploadRequestSchema: z.object({ filename, mimeType, size, bucket })</schema>
+      <constant>ALLOWED_MIME_TYPES: string[]</constant>
+      <function>sanitizeFilename(filename: string): string</function>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <testStandards>
+      <standard>Unit tests: Test R2 client signed URL generation (mock AWS SDK)</standard>
+      <standard>Unit tests: Test file validation schemas (valid/invalid MIME types, sizes)</standard>
+      <standard>Unit tests: Test filename sanitization utility (removes special chars, prevents path traversal)</standard>
+      <standard>Unit tests: Coverage target 90%+ for /src/lib/r2.ts and /src/validators/file.ts</standard>
+      <standard>Integration tests: Test /api/upload/signed-url returns valid signed URL</standard>
+      <standard>Integration tests: Test file upload to R2 via signed URL (use test bucket)</standard>
+      <standard>Integration tests: Test /api/upload/complete stores metadata in database</standard>
+      <standard>Integration tests: Test file size limit enforcement (upload 100MB file, expect 400 error)</standard>
+      <standard>Integration tests: Test invalid MIME type rejection (upload .exe file, expect 400 error)</standard>
+      <standard>Integration tests: Test authentication requirement (unauthenticated request returns 401)</standard>
+      <standard>E2E tests: Test instructor uploads course content (video file) via UI</standard>
+      <standard>E2E tests: Test student submits assignment with PDF attachment via UI</standard>
+      <standard>E2E tests: Test file retrieval displays correct content from CDN</standard>
+      <standard>E2E tests: Test upload error handling (simulate network failure, verify retry button)</standard>
+    </testStandards>
+    <testLocations>
+      <location>__tests__/unit/lib/r2.test.ts - R2 client unit tests</location>
+      <location>__tests__/unit/validators/file.test.ts - File validation schema unit tests</location>
+      <location>__tests__/integration/api/upload/signed-url.test.ts - Signed URL API integration tests</location>
+      <location>__tests__/integration/api/upload/complete.test.ts - Upload completion API integration tests</location>
+      <location>__tests__/e2e/instructor/course-content-upload.spec.ts - E2E course content upload test</location>
+      <location>__tests__/e2e/student/assignment-submission.spec.ts - E2E assignment submission test</location>
+    </testLocations>
+    <testIdeas>
+      <idea ac="AC1,AC2">Mock AWS SDK S3Client to test signed URL generation without actual R2 calls</idea>
+      <idea ac="AC3">Test database metadata storage includes all required fields (s3Key, cdnUrl, filename, size, mimeType)</idea>
+      <idea ac="AC4">Boundary test: Upload file exactly at MAX_FILE_SIZE (should succeed), 1 byte over (should fail)</idea>
+      <idea ac="AC5">Test executable file rejection: .exe, .sh, .bat, .js files return INVALID_FILE_TYPE error</idea>
+      <idea ac="AC5">Test path traversal prevention: filename "../../etc/passwd" sanitized to "etc_passwd"</idea>
+      <idea ac="AC6">Regression test: Verify existing course content upload UI still works after S3 migration</idea>
+      <idea ac="AC6">Regression test: Verify existing assignment submission UI still works after S3 migration</idea>
+      <idea ac="AC7">Test network timeout handling: Simulate S3 upload timeout, verify UPLOAD_TIMEOUT error displayed</idea>
+      <idea ac="AC7">Test retry button: After network error, retry button re-requests signed URL and re-uploads file</idea>
+      <idea ac="AC8">Manual test: Review /docs/file-upload-migration.md for completeness (setup steps, examples, troubleshooting)</idea>
+    </testIdeas>
+  </tests>
+</story-context>

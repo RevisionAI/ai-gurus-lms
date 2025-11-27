@@ -22,12 +22,12 @@ import {
   verticalListSortingStrategy
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { 
-  Plus, 
-  FileText, 
-  Video, 
-  File, 
-  Link as LinkIcon, 
+import {
+  Plus,
+  FileText,
+  Video,
+  File,
+  Link as LinkIcon,
   BookOpen,
   Edit3,
   Trash2,
@@ -37,8 +37,10 @@ import {
   ArrowLeft,
   Upload,
   X,
-  Save
+  Save,
+  Cloud
 } from 'lucide-react'
+import { uploadToS3 } from '@/hooks/useS3Upload'
 
 interface CourseContent {
   id: string
@@ -134,10 +136,16 @@ function SortableItem({
             {item.fileUrl && item.fileUrl.startsWith('/uploads/') && (
               <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
                 <Upload className="h-3 w-3 mr-1" />
-                Uploaded
+                Local
               </span>
             )}
-            {item.fileUrl && !item.fileUrl.startsWith('/uploads/') && item.type !== 'TEXT' && (
+            {item.fileUrl && item.fileUrl.includes('r2.dev') && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                <Cloud className="h-3 w-3 mr-1" />
+                Cloud
+              </span>
+            )}
+            {item.fileUrl && !item.fileUrl.startsWith('/uploads/') && !item.fileUrl.includes('r2.dev') && item.type !== 'TEXT' && (
               <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
                 External URL
               </span>
@@ -261,29 +269,26 @@ export default function CourseContentPage() {
 
     setUploading(true)
     try {
-      const formData = new FormData()
-      formData.append('file', file)
-
-      const response = await fetch(`/api/instructor/courses/${params.id}/upload`, {
-        method: 'POST',
-        body: formData
+      // Use S3/R2 upload via signed URL
+      const result = await uploadToS3(file, {
+        directory: 'courses',
+        isPublic: true,
       })
 
-      if (response.ok) {
-        const uploadResult = await response.json()
-        setUploadedFile(uploadResult)
-        setFormData(prev => ({
-          ...prev,
-          fileUrl: uploadResult.url,
-          title: prev.title || uploadResult.filename.replace(/\.[^/.]+$/, "")
-        }))
-      } else {
-        const error = await response.json()
-        alert(error.error || 'Upload failed')
-      }
+      setUploadedFile({
+        url: result.cdnUrl,
+        filename: result.filename,
+        size: result.size,
+        type: result.mimeType
+      })
+      setFormData(prev => ({
+        ...prev,
+        fileUrl: result.cdnUrl,
+        title: prev.title || result.filename.replace(/\.[^/.]+$/, "")
+      }))
     } catch (error) {
       console.error('Upload error:', error)
-      alert('Upload failed')
+      alert(error instanceof Error ? error.message : 'Upload failed')
     } finally {
       setUploading(false)
     }
@@ -294,28 +299,25 @@ export default function CourseContentPage() {
 
     setUploading(true)
     try {
-      const formData = new FormData()
-      formData.append('thumbnail', file)
-
-      const response = await fetch(`/api/instructor/courses/${params.id}/upload-thumbnail`, {
-        method: 'POST',
-        body: formData
+      // Use S3/R2 upload via signed URL for thumbnails
+      const result = await uploadToS3(file, {
+        directory: 'thumbnails',
+        isPublic: true,
       })
 
-      if (response.ok) {
-        const uploadResult = await response.json()
-        setUploadedThumbnail(uploadResult)
-        setFormData(prev => ({
-          ...prev,
-          thumbnailUrl: uploadResult.url
-        }))
-      } else {
-        const error = await response.json()
-        alert(error.error || 'Thumbnail upload failed')
-      }
+      setUploadedThumbnail({
+        url: result.cdnUrl,
+        filename: result.filename,
+        size: result.size,
+        type: result.mimeType
+      })
+      setFormData(prev => ({
+        ...prev,
+        thumbnailUrl: result.cdnUrl
+      }))
     } catch (error) {
       console.error('Thumbnail upload error:', error)
-      alert('Thumbnail upload failed')
+      alert(error instanceof Error ? error.message : 'Thumbnail upload failed')
     } finally {
       setUploading(false)
     }

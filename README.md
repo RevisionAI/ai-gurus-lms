@@ -1,3 +1,9 @@
+# AI Gurus LMS
+
+![CI/CD](https://github.com/your-org/ai-gurus-lms/actions/workflows/ci.yml/badge.svg)
+
+A Learning Management System built with Next.js 15, Prisma, and PostgreSQL.
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
@@ -34,3 +40,35 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Testing
+
+```bash
+# Run unit and integration tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run tests with coverage
+npm run test:coverage
+
+# Run E2E tests (headless)
+npm run test:e2e
+
+# Run E2E tests with UI
+npm run test:e2e:ui
+
+# Run E2E tests in debug mode
+npm run test:e2e:debug
+```
+
+## CI/CD
+
+This project uses GitHub Actions for continuous integration. The workflow runs:
+- Linting (ESLint)
+- Unit and integration tests (Jest)
+- E2E tests (Playwright)
+- Build validation (Next.js)
+
+All checks must pass before merging to main.

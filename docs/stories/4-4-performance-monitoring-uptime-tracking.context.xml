@@ -1,0 +1,812 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>4-4-performance-monitoring-uptime-tracking</story-id>
+    <story-title>Performance Monitoring &amp; Uptime Tracking</story-title>
+    <epic>Epic 4: Production Deployment &amp; Monitoring</epic>
+    <created>2025-11-27</created>
+    <status>ready-for-dev</status>
+  </metadata>
+
+  <story-summary>
+    <user-story>
+      As a system administrator,
+      I want real-time performance monitoring and uptime tracking,
+      so that I can ensure 99.5%+ uptime and detect performance degradation proactively.
+    </user-story>
+
+    <business-value>
+      Provides comprehensive observability into application health, performance, and availability to meet SLA targets and enable proactive incident response.
+    </business-value>
+
+    <dependencies>
+      <dependency type="required" story="4-1">Production hosting must be deployed for monitoring endpoints to exist</dependency>
+      <dependency type="recommended" story="4-3">Error tracking setup complements performance monitoring for full observability</dependency>
+      <dependency type="related" story="1-1">Health check endpoint /api/health/db must be operational</dependency>
+    </dependencies>
+  </story-summary>
+
+  <acceptance-criteria>
+    <criterion id="AC1">
+      <description>Uptime monitoring service configured (Better Stack)</description>
+      <validation>Better Stack account created, organization configured, monitors visible in dashboard</validation>
+    </criterion>
+
+    <criterion id="AC2">
+      <description>Monitors configured for critical endpoints (Homepage, Login, API health, Course catalog)</description>
+      <validation>4 monitors created in Better Stack for /, /login, /api/health/db, /courses</validation>
+    </criterion>
+
+    <criterion id="AC3">
+      <description>Monitoring frequency: Every 3 minutes from multiple global locations</description>
+      <validation>Check frequency set to 3 minutes, minimum 3 geographic locations configured</validation>
+    </criterion>
+
+    <criterion id="AC4">
+      <description>Incident detection threshold: 2 consecutive failures = downtime incident</description>
+      <validation>Incident trigger set to 2 consecutive failed checks (6 minutes total)</validation>
+    </criterion>
+
+    <criterion id="AC5">
+      <description>Automated alerts configured (downtime → immediate, slow response → warning)</description>
+      <validation>Slack, SMS, and Email alerts configured; test alerts received successfully</validation>
+    </criterion>
+
+    <criterion id="AC6">
+      <description>Performance monitoring configured (Vercel Analytics)</description>
+      <validation>Vercel Analytics enabled in project settings, dashboard accessible</validation>
+    </criterion>
+
+    <criterion id="AC7">
+      <description>Metrics tracked: Page load times (p50, p95, p99), API response times, Core Web Vitals</description>
+      <validation>All metrics visible in Vercel Analytics dashboard with data collected</validation>
+    </criterion>
+
+    <criterion id="AC8">
+      <description>Dashboard created: Uptime percentage, incident history, performance trends</description>
+      <validation>Better Stack and Vercel Analytics dashboards accessible with configured widgets</validation>
+    </criterion>
+
+    <criterion id="AC9">
+      <description>SLA tracking: 99.5%+ uptime validated (7-day rolling average)</description>
+      <validation>Better Stack shows SLA tracking configuration, 7-day rolling average visible</validation>
+    </criterion>
+
+    <criterion id="AC10">
+      <description>Performance baselines documented (current response times for comparison)</description>
+      <validation>Performance baselines recorded in documentation with p50/p95/p99 metrics</validation>
+    </criterion>
+
+    <criterion id="AC11">
+      <description>Documentation: Performance monitoring and incident response guide</description>
+      <validation>docs/performance-monitoring.md and docs/incident-response.md created</validation>
+    </criterion>
+  </acceptance-criteria>
+
+  <technical-context>
+    <architecture-reference>
+      <section>Monitoring &amp; Observability (architecture.md)</section>
+      <key-points>
+        - Better Stack Uptime: 3-minute checks (faster than competitors), free tier with 10 monitors
+        - Vercel Analytics: Built-in, zero config, Core Web Vitals, real user monitoring
+        - Target uptime: 99.5%+ (PRD NFR002)
+        - MTTD (Mean Time to Detect): &lt; 5 minutes via 3-minute checks
+        - MTTR (Mean Time to Recovery): &lt; 1 hour via runbooks + rollback
+      </key-points>
+    </architecture-reference>
+
+    <tech-spec-reference>
+      <section>Performance Monitoring (tech-spec-epic-4.md)</section>
+      <key-points>
+        - Better Stack monitors: /, /login, /api/health/db, /courses
+        - Alert thresholds: 2 consecutive failures (downtime), response time &gt; 5s (warning)
+        - Geographic locations: US-East, US-West, EU-West (3+ regions)
+        - Vercel Analytics: Automatic injection, p50/p95/p99 latencies, Core Web Vitals
+        - Performance targets: Page load &lt; 2s (p95), API response &lt; 500ms (p95)
+      </key-points>
+    </tech-spec-reference>
+
+    <existing-code>
+      <file path="src/app/api/health/db/route.ts">
+        <description>Health check endpoint that monitors database connectivity with timeout</description>
+        <key-functionality>
+          - Returns 200 OK with connection status when healthy
+          - Returns 503 Service Unavailable when database unreachable
+          - 5-second timeout for database queries
+          - Includes response time in ms for performance tracking
+          - Used by Better Stack for uptime monitoring
+        </key-functionality>
+        <integration-point>Primary endpoint for Better Stack uptime monitoring</integration-point>
+      </file>
+
+      <file path="next.config.js">
+        <description>Next.js configuration with security headers already implemented</description>
+        <key-functionality>
+          - Security headers configured (HSTS, CSP, X-Frame-Options, etc.)
+          - No analytics or monitoring configuration currently present
+          - React strict mode enabled
+        </key-functionality>
+        <integration-point>May need Vercel Analytics configuration if not auto-enabled</integration-point>
+      </file>
+    </existing-code>
+
+    <critical-endpoints>
+      <endpoint>
+        <url>https://learn.aigurus.com/</url>
+        <name>Homepage</name>
+        <expected-status>200 OK</expected-status>
+        <warning-threshold>3 seconds</warning-threshold>
+        <critical-threshold>5 seconds or error</critical-threshold>
+        <monitoring-purpose>Validates core application accessibility for end users</monitoring-purpose>
+      </endpoint>
+
+      <endpoint>
+        <url>https://learn.aigurus.com/login</url>
+        <name>Login Page</name>
+        <expected-status>200 OK</expected-status>
+        <warning-threshold>3 seconds</warning-threshold>
+        <critical-threshold>5 seconds or error</critical-threshold>
+        <monitoring-purpose>Ensures authentication system is accessible</monitoring-purpose>
+      </endpoint>
+
+      <endpoint>
+        <url>https://learn.aigurus.com/api/health/db</url>
+        <name>Database Health Check</name>
+        <expected-status>200 OK</expected-status>
+        <warning-threshold>1 second</warning-threshold>
+        <critical-threshold>2 seconds or error</critical-threshold>
+        <monitoring-purpose>Validates database connectivity and API functionality</monitoring-purpose>
+      </endpoint>
+
+      <endpoint>
+        <url>https://learn.aigurus.com/courses</url>
+        <name>Course Catalog</name>
+        <expected-status>200 OK</expected-status>
+        <warning-threshold>3 seconds</warning-threshold>
+        <critical-threshold>5 seconds or error</critical-threshold>
+        <monitoring-purpose>Validates core course browsing functionality</monitoring-purpose>
+      </endpoint>
+    </critical-endpoints>
+  </technical-context>
+
+  <monitoring-configuration>
+    <better-stack>
+      <service-details>
+        <provider>Better Stack Uptime</provider>
+        <free-tier>10 monitors, 3-minute check frequency, multiple locations, unlimited alerts</free-tier>
+        <paid-tier>$18/month for 1-minute checks, status page hosting, advanced features</paid-tier>
+        <recommendation>Start with free tier for beta, upgrade if faster detection needed</recommendation>
+      </service-details>
+
+      <monitor-configuration>
+        <frequency>3 minutes</frequency>
+        <locations>
+          <location>US-East (N. Virginia)</location>
+          <location>US-West (California)</location>
+          <location>EU-West (Ireland)</location>
+        </locations>
+        <incident-detection>2 consecutive failures = downtime incident (6 minutes total)</incident-detection>
+        <http-status-codes>
+          <expected>200 OK for all monitored endpoints</expected>
+          <acceptable>301, 302 for redirects (if applicable)</acceptable>
+        </http-status-codes>
+      </monitor-configuration>
+
+      <alert-configuration>
+        <downtime-alert>
+          <type>Site Down / Critical</type>
+          <trigger>2 consecutive failures detected</trigger>
+          <channels>Slack (#alerts-prod), SMS, Email</channels>
+          <priority>Immediate</priority>
+          <message-template>
+🚨 DOWNTIME ALERT
+Endpoint: {endpoint_url}
+Location: {check_location}
+Status: {status_code}
+Error: {error_message}
+Time: {timestamp}
+Action: Investigate immediately, follow incident-response.md
+          </message-template>
+        </downtime-alert>
+
+        <slow-response-alert>
+          <type>Performance Degradation / Warning</type>
+          <trigger>Response time exceeds 5 seconds</trigger>
+          <channels>Slack (#alerts-prod), Email</channels>
+          <priority>Within 4 hours</priority>
+          <message-template>
+⚠️ SLOW RESPONSE ALERT
+Endpoint: {endpoint_url}
+Response Time: {response_time}ms
+Baseline (p95): {baseline_p95}ms
+Location: {check_location}
+Time: {timestamp}
+Action: Investigate within 4 hours, check Vercel Analytics
+          </message-template>
+        </slow-response-alert>
+
+        <recovery-notification>
+          <type>Service Restored / Info</type>
+          <trigger>Endpoint recovers after incident</trigger>
+          <channels>Slack (#alerts-prod), Email</channels>
+          <priority>Informational</priority>
+          <message-template>
+✅ SERVICE RESTORED
+Endpoint: {endpoint_url}
+Downtime Duration: {duration}
+Incident Start: {start_time}
+Incident End: {end_time}
+Action: Review incident logs, document in incident-response.md
+          </message-template>
+        </recovery-notification>
+
+        <ssl-certificate-alert>
+          <type>SSL Certificate Expiry Warning</type>
+          <trigger>Certificate expires in less than 14 days</trigger>
+          <channels>Email</channels>
+          <priority>Within 1 week</priority>
+          <message-template>SSL certificate for {domain} expires on {expiry_date}. Renew certificate.</message-template>
+        </ssl-certificate-alert>
+      </alert-configuration>
+
+      <sla-tracking>
+        <target>99.5% uptime</target>
+        <calculation>7-day rolling average</calculation>
+        <reporting>Weekly automated email report</reporting>
+        <validation-period>Monitor 7 days post-deployment for baseline</validation-period>
+      </sla-tracking>
+
+      <status-page>
+        <url>https://status.aigurus.com</url>
+        <visibility>Public or private (to be decided)</visibility>
+        <components>
+          <component>Homepage</component>
+          <component>Login</component>
+          <component>API Services</component>
+          <component>Course Catalog</component>
+        </components>
+      </status-page>
+    </better-stack>
+
+    <vercel-analytics>
+      <service-details>
+        <provider>Vercel Analytics</provider>
+        <included-in>Vercel Pro plan ($20/month)</included-in>
+        <features>Core Web Vitals, Real User Monitoring, Page-level metrics, Geographic breakdown</features>
+        <setup>Automatic injection via Vercel deployment, no code changes required</setup>
+      </service-details>
+
+      <core-web-vitals>
+        <metric>
+          <name>Largest Contentful Paint (LCP)</name>
+          <target>&lt; 2.5 seconds</target>
+          <good>&lt; 2.5s</good>
+          <needs-improvement>2.5s - 4.0s</needs-improvement>
+          <poor>&gt; 4.0s</poor>
+          <description>Measures loading performance - when largest content element becomes visible</description>
+        </metric>
+
+        <metric>
+          <name>First Contentful Paint (FCP)</name>
+          <target>&lt; 1.8 seconds</target>
+          <good>&lt; 1.8s</good>
+          <needs-improvement>1.8s - 3.0s</needs-improvement>
+          <poor>&gt; 3.0s</poor>
+          <description>Measures when first content appears on screen</description>
+        </metric>
+
+        <metric>
+          <name>Cumulative Layout Shift (CLS)</name>
+          <target>&lt; 0.1</target>
+          <good>&lt; 0.1</good>
+          <needs-improvement>0.1 - 0.25</needs-improvement>
+          <poor>&gt; 0.25</poor>
+          <description>Measures visual stability - unexpected layout shifts</description>
+        </metric>
+
+        <metric>
+          <name>Time to First Byte (TTFB)</name>
+          <target>&lt; 200 milliseconds</target>
+          <good>&lt; 200ms</good>
+          <needs-improvement>200ms - 500ms</needs-improvement>
+          <poor>&gt; 500ms</poor>
+          <description>Measures server response time</description>
+        </metric>
+      </core-web-vitals>
+
+      <performance-metrics>
+        <page-load-times>
+          <measurement>p50, p95, p99 percentiles</measurement>
+          <target>p95 &lt; 2 seconds</target>
+          <pages-tracked>All pages automatically tracked</pages-tracked>
+        </page-load-times>
+
+        <api-response-times>
+          <measurement>p50, p95, p99 percentiles</measurement>
+          <target>p95 &lt; 500 milliseconds</target>
+          <tracking>Automatic via Vercel Functions instrumentation</tracking>
+        </api-response-times>
+
+        <geographic-breakdown>
+          <regions>Performance metrics segmented by user location</regions>
+          <use-case>Identify regional performance issues</use-case>
+        </geographic-breakdown>
+
+        <device-segmentation>
+          <devices>Desktop, Mobile, Tablet</devices>
+          <use-case>Optimize for specific device types</use-case>
+        </device-segmentation>
+      </performance-metrics>
+
+      <dashboard-views>
+        <view name="Overview">
+          <widgets>Traffic summary, performance overview, top pages</widgets>
+        </view>
+        <view name="Page Performance">
+          <widgets>Load times by page, Core Web Vitals per page, slowest pages</widgets>
+        </view>
+        <view name="Core Web Vitals">
+          <widgets>LCP, FCP, CLS, TTFB scores with historical trends</widgets>
+        </view>
+        <view name="Real User Metrics">
+          <widgets>Geographic distribution, device breakdown, browser stats</widgets>
+        </view>
+      </dashboard-views>
+    </vercel-analytics>
+  </monitoring-configuration>
+
+  <implementation-guidance>
+    <task-breakdown>
+      <task id="1" priority="high">
+        <name>Better Stack Account Setup &amp; Configuration</name>
+        <steps>
+          - Create Better Stack account using production email
+          - Configure organization settings (name, team members)
+          - Generate API key for automation (store in Vercel environment variables)
+          - Configure alert channels: Slack webhook, SMS number, email addresses
+        </steps>
+        <verification>API key stored securely, alert channels tested</verification>
+      </task>
+
+      <task id="2" priority="high">
+        <name>Critical Endpoint Monitors Configuration</name>
+        <steps>
+          - Create monitor for homepage (/)
+          - Create monitor for login page (/login)
+          - Create monitor for API health check (/api/health/db)
+          - Create monitor for course catalog (/courses)
+          - Set monitoring frequency to 3-minute intervals
+          - Configure geographic locations: US-East, US-West, EU-West
+          - Set incident detection threshold: 2 consecutive failures
+          - Configure expected HTTP status codes (200 OK)
+          - Set response time warning threshold (5 seconds)
+        </steps>
+        <verification>All 4 monitors active and green in Better Stack dashboard</verification>
+      </task>
+
+      <task id="3" priority="high">
+        <name>Better Stack Alert Configuration</name>
+        <steps>
+          - Configure downtime alerts (Slack + SMS + Email, immediate trigger)
+          - Configure slow response alerts (Slack + Email, 5s threshold)
+          - Configure recovery notifications (Slack + Email)
+          - Configure SSL certificate expiry alerts (Email, 14-day warning)
+          - Test alert delivery by triggering test incident
+        </steps>
+        <verification>Test alerts received via all configured channels</verification>
+      </task>
+
+      <task id="4" priority="medium">
+        <name>Vercel Analytics Setup &amp; Integration</name>
+        <steps>
+          - Enable Vercel Analytics in project settings (Vercel dashboard)
+          - Verify Analytics tracking script injected automatically
+          - Configure data collection settings (enable all metrics)
+          - Validate Analytics dashboard accessible from Vercel project
+          - Perform test page loads and verify data appears within 5-10 minutes
+        </steps>
+        <verification>Analytics dashboard shows page views and Core Web Vitals</verification>
+      </task>
+
+      <task id="5" priority="medium">
+        <name>Core Web Vitals &amp; Performance Metrics Tracking</name>
+        <steps>
+          - Verify Core Web Vitals tracking active (LCP, FCP, CLS, TTFB)
+          - Verify page load time metrics (p50, p95, p99) visible
+          - Verify API response time tracking operational
+          - Configure geographic performance breakdown
+          - Configure device type segmentation
+        </steps>
+        <verification>All metrics visible in Vercel Analytics with real data</verification>
+      </task>
+
+      <task id="6" priority="medium">
+        <name>Monitoring Dashboards Creation</name>
+        <steps>
+          - Create Better Stack dashboard with uptime widgets, incident timeline, response time trends
+          - Configure Vercel Analytics dashboard views (Overview, Page Performance, Core Web Vitals, RUM)
+          - Document dashboard URLs and access instructions
+          - Share dashboard access with team members
+        </steps>
+        <verification>Dashboards accessible to all team members</verification>
+      </task>
+
+      <task id="7" priority="medium">
+        <name>SLA Tracking &amp; Validation</name>
+        <steps>
+          - Configure Better Stack SLA tracking (99.5% target)
+          - Set up 7-day rolling average calculation
+          - Create uptime report automation (weekly email)
+          - Establish baseline: Monitor uptime for 7 days post-deployment
+          - Document uptime targets per endpoint
+        </steps>
+        <verification>SLA tracking visible in Better Stack dashboard</verification>
+      </task>
+
+      <task id="8" priority="low">
+        <name>Performance Baselines Documentation</name>
+        <steps>
+          - Measure and document baseline page load times (p50, p95, p99) for /, /login, /courses
+          - Measure and document baseline API response times for /api/health/db
+          - Document Core Web Vitals baselines (LCP, FCP, CLS, TTFB) per critical page
+          - Create performance baseline comparison table (current vs PRD targets)
+          - Document performance trends over first week
+          - Establish performance regression thresholds
+        </steps>
+        <verification>Performance baselines documented in docs/performance-baselines.md</verification>
+      </task>
+
+      <task id="9" priority="high">
+        <name>Monitoring Documentation</name>
+        <steps>
+          - Create docs/performance-monitoring.md (how to access dashboards, interpret metrics, investigate issues)
+          - Create docs/incident-response.md (severity classification, triage procedures, common incidents, escalation)
+          - Create uptime monitoring troubleshooting guide
+          - Document alert notification management
+        </steps>
+        <verification>Documentation complete and peer-reviewed</verification>
+      </task>
+
+      <task id="10" priority="high">
+        <name>Testing &amp; Validation</name>
+        <steps>
+          - Trigger test downtime incident (disable health endpoint temporarily)
+          - Verify Better Stack detects failure within 6 minutes
+          - Verify alerts received via all channels
+          - Trigger slow response alert (introduce artificial delay)
+          - Validate Vercel Analytics data collection (test page loads)
+          - Validate geographic monitoring (check all configured locations)
+          - Validate dashboard accessibility
+        </steps>
+        <verification>All test scenarios pass successfully</verification>
+      </task>
+    </task-breakdown>
+
+    <environment-variables>
+      <variable>
+        <name>BETTER_STACK_API_KEY</name>
+        <description>API key from Better Stack dashboard for automation</description>
+        <required>optional</required>
+        <source>Better Stack dashboard → Settings → API Keys</source>
+      </variable>
+
+      <variable>
+        <name>SLACK_WEBHOOK_URL_PROD</name>
+        <description>Slack incoming webhook URL for production alerts</description>
+        <required>yes</required>
+        <source>Slack workspace → Apps → Incoming Webhooks → #alerts-prod channel</source>
+      </variable>
+
+      <variable>
+        <name>ALERT_EMAIL</name>
+        <description>Email address for receiving alerts</description>
+        <required>yes</required>
+        <example>ops@aigurus.com</example>
+      </variable>
+
+      <variable>
+        <name>ALERT_SMS_NUMBER</name>
+        <description>Phone number for receiving SMS alerts</description>
+        <required>yes</required>
+        <format>+1234567890 (E.164 format)</format>
+      </variable>
+
+      <variable>
+        <name>UPTIME_CHECK_FREQUENCY_MINUTES</name>
+        <description>Override default check frequency (optional)</description>
+        <required>no</required>
+        <default>3</default>
+      </variable>
+
+      <variable>
+        <name>PERFORMANCE_WARNING_THRESHOLD_MS</name>
+        <description>Override default warning threshold (optional)</description>
+        <required>no</required>
+        <default>5000</default>
+      </variable>
+    </environment-variables>
+
+    <testing-checklist>
+      <test>Better Stack monitors active for all 4 critical endpoints</test>
+      <test>3-minute check frequency confirmed in Better Stack dashboard</test>
+      <test>Geographic locations configured (US-East, US-West, EU)</test>
+      <test>Downtime alert tested (endpoint disabled → alert received → endpoint restored)</test>
+      <test>Slow response alert tested (artificial delay → alert received)</test>
+      <test>Vercel Analytics tracking verified (page views appearing in dashboard)</test>
+      <test>Core Web Vitals metrics recorded (LCP, FCP, CLS, TTFB)</test>
+      <test>Performance baselines documented in docs/performance-baselines.md</test>
+      <test>Monitoring documentation complete (docs/performance-monitoring.md)</test>
+      <test>Incident response guide complete (docs/incident-response.md)</test>
+      <test>Team has access to Better Stack and Vercel Analytics dashboards</test>
+      <test>SLA tracking configured (99.5% target, 7-day rolling average)</test>
+    </testing-checklist>
+
+    <validation-criteria>
+      <criterion>All critical endpoints return 200 OK under normal conditions</criterion>
+      <criterion>Better Stack detects simulated downtime within 6 minutes (2 checks)</criterion>
+      <criterion>Alerts are received via all configured channels (Slack, SMS, Email)</criterion>
+      <criterion>Vercel Analytics shows Core Web Vitals data for test page loads</criterion>
+      <criterion>Performance baselines meet or exceed PRD targets (page load &lt; 2s, API &lt; 500ms)</criterion>
+      <criterion>Documentation is complete, clear, and actionable</criterion>
+      <criterion>Team members can successfully access and interpret dashboards</criterion>
+    </validation-criteria>
+  </implementation-guidance>
+
+  <performance-baseline-template>
+    <markdown-template>
+# Performance Baselines - AI Gurus LMS
+
+**Measurement Date:** 2025-11-27
+**Deployment Version:** v1.0.0-prod
+**Vercel Analytics:** Enabled
+**Better Stack Monitoring:** Active
+
+## Page Load Times (p95)
+
+| Page | Baseline p95 | Target | Status |
+|------|-------------|--------|--------|
+| Homepage (/) | _TBD_ | &lt; 2.0s | ⏳ Measuring |
+| Login (/login) | _TBD_ | &lt; 2.0s | ⏳ Measuring |
+| Course Catalog (/courses) | _TBD_ | &lt; 2.0s | ⏳ Measuring |
+| Course Detail (/courses/[id]) | _TBD_ | &lt; 2.0s | ⏳ Measuring |
+
+## API Response Times (p95)
+
+| Endpoint | Baseline p95 | Target | Status |
+|----------|-------------|--------|--------|
+| /api/health/db | _TBD_ | &lt; 200ms | ⏳ Measuring |
+| /api/instructor/courses | _TBD_ | &lt; 500ms | ⏳ Measuring |
+| /api/students/gpa/course | _TBD_ | &lt; 500ms | ⏳ Measuring |
+
+## Core Web Vitals
+
+| Page | LCP | FCP | CLS | TTFB | Status |
+|------|-----|-----|-----|------|--------|
+| Homepage | _TBD_ | _TBD_ | _TBD_ | _TBD_ | ⏳ Measuring |
+| Login | _TBD_ | _TBD_ | _TBD_ | _TBD_ | ⏳ Measuring |
+| Course Catalog | _TBD_ | _TBD_ | _TBD_ | _TBD_ | ⏳ Measuring |
+
+## Measurement Instructions
+
+1. Wait 24-48 hours after deployment for sufficient data collection
+2. Access Vercel Analytics dashboard
+3. Record p50, p95, p99 values for each page
+4. Record Core Web Vitals scores
+5. Update this document with actual measurements
+6. Identify pages needing optimization (exceeding targets)
+
+## Optimization Recommendations
+
+_To be completed after baseline measurements_
+
+- [ ] Pages exceeding load time targets
+- [ ] API endpoints exceeding response time targets
+- [ ] Core Web Vitals scores needing improvement
+- [ ] Geographic regions with degraded performance
+    </markdown-template>
+  </performance-baseline-template>
+
+  <documentation-templates>
+    <performance-monitoring-guide>
+      <filename>docs/performance-monitoring.md</filename>
+      <sections>
+        - How to access Better Stack dashboard
+        - How to access Vercel Analytics
+        - How to interpret metrics (LCP, FCP, CLS, TTFB)
+        - How to investigate slow response times
+        - How to correlate performance with deployments
+        - Common performance issues and resolutions
+        - When to escalate performance issues
+      </sections>
+    </performance-monitoring-guide>
+
+    <incident-response-guide>
+      <filename>docs/incident-response.md</filename>
+      <sections>
+        - Severity classification (P0: site down, P1: major feature broken, P2/P3: minor)
+        - Alert triage procedures (what to check first)
+        - Common incidents and resolutions:
+          * Site down: Check Vercel status, database health, rollback procedure
+          * Slow response: Check Vercel Analytics, database queries, recent deployments
+          * SSL errors: Check certificate expiry, DNS configuration
+        - Escalation procedures (who to contact for P0/P1 incidents)
+        - Post-incident review template
+        - Incident logging and documentation
+      </sections>
+    </incident-response-guide>
+
+    <uptime-monitoring-troubleshooting>
+      <filename>docs/uptime-monitoring-troubleshooting.md</filename>
+      <sections>
+        - False positive handling (temporary network blips)
+        - Monitor reconfiguration (adjusting thresholds)
+        - Geographic location selection (optimizing coverage)
+        - Alert notification management
+        - How to silence alerts during planned maintenance
+        - How to test alert delivery
+      </sections>
+    </uptime-monitoring-troubleshooting>
+  </documentation-templates>
+
+  <integration-notes>
+    <better-stack-vercel>
+      <description>Better Stack pings Vercel production URLs for uptime monitoring</description>
+      <data-flow>Better Stack → HTTPS requests → Vercel production → Response codes and times → Better Stack dashboard</data-flow>
+      <no-code-integration>Better Stack is external monitoring, no code changes needed in application</no-code-integration>
+    </better-stack-vercel>
+
+    <vercel-analytics>
+      <description>Vercel Analytics automatically injected via Vercel deployment</description>
+      <data-flow>Client page loads → Analytics script → Metrics collected → Vercel Analytics API → Dashboard</data-flow>
+      <no-code-integration>Enabled in Vercel project settings, no code changes required</no-code-integration>
+    </vercel-analytics>
+
+    <health-check-endpoint>
+      <description>Existing /api/health/db endpoint ready for Better Stack monitoring</description>
+      <location>src/app/api/health/db/route.ts</location>
+      <functionality>Database connectivity check with 5-second timeout, returns 200 OK or 503 error</functionality>
+      <no-changes-needed>Endpoint already production-ready, no modifications required</no-changes-needed>
+    </health-check-endpoint>
+
+    <slack-integration>
+      <description>Better Stack sends alerts to Slack via incoming webhook</description>
+      <setup>Create Slack app → Enable Incoming Webhooks → Add to #alerts-prod channel → Copy webhook URL → Add to Better Stack</setup>
+      <testing>Send test alert from Better Stack to verify Slack integration</testing>
+    </slack-integration>
+  </integration-notes>
+
+  <cost-optimization>
+    <better-stack-free-tier>
+      <limits>10 monitors, 3-minute check frequency, unlimited alerts</limits>
+      <sufficient-for>Beta launch with 4 critical endpoints (6 monitors remaining for future expansion)</sufficient-for>
+      <upgrade-trigger>Need for 1-minute checks, status page hosting, or more than 10 monitors</upgrade-trigger>
+    </better-stack-free-tier>
+
+    <vercel-analytics>
+      <included-in>Vercel Pro plan ($20/month) already required for production hosting</included-in>
+      <no-additional-cost>Analytics included at no extra charge</no-additional-cost>
+    </vercel-analytics>
+
+    <total-cost>
+      <beta>$0/month (Better Stack free tier + Vercel Analytics included)</beta>
+      <production>$18/month if upgraded to Better Stack paid tier (optional)</production>
+    </total-cost>
+  </cost-optimization>
+
+  <success-metrics>
+    <metric>
+      <name>Uptime Percentage</name>
+      <target>99.5%+ over 7-day rolling average</target>
+      <measurement>Better Stack dashboard</measurement>
+    </metric>
+
+    <metric>
+      <name>Mean Time to Detect (MTTD)</name>
+      <target>&lt; 5 minutes</target>
+      <measurement>Time from incident start to first alert</measurement>
+    </metric>
+
+    <metric>
+      <name>Mean Time to Recovery (MTTR)</name>
+      <target>&lt; 1 hour</target>
+      <measurement>Time from alert to service restoration</measurement>
+    </metric>
+
+    <metric>
+      <name>Core Web Vitals - LCP</name>
+      <target>&lt; 2.5 seconds for all critical pages</target>
+      <measurement>Vercel Analytics dashboard</measurement>
+    </metric>
+
+    <metric>
+      <name>Core Web Vitals - FCP</name>
+      <target>&lt; 1.8 seconds for all critical pages</target>
+      <measurement>Vercel Analytics dashboard</measurement>
+    </metric>
+
+    <metric>
+      <name>Core Web Vitals - CLS</name>
+      <target>&lt; 0.1 for all critical pages</target>
+      <measurement>Vercel Analytics dashboard</measurement>
+    </metric>
+
+    <metric>
+      <name>Core Web Vitals - TTFB</name>
+      <target>&lt; 200 milliseconds for all critical pages</target>
+      <measurement>Vercel Analytics dashboard</measurement>
+    </metric>
+
+    <metric>
+      <name>Page Load Time (p95)</name>
+      <target>&lt; 2 seconds</target>
+      <measurement>Vercel Analytics dashboard</measurement>
+    </metric>
+
+    <metric>
+      <name>API Response Time (p95)</name>
+      <target>&lt; 500 milliseconds</target>
+      <measurement>Vercel Analytics dashboard</measurement>
+    </metric>
+
+    <metric>
+      <name>Alert Delivery Success Rate</name>
+      <target>100% of alerts delivered via all configured channels</target>
+      <measurement>Test alerts + production alert verification</measurement>
+    </metric>
+  </success-metrics>
+
+  <rollout-plan>
+    <phase name="Setup" duration="1-2 hours">
+      - Create Better Stack account
+      - Configure monitors for 4 critical endpoints
+      - Set up alert channels (Slack, SMS, Email)
+      - Enable Vercel Analytics
+    </phase>
+
+    <phase name="Testing" duration="1 hour">
+      - Trigger test downtime incident
+      - Trigger slow response alert
+      - Verify all alerts received
+      - Validate Vercel Analytics data collection
+    </phase>
+
+    <phase name="Baseline Measurement" duration="24-48 hours">
+      - Allow metrics to accumulate
+      - Record baseline performance measurements
+      - Document performance baselines
+    </phase>
+
+    <phase name="Documentation" duration="2-3 hours">
+      - Create performance-monitoring.md
+      - Create incident-response.md
+      - Document dashboard access instructions
+      - Share documentation with team
+    </phase>
+
+    <phase name="Team Enablement" duration="1 hour">
+      - Grant dashboard access to team members
+      - Walkthrough dashboards and key metrics
+      - Review incident response procedures
+      - Validate everyone can access and interpret dashboards
+    </phase>
+  </rollout-plan>
+
+  <references>
+    <story-file>docs/stories/4-4-performance-monitoring-uptime-tracking.md</story-file>
+    <tech-spec>docs/tech-spec-epic-4.md (Performance Monitoring &amp; Observability sections)</tech-spec>
+    <architecture>docs/architecture.md (Monitoring &amp; Observability section)</architecture>
+    <health-endpoint>src/app/api/health/db/route.ts</health-endpoint>
+    <prd>NFR001 (Performance), NFR002 (Uptime 99.5%+), FR022 (Error tracking), FR023 (Dashboards)</prd>
+  </references>
+
+  <notes>
+    <note>Better Stack monitors external uptime; Vercel Analytics monitors internal performance - complementary tools</note>
+    <note>Health check endpoint already production-ready, no code changes needed</note>
+    <note>Vercel Analytics automatically enabled in Pro plan, zero configuration required</note>
+    <note>Alert channels (Slack, SMS, Email) need to be configured during implementation</note>
+    <note>Performance baselines should be measured 24-48 hours after deployment for accurate data</note>
+    <note>SLA tracking requires 7 days of uptime data for meaningful rolling average</note>
+    <note>Geographic monitoring helps identify regional CDN or network issues</note>
+    <note>Story 4.5 will reference this monitoring setup in deployment runbooks and incident response guides</note>
+  </notes>
+</story-context>

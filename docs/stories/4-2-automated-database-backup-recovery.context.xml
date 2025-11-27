@@ -1,0 +1,294 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>4.2</story-id>
+    <story-key>4-2-automated-database-backup-recovery</story-key>
+    <title>Automated Database Backup & Recovery</title>
+    <generated>2025-11-27</generated>
+  </metadata>
+
+  <story>
+    <as-a>system administrator</as-a>
+    <i-want>automated daily database backups with validated recovery procedures</i-want>
+    <so-that>we can recover from data loss or corruption without manual intervention</so-that>
+  </story>
+
+  <acceptance-criteria>
+    <criterion id="1">Automated daily database backups configured (midnight UTC)</criterion>
+    <criterion id="2">Backup retention policy implemented: 7 days for daily backups, 4 weeks for weekly backups</criterion>
+    <criterion id="3">Backups stored in separate availability zone from primary database (disaster recovery)</criterion>
+    <criterion id="4">Backup encryption configured (data at rest protection)</criterion>
+    <criterion id="5">Automated backup health checks configured (verify backups complete successfully)</criterion>
+    <criterion id="6">Backup restoration procedure documented and tested</criterion>
+    <criterion id="7">Point-in-time recovery tested (restore database to specific timestamp)</criterion>
+    <criterion id="8">Recovery time objective (RTO) measured and documented (less than 1 hour target)</criterion>
+    <criterion id="9">Recovery point objective (RPO) validated (less than 24 hours data loss acceptable)</criterion>
+    <criterion id="10">Automated alerts configured (backup failures notify team immediately)</criterion>
+    <criterion id="11">Documentation: Database backup and recovery runbook</criterion>
+  </acceptance-criteria>
+
+  <tasks>
+    <task id="1" status="pending">
+      <title>Verify Neon Scale Plan Configuration</title>
+      <acceptance-criteria>1, 2, 3, 4</acceptance-criteria>
+      <subtasks>
+        <subtask id="1.1">Confirm production database is on Neon Scale plan (required for 7-day retention)</subtask>
+        <subtask id="1.2">Verify automated backup schedule is configured (midnight UTC)</subtask>
+        <subtask id="1.3">Confirm backup retention policy settings (7-day daily, 4-week weekly)</subtask>
+        <subtask id="1.4">Verify backups are stored in separate availability zone</subtask>
+        <subtask id="1.5">Confirm backup encryption at rest is enabled</subtask>
+        <subtask id="1.6">Document current Neon backup configuration in runbook</subtask>
+      </subtasks>
+    </task>
+
+    <task id="2" status="pending">
+      <title>Configure Backup Health Checks</title>
+      <acceptance-criteria>5, 10</acceptance-criteria>
+      <subtasks>
+        <subtask id="2.1">Create monitoring script to verify daily backup completion</subtask>
+        <subtask id="2.2">Integrate backup verification with existing health check endpoint</subtask>
+        <subtask id="2.3">Configure automated alerts for backup failures (Slack/Email)</subtask>
+        <subtask id="2.4">Set up Better Stack monitoring for backup health</subtask>
+        <subtask id="2.5">Test backup failure alert triggers</subtask>
+        <subtask id="2.6">Document backup monitoring configuration</subtask>
+      </subtasks>
+    </task>
+
+    <task id="3" status="pending">
+      <title>Test Point-in-Time Recovery (PITR)</title>
+      <acceptance-criteria>6, 7, 8, 9</acceptance-criteria>
+      <subtasks>
+        <subtask id="3.1">Create test database branch from production backup</subtask>
+        <subtask id="3.2">Perform PITR to specific timestamp (e.g., 24 hours ago)</subtask>
+        <subtask id="3.3">Validate data integrity after restore (row counts, sample records)</subtask>
+        <subtask id="3.4">Measure recovery time from backup selection to functional database</subtask>
+        <subtask id="3.5">Verify RTO meets less than 1 hour target</subtask>
+        <subtask id="3.6">Validate RPO is within less than 24 hours (daily backup interval)</subtask>
+        <subtask id="3.7">Document observed RTO/RPO metrics</subtask>
+        <subtask id="3.8">Delete test branch after validation</subtask>
+      </subtasks>
+    </task>
+
+    <task id="4" status="pending">
+      <title>Create Database Backup & Recovery Runbook</title>
+      <acceptance-criteria>11</acceptance-criteria>
+      <subtasks>
+        <subtask id="4.1">Document backup schedule and retention policy</subtask>
+        <subtask id="4.2">Document step-by-step PITR procedure</subtask>
+        <subtask id="4.3">Document full database restore procedure</subtask>
+        <subtask id="4.4">Document backup verification procedure</subtask>
+        <subtask id="4.5">Document RTO/RPO metrics and targets</subtask>
+        <subtask id="4.6">Document disaster recovery scenarios and responses</subtask>
+        <subtask id="4.7">Document monthly backup restore testing schedule</subtask>
+        <subtask id="4.8">Create checklist for backup restoration validation</subtask>
+        <subtask id="4.9">Document Neon dashboard access and backup management</subtask>
+        <subtask id="4.10">Include runbook in /docs/database-backup-recovery-runbook.md</subtask>
+      </subtasks>
+    </task>
+
+    <task id="5" status="pending">
+      <title>Implement Monthly Backup Restore Testing</title>
+      <acceptance-criteria>6, 8</acceptance-criteria>
+      <subtasks>
+        <subtask id="5.1">Create calendar reminder for monthly backup testing</subtask>
+        <subtask id="5.2">Document testing procedure in runbook</subtask>
+        <subtask id="5.3">Create test validation checklist</subtask>
+        <subtask id="5.4">Set up test result tracking log</subtask>
+        <subtask id="5.5">Perform initial monthly backup restore test</subtask>
+        <subtask id="5.6">Validate test results and update metrics</subtask>
+      </subtasks>
+    </task>
+  </tasks>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/tech-spec-epic-4.md" title="Epic 4 Tech Spec" section="Detailed Design - Data Models and Contracts">
+        <snippet>
+Neon Scale plan provides automated backups with 7-day retention
+Point-in-time recovery (PITR) available within 7-day retention window
+Backups stored in separate availability zone automatically
+Backup encryption at rest enabled by default
+RTO (Recovery Time Objective): less than 1 hour
+RPO (Recovery Point Objective): less than 24 hours
+        </snippet>
+      </doc>
+
+      <doc path="docs/tech-spec-epic-4.md" title="Epic 4 Tech Spec" section="Workflows and Sequencing - Database Backup Flow">
+        <snippet>
+Daily (midnight UTC):
+1. Neon triggers automated snapshot
+2. Snapshot stored in separate availability zone
+3. Previous snapshots retained per policy (7 days daily, 4 weeks weekly)
+4. Health check validates backup completion
+5. Alert if backup fails
+
+Point-in-Time Recovery (Manual):
+1. Access Neon dashboard
+2. Select recovery point (timestamp)
+3. Create new branch from backup
+4. Validate data integrity
+5. Promote branch to production (if needed)
+        </snippet>
+      </doc>
+
+      <doc path="docs/architecture.md" title="Architecture Document" section="Deployment Architecture - Database Backups">
+        <snippet>
+Neon Automated Backups:
+- Free Tier: Point-in-time restore (last 6 hours)
+- Scale Plan: Point-in-time restore (7 days) + automated daily snapshots
+- Retention: 7-day retention for daily backups, 4-week retention for weekly backups
+- Encryption: Data at rest encrypted, backups encrypted
+
+Backup Testing:
+- Monthly restore test to staging environment
+- Validation: Compare row counts, checksums for critical tables
+- RTO (Recovery Time Objective): less than 1 hour
+- RPO (Recovery Point Objective): less than 24 hours (daily backups)
+        </snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <file path="src/lib/prisma.ts" kind="lib" symbol="prisma">
+        <reason>Database client configuration for Neon PostgreSQL with connection pooling</reason>
+        <snippet>
+export const prisma =
+  globalForPrisma.prisma ??
+  new PrismaClient({
+    datasources: {
+      db: {
+        url: process.env.DATABASE_URL,
+      },
+    },
+    log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+  })
+        </snippet>
+      </file>
+
+      <file path="prisma/schema.prisma" kind="schema">
+        <reason>Database schema with all 10 models to be backed up: User, Course, Enrollment, Assignment, Submission, Grade, Discussion, DiscussionPost, Announcement, CourseContent, FeedbackTemplate</reason>
+        <snippet>
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+11 Models Total:
+1. User (with soft delete)
+2. Course (with soft delete, prerequisites, learning objectives)
+3. Enrollment
+4. Assignment (with soft delete)
+5. Submission (with s3Key for R2 storage)
+6. Grade (with soft delete)
+7. Discussion (with soft delete)
+8. DiscussionPost
+9. Announcement (with soft delete)
+10. CourseContent (with s3Key and thumbnailS3Key)
+11. FeedbackTemplate
+        </snippet>
+      </file>
+    </code>
+
+    <dependencies>
+      <node>
+        <package name="@prisma/client" version="^6.9.0" purpose="Database ORM for Neon PostgreSQL"/>
+        <package name="prisma" version="^6.9.0" purpose="Prisma CLI for migrations and schema management"/>
+      </node>
+
+      <external>
+        <service name="Neon PostgreSQL" purpose="Serverless PostgreSQL with automated backups">
+          <feature>Automated daily backups at midnight UTC</feature>
+          <feature>7-day point-in-time recovery (Scale plan)</feature>
+          <feature>Separate availability zone storage</feature>
+          <feature>Encryption at rest</feature>
+        </service>
+
+        <service name="Better Stack" purpose="Uptime monitoring and alerting">
+          <feature>Health check monitoring for backup verification</feature>
+          <feature>Alert configuration for backup failures</feature>
+        </service>
+      </external>
+    </dependencies>
+  </artifacts>
+
+  <interfaces>
+    <interface name="Neon Console" kind="external-service">
+      <signature>Neon Console → Project → Branches → Create Branch (Point in time)</signature>
+      <description>Web interface for configuring backups and performing point-in-time recovery</description>
+    </interface>
+
+    <interface name="Health Check Endpoint" kind="api">
+      <signature>GET /api/health/db</signature>
+      <description>Existing health check endpoint to be extended with backup status verification</description>
+    </interface>
+
+    <interface name="Neon API" kind="external-api">
+      <signature>Query Neon API to verify backup completion</signature>
+      <description>Programmatic access to backup status and metadata</description>
+    </interface>
+  </interfaces>
+
+  <constraints>
+    <constraint type="performance">RTO target: less than 1 hour</constraint>
+    <constraint type="data-integrity">RPO target: less than 24 hours data loss</constraint>
+    <constraint type="retention">7-day retention for daily backups</constraint>
+    <constraint type="retention">4-week retention for weekly backups</constraint>
+    <constraint type="security">Backups encrypted at rest</constraint>
+    <constraint type="availability">Backups stored in separate availability zone</constraint>
+    <constraint type="automation">Daily backups at midnight UTC</constraint>
+    <constraint type="monitoring">Backup failures must trigger immediate alerts</constraint>
+  </constraints>
+
+  <tests>
+    <standards>Manual validation of backup/restore procedures with documented metrics</standards>
+    <locations>
+      <location>docs/database-backup-recovery-runbook.md</location>
+      <location>Neon Console (backup verification)</location>
+      <location>Better Stack (monitoring alerts)</location>
+    </locations>
+    <ideas>
+      <idea ac="1">Verify Neon Scale plan is active and backup schedule is configured for midnight UTC</idea>
+      <idea ac="2">Confirm retention policy shows 7-day daily and 4-week weekly backups in Neon Console</idea>
+      <idea ac="3">Validate backup storage location is in separate availability zone from primary database</idea>
+      <idea ac="4">Confirm encryption at rest is enabled for all backups</idea>
+      <idea ac="5">Test backup health check script to verify daily backup completion</idea>
+      <idea ac="6">Document and test complete backup restoration procedure step-by-step</idea>
+      <idea ac="7">Test point-in-time recovery to specific timestamp (e.g., 24 hours ago)</idea>
+      <idea ac="8">Measure and document actual RTO from backup selection to functional database</idea>
+      <idea ac="9">Validate RPO meets less than 24 hours requirement based on daily backup schedule</idea>
+      <idea ac="10">Test backup failure alerts by simulating failed backup scenario</idea>
+      <idea ac="11">Create comprehensive runbook and validate completeness through peer review</idea>
+    </ideas>
+  </tests>
+
+  <dev-notes>
+    <note priority="high">
+      Neon Scale plan is required for 7-day retention and automated backups. Free tier only provides 6-hour point-in-time recovery.
+    </note>
+
+    <note priority="high">
+      All backups are automatic via Neon - no custom backup scripts needed. Focus on verification and recovery testing.
+    </note>
+
+    <note priority="medium">
+      Database branching allows instant test databases from backups (~30 seconds) for validation without affecting production.
+    </note>
+
+    <note priority="medium">
+      RTO breakdown: Branch creation (~30s) + Data validation (~15min) + DNS/connection update (~5min) + Application validation (~10min) = ~30 minutes total (well under 1 hour target)
+    </note>
+
+    <note priority="low">
+      Monthly backup restore testing should be scheduled as recurring calendar event to ensure ongoing backup viability.
+    </note>
+  </dev-notes>
+
+  <references>
+    <reference type="story" path="docs/stories/4-2-automated-database-backup-recovery.md"/>
+    <reference type="tech-spec" path="docs/tech-spec-epic-4.md" section="Database Backup Configuration"/>
+    <reference type="architecture" path="docs/architecture.md" section="Deployment Architecture - Database Backups"/>
+    <reference type="external" url="https://neon.tech/docs/manage/backups">Neon Backups Documentation</reference>
+    <reference type="external" url="https://neon.tech/docs/manage/branches#point-in-time-restore">Neon Point-in-Time Recovery Guide</reference>
+  </references>
+</story-context>

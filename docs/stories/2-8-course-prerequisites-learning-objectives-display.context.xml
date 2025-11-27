@@ -1,0 +1,1034 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>2.8</story-id>
+    <story-title>Course Prerequisites &amp; Learning Objectives Display</story-title>
+    <epic-id>2</epic-id>
+    <epic-title>Feature Completion &amp; Admin Capabilities</epic-title>
+    <generated-date>2025-11-26</generated-date>
+    <story-file>docs/stories/2-8-course-prerequisites-learning-objectives-display.md</story-file>
+    <tech-spec-file>docs/tech-spec-epic-2.md</tech-spec-file>
+  </metadata>
+
+  <story-summary>
+    <user-story>
+      As a prospective student, I want to see course prerequisites, learning objectives, and target audience,
+      so that I can make an informed enrollment decision confidently.
+    </user-story>
+
+    <business-value>
+      Enhances student experience by providing comprehensive course information upfront, reducing enrollment
+      in unsuitable courses and improving course completion rates. Enables instructors to clearly communicate
+      expectations and required background knowledge.
+    </business-value>
+
+    <scope>
+      - Extend Course model with three new fields: prerequisites (text), learningObjectives (array), targetAudience (text)
+      - Update instructor course creation and edit forms to include new fields
+      - Display prerequisites, learning objectives, and target audience on student course detail pages
+      - Show prerequisite warning and confirmation checkbox on enrollment flow
+      - Create database migration with nullable fields for backward compatibility
+    </scope>
+  </story-summary>
+
+  <acceptance-criteria>
+    <criterion id="AC-2.8.1">
+      <description>Course model extended with prerequisites, learningObjectives, targetAudience fields</description>
+      <validation>Prisma schema includes new fields; migration succeeds; Prisma client regenerated</validation>
+    </criterion>
+
+    <criterion id="AC-2.8.2">
+      <description>Course create/edit UI includes new fields</description>
+      <validation>Instructor course forms include inputs for all three fields with proper validation</validation>
+    </criterion>
+
+    <criterion id="AC-2.8.3">
+      <description>Course detail page displays prerequisites section prominently</description>
+      <validation>Prerequisites shown with appropriate styling (info callout) when data exists</validation>
+    </criterion>
+
+    <criterion id="AC-2.8.4">
+      <description>Learning objectives displayed as bulleted list</description>
+      <validation>Learning objectives rendered as unordered list with proper formatting</validation>
+    </criterion>
+
+    <criterion id="AC-2.8.5">
+      <description>Target audience description displayed</description>
+      <validation>Target audience shown as descriptive text with heading when data exists</validation>
+    </criterion>
+
+    <criterion id="AC-2.8.6">
+      <description>Prerequisites warning callout shown on enrollment page</description>
+      <validation>Warning callout with yellow/orange styling appears before enrollment when prerequisites exist</validation>
+    </criterion>
+
+    <criterion id="AC-2.8.7">
+      <description>Optional "Do you meet prerequisites?" confirmation before enrollment</description>
+      <validation>Checkbox required to enable enrollment button when course has prerequisites</validation>
+    </criterion>
+
+    <criterion id="AC-2.8.8">
+      <description>Migration adds fields to existing courses (nullable)</description>
+      <validation>All fields nullable; existing courses remain valid with null values; no data migration needed</validation>
+    </criterion>
+
+    <criterion id="AC-2.8.9">
+      <description>Unit tests cover course validation with new fields</description>
+      <validation>Validation tests for character limits, array sizes, null values, edge cases</validation>
+    </criterion>
+
+    <criterion id="AC-2.8.10">
+      <description>Integration tests verify course CRUD with prerequisites</description>
+      <validation>API endpoints tested with new fields; data persistence verified</validation>
+    </criterion>
+
+    <criterion id="AC-2.8.11">
+      <description>E2E test validates student views prerequisites before enrolling</description>
+      <validation>End-to-end test confirms student sees all sections and confirmation flow</validation>
+    </criterion>
+  </acceptance-criteria>
+
+  <technical-context>
+    <database-schema>
+      <model name="Course">
+        <description>Extend existing Course model with three new fields for course information display</description>
+        <fields>
+          <field name="prerequisites" type="String?" required="false">
+            <description>Free-text description of course prerequisites</description>
+            <constraints>
+              <max-length>2000</max-length>
+              <nullable>true</nullable>
+            </constraints>
+            <rationale>Informational field helps students self-assess readiness; nullable for backward compatibility</rationale>
+          </field>
+
+          <field name="learningObjectives" type="String[]" required="false">
+            <description>Array of learning objective strings</description>
+            <constraints>
+              <array-max>20</array-max>
+              <item-max-length>500</item-max-length>
+              <default>[]</default>
+            </constraints>
+            <rationale>Array format enables structured display as bulleted list; limit prevents abuse</rationale>
+          </field>
+
+          <field name="targetAudience" type="String?" required="false">
+            <description>Description of intended audience for the course</description>
+            <constraints>
+              <max-length>1000</max-length>
+              <nullable>true</nullable>
+            </constraints>
+            <rationale>Helps students determine course fit; nullable for backward compatibility</rationale>
+          </field>
+        </fields>
+
+        <migration>
+          <file>prisma/migrations/YYYYMMDDHHMMSS_add_course_prerequisites/migration.sql</file>
+          <command>npx prisma migrate dev --name add_course_prerequisites</command>
+          <expected-sql>
+            <![CDATA[
+-- AlterTable
+ALTER TABLE "courses" ADD COLUMN "prerequisites" TEXT,
+ADD COLUMN "learningObjectives" TEXT[],
+ADD COLUMN "targetAudience" TEXT;
+            ]]>
+          </expected-sql>
+          <notes>
+            - All fields nullable for backward compatibility with existing courses
+            - PostgreSQL native TEXT[] type for learningObjectives array
+            - No default values (NULL is acceptable)
+            - No cascade deletes needed (fields are part of Course model)
+          </notes>
+        </migration>
+      </model>
+    </database-schema>
+
+    <validation-schemas>
+      <schema name="coursePrerequisitesSchema" file="src/validators/course.ts">
+        <description>Zod validation schema for new course fields</description>
+        <implementation>
+          <![CDATA[
+import { z } from 'zod';
+
+export const coursePrerequisitesSchema = z.object({
+  prerequisites: z.string().max(2000).optional().nullable(),
+  learningObjectives: z.array(
+    z.string().max(500)
+  ).max(20).default([]),
+  targetAudience: z.string().max(1000).optional().nullable(),
+});
+
+// Extend existing createCourseSchema
+export const createCourseSchema = z.object({
+  // ... existing fields ...
+  prerequisites: coursePrerequisitesSchema.shape.prerequisites,
+  learningObjectives: coursePrerequisitesSchema.shape.learningObjectives,
+  targetAudience: coursePrerequisitesSchema.shape.targetAudience,
+});
+
+// Extend existing updateCourseSchema
+export const updateCourseSchema = z.object({
+  // ... existing fields ...
+  prerequisites: coursePrerequisitesSchema.shape.prerequisites,
+  learningObjectives: coursePrerequisitesSchema.shape.learningObjectives,
+  targetAudience: coursePrerequisitesSchema.shape.targetAudience,
+});
+          ]]>
+        </implementation>
+        <validation-rules>
+          <rule>prerequisites: Optional string, max 2000 characters</rule>
+          <rule>learningObjectives: Array of strings, max 20 items, each item max 500 characters</rule>
+          <rule>targetAudience: Optional string, max 1000 characters</rule>
+          <rule>All fields nullable for backward compatibility</rule>
+        </validation-rules>
+      </schema>
+    </validation-schemas>
+
+    <api-endpoints>
+      <endpoint path="/api/instructor/courses" method="POST">
+        <description>Create course - extend to accept new fields</description>
+        <changes>
+          <change>Add prerequisites, learningObjectives, targetAudience to request body validation</change>
+          <change>Include new fields in Prisma create call</change>
+          <change>Return new fields in response</change>
+        </changes>
+        <file>src/app/api/instructor/courses/route.ts</file>
+      </endpoint>
+
+      <endpoint path="/api/instructor/courses/[id]" method="PUT">
+        <description>Update course - extend to accept new fields</description>
+        <changes>
+          <change>Add new fields to update validation</change>
+          <change>Include new fields in Prisma update call</change>
+          <change>Preserve existing values if fields not provided</change>
+        </changes>
+        <file>src/app/api/instructor/courses/[id]/route.ts</file>
+      </endpoint>
+
+      <endpoint path="/api/instructor/courses/[id]" method="GET">
+        <description>Fetch course - ensure new fields returned</description>
+        <changes>
+          <change>Verify Prisma query includes new fields (should be automatic)</change>
+        </changes>
+        <file>src/app/api/instructor/courses/[id]/route.ts</file>
+      </endpoint>
+
+      <endpoint path="/api/student/courses/[id]" method="GET">
+        <description>Student course detail - ensure new fields returned</description>
+        <changes>
+          <change>Verify Prisma query includes new fields for student view</change>
+        </changes>
+        <file>src/app/api/student/courses/[id]/route.ts</file>
+      </endpoint>
+    </api-endpoints>
+
+    <technology-stack>
+      <framework>Next.js 15 App Router</framework>
+      <orm>Prisma 6.9.0</orm>
+      <database>PostgreSQL (Neon)</database>
+      <validation>Zod 4.1.13</validation>
+      <ui>React + Tailwind CSS</ui>
+      <authentication>NextAuth 4.24.11</authentication>
+    </technology-stack>
+  </technical-context>
+
+  <existing-code-context>
+    <student-course-detail-page>
+      <file>src/app/courses/[id]/page.tsx</file>
+      <current-structure>
+        - Client component using Next.js App Router
+        - Fetches course data from /api/student/courses/[id]
+        - Displays course header with title, code, semester, instructor
+        - Tabbed interface: Overview, Content, Assignments, Discussions, Announcements
+        - Quick stats cards showing content items, assignments, announcements
+        - Overview tab shows upcoming assignments and recent announcements
+      </current-structure>
+      <required-changes>
+        <change priority="high">Add Prerequisites section to Overview tab (or new dedicated section)</change>
+        <change priority="high">Add Learning Objectives section with bulleted list</change>
+        <change priority="high">Add Target Audience section</change>
+        <change priority="medium">All sections show only when data exists (conditional rendering)</change>
+        <change priority="medium">Use appropriate styling: prerequisites (info callout), objectives (ul list), audience (paragraph)</change>
+      </required-changes>
+      <integration-points>
+        <point>Course interface needs extension: prerequisites?, learningObjectives?, targetAudience?</point>
+        <point>API fetch already in place - will automatically include new fields once migration runs</point>
+        <point>Consider adding sections after course header, before Quick Stats, or in Overview tab</point>
+      </integration-points>
+    </student-course-detail-page>
+
+    <instructor-course-create-form>
+      <file>src/app/instructor/courses/new/page.tsx</file>
+      <current-structure>
+        - Form with fields: title, code, semester, year, description
+        - Posts to /api/instructor/courses
+        - Basic validation (required fields)
+        - Error handling and loading states
+      </current-structure>
+      <required-changes>
+        <change priority="high">Add "Prerequisites" textarea field (optional, max 2000 chars)</change>
+        <change priority="high">Add "Learning Objectives" dynamic list input (max 20 items, each max 500 chars)</change>
+        <change priority="high">Add "Target Audience" textarea field (optional, max 1000 chars)</change>
+        <change priority="medium">Character counters for text fields</change>
+        <change priority="medium">Add/remove buttons for learning objectives list</change>
+        <change priority="low">Form validation with Zod schema (client-side)</change>
+      </required-changes>
+      <form-state-management>
+        - Currently uses React useState for form data
+        - Need to add: prerequisites (string), learningObjectives (string[]), targetAudience (string)
+        - Learning objectives requires array state management with add/remove handlers
+      </form-state-management>
+    </instructor-course-create-form>
+
+    <instructor-course-edit-form>
+      <file>src/app/instructor/courses/[id]/edit/page.tsx</file>
+      <current-structure>
+        - Fetches course data from /api/instructor/courses/[id]
+        - Form with fields: title, code, semester, year, description, isActive
+        - Updates via PUT /api/instructor/courses/[id]
+        - Includes delete functionality with confirmation modal
+      </current-structure>
+      <required-changes>
+        <change priority="high">Add same three fields as create form</change>
+        <change priority="high">Pre-populate fields with existing course data</change>
+        <change priority="high">Handle null/empty values gracefully</change>
+        <change priority="medium">Learning objectives array pre-population and editing</change>
+      </required-changes>
+      <data-loading>
+        - Course data fetched in useEffect
+        - New fields will be included once migration runs
+        - Need to handle: null prerequisites, empty learningObjectives array, null targetAudience
+      </data-loading>
+    </instructor-course-edit-form>
+
+    <existing-validation>
+      <file>src/validators/course.ts</file>
+      <current-schemas>
+        - createCourseSchema: title, code, description, semester, year, isActive
+        - updateCourseSchema: partial version of createCourseSchema
+        - Uses custom validators: stringWithLength, positiveIntSchema
+        - Imports sanitizeHtml for XSS prevention
+      </current-schemas>
+      <extension-approach>
+        - Add coursePrerequisitesSchema as separate object
+        - Merge into createCourseSchema and updateCourseSchema
+        - Maintain consistent validation patterns with existing code
+        - Use transform(sanitizeHtml) for text fields if needed
+      </extension-approach>
+    </existing-validation>
+
+    <enrollment-flow>
+      <current-implementation>
+        - Enrollment likely handled via course detail page or separate modal
+        - Need to locate enrollment UI component or page
+        - Currently no prerequisite checking or confirmation
+      </current-implementation>
+      <required-implementation>
+        <component>Prerequisites Warning Callout</component>
+        <location>Before enrollment button (course detail page or enrollment modal)</location>
+        <features>
+          - Show only when course.prerequisites is not null/empty
+          - Warning styling (yellow/orange background)
+          - Display full prerequisites text
+          - Heading: "Prerequisites Required"
+        </features>
+        <component>Prerequisite Confirmation Checkbox</component>
+        <features>
+          - Show only when course has prerequisites
+          - Label: "I confirm that I meet the prerequisites for this course"
+          - Required to enable enrollment button
+          - No server-side enforcement (trust-based)
+        </features>
+      </required-implementation>
+    </enrollment-flow>
+  </existing-code-context>
+
+  <implementation-guidance>
+    <phase name="Phase 1: Database Migration" order="1">
+      <task>Update prisma/schema.prisma with new Course fields</task>
+      <task>Run migration: npx prisma migrate dev --name add_course_prerequisites</task>
+      <task>Review generated migration SQL for correctness</task>
+      <task>Run migration against local database</task>
+      <task>Generate Prisma client: npx prisma generate</task>
+      <task>Verify in Prisma Studio: npx prisma studio</task>
+      <verification>
+        - Migration file created in prisma/migrations/
+        - All fields nullable
+        - Existing courses remain valid
+        - Prisma client types updated
+      </verification>
+    </phase>
+
+    <phase name="Phase 2: Validation Schemas" order="2">
+      <task>Create coursePrerequisitesSchema in src/validators/course.ts</task>
+      <task>Extend createCourseSchema with new fields</task>
+      <task>Extend updateCourseSchema with new fields</task>
+      <task>Export type definitions</task>
+      <verification>
+        - Schema validates valid inputs
+        - Schema rejects invalid inputs (too long, too many objectives)
+        - Nullable fields handled correctly
+      </verification>
+    </phase>
+
+    <phase name="Phase 3: API Route Updates" order="3">
+      <task>Update POST /api/instructor/courses to accept new fields</task>
+      <task>Update PUT /api/instructor/courses/[id] to accept new fields</task>
+      <task>Verify GET endpoints return new fields (should be automatic)</task>
+      <task>Test API routes with Postman or similar</task>
+      <verification>
+        - Course creation with new fields succeeds
+        - Course update with new fields succeeds
+        - New fields returned in GET responses
+        - Validation errors returned for invalid inputs
+      </verification>
+    </phase>
+
+    <phase name="Phase 4: Instructor Course Forms" order="4">
+      <task>Add prerequisites textarea to course create form</task>
+      <task>Add learning objectives dynamic list to course create form</task>
+      <task>Add target audience textarea to course create form</task>
+      <task>Implement character counters and validation feedback</task>
+      <task>Update form submission to include new fields</task>
+      <task>Repeat for course edit form with pre-population logic</task>
+      <verification>
+        - Instructor can create course with all new fields
+        - Character limits enforced
+        - Learning objectives can be added/removed dynamically
+        - Edit form pre-populates existing data correctly
+        - Form validation works client-side
+      </verification>
+    </phase>
+
+    <phase name="Phase 5: Student Course Detail Display" order="5">
+      <task>Add Prerequisites section to course detail page</task>
+      <task>Add Learning Objectives section with bulleted list</task>
+      <task>Add Target Audience section</task>
+      <task>Implement conditional rendering (show only when data exists)</task>
+      <task>Style sections appropriately (callout, list, paragraph)</task>
+      <verification>
+        - Prerequisites displayed with info callout styling
+        - Learning objectives rendered as bulleted list
+        - Target audience shown as paragraph text
+        - Sections hidden when no data exists
+        - Formatting preserves line breaks (white-space: pre-wrap)
+      </verification>
+    </phase>
+
+    <phase name="Phase 6: Enrollment Flow Updates" order="6">
+      <task>Locate enrollment UI (course detail page or modal)</task>
+      <task>Add prerequisites warning callout before enrollment button</task>
+      <task>Add confirmation checkbox for prerequisite acknowledgment</task>
+      <task>Disable enrollment button until checkbox checked (when prerequisites exist)</task>
+      <task>No server-side enforcement (client-side only)</task>
+      <verification>
+        - Warning callout appears when prerequisites exist
+        - Checkbox required to enable enrollment
+        - Enrollment works normally for courses without prerequisites
+        - No backend validation blocking enrollment
+      </verification>
+    </phase>
+
+    <phase name="Phase 7: Testing" order="7">
+      <task>Write unit tests for validation schemas</task>
+      <task>Write integration tests for API endpoints</task>
+      <task>Write E2E tests for student and instructor flows</task>
+      <task>Test edge cases: null values, empty arrays, max lengths</task>
+      <task>Test backward compatibility with existing courses</task>
+      <verification>
+        - All unit tests pass (validation logic)
+        - All integration tests pass (API CRUD)
+        - All E2E tests pass (user flows)
+        - Edge cases handled correctly
+        - Existing courses work without new fields
+      </verification>
+    </phase>
+
+    <ui-patterns>
+      <pattern name="Prerequisites Display">
+        <description>Info callout with icon for prerequisites section</description>
+        <implementation>
+          <![CDATA[
+{course.prerequisites && (
+  <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
+    <div className="flex">
+      <div className="flex-shrink-0">
+        <svg className="h-5 w-5 text-blue-400" /* Info icon SVG */ />
+      </div>
+      <div className="ml-3">
+        <h3 className="text-sm font-medium text-blue-800">Prerequisites</h3>
+        <div className="mt-2 text-sm text-blue-700 whitespace-pre-wrap">
+          {course.prerequisites}
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+          ]]>
+        </implementation>
+      </pattern>
+
+      <pattern name="Learning Objectives Display">
+        <description>Bulleted list with heading</description>
+        <implementation>
+          <![CDATA[
+{course.learningObjectives && course.learningObjectives.length > 0 && (
+  <div className="mb-6">
+    <h3 className="text-lg font-medium text-gray-900 mb-3">What You'll Learn</h3>
+    <ul className="list-disc list-inside space-y-2 text-gray-700">
+      {course.learningObjectives.map((objective, index) => (
+        <li key={index}>{objective}</li>
+      ))}
+    </ul>
+  </div>
+)}
+          ]]>
+        </implementation>
+      </pattern>
+
+      <pattern name="Target Audience Display">
+        <description>Simple paragraph with heading</description>
+        <implementation>
+          <![CDATA[
+{course.targetAudience && (
+  <div className="mb-6">
+    <h3 className="text-lg font-medium text-gray-900 mb-2">Who Should Take This Course?</h3>
+    <p className="text-gray-700">{course.targetAudience}</p>
+  </div>
+)}
+          ]]>
+        </implementation>
+      </pattern>
+
+      <pattern name="Learning Objectives Input (Dynamic List)">
+        <description>Add/remove input fields for learning objectives array</description>
+        <implementation>
+          <![CDATA[
+const [learningObjectives, setLearningObjectives] = useState<string[]>(['']);
+
+const addObjective = () => {
+  if (learningObjectives.length < 20) {
+    setLearningObjectives([...learningObjectives, '']);
+  }
+};
+
+const removeObjective = (index: number) => {
+  setLearningObjectives(learningObjectives.filter((_, i) => i !== index));
+};
+
+const updateObjective = (index: number, value: string) => {
+  const updated = [...learningObjectives];
+  updated[index] = value;
+  setLearningObjectives(updated);
+};
+
+// JSX
+<div>
+  <label className="block text-sm font-medium text-gray-700">Learning Objectives</label>
+  {learningObjectives.map((objective, index) => (
+    <div key={index} className="flex items-center space-x-2 mt-2">
+      <input
+        type="text"
+        value={objective}
+        onChange={(e) => updateObjective(index, e.target.value)}
+        maxLength={500}
+        className="flex-1 px-3 py-2 border border-gray-300 rounded-md"
+        placeholder={`Objective ${index + 1}`}
+      />
+      <button type="button" onClick={() => removeObjective(index)}>Remove</button>
+    </div>
+  ))}
+  {learningObjectives.length < 20 && (
+    <button type="button" onClick={addObjective} className="mt-2">Add Objective</button>
+  )}
+</div>
+          ]]>
+        </implementation>
+      </pattern>
+
+      <pattern name="Prerequisite Confirmation Checkbox">
+        <description>Checkbox that must be checked to enable enrollment</description>
+        <implementation>
+          <![CDATA[
+const [prerequisitesConfirmed, setPrerequisitesConfirmed] = useState(false);
+
+// Show warning callout
+{course.prerequisites && (
+  <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
+    <div className="flex">
+      <div className="ml-3">
+        <h3 className="text-sm font-medium text-yellow-800">Prerequisites Required</h3>
+        <div className="mt-2 text-sm text-yellow-700 whitespace-pre-wrap">
+          {course.prerequisites}
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+
+// Show confirmation checkbox
+{course.prerequisites && (
+  <div className="flex items-start mb-4">
+    <input
+      type="checkbox"
+      id="prerequisitesConfirmation"
+      checked={prerequisitesConfirmed}
+      onChange={(e) => setPrerequisitesConfirmed(e.target.checked)}
+      className="h-4 w-4 text-blue-600 border-gray-300 rounded"
+    />
+    <label htmlFor="prerequisitesConfirmation" className="ml-2 text-sm text-gray-700">
+      I confirm that I meet the prerequisites for this course
+    </label>
+  </div>
+)}
+
+// Disable enrollment button if prerequisites exist but not confirmed
+<button
+  onClick={handleEnroll}
+  disabled={course.prerequisites && !prerequisitesConfirmed}
+  className="px-4 py-2 bg-blue-600 text-white rounded-md disabled:opacity-50"
+>
+  Enroll in Course
+</button>
+          ]]>
+        </implementation>
+      </pattern>
+    </ui-patterns>
+
+    <security-considerations>
+      <consideration priority="high">
+        <title>XSS Prevention</title>
+        <description>All user-submitted text must be sanitized to prevent XSS attacks</description>
+        <implementation>Use sanitizeHtml from @/lib/sanitize in Zod transform</implementation>
+        <verification>Test with script tags, HTML entities, malicious payloads</verification>
+      </consideration>
+
+      <consideration priority="high">
+        <title>Input Validation</title>
+        <description>Enforce character limits to prevent database bloat and DoS attacks</description>
+        <limits>
+          - prerequisites: max 2000 characters
+          - learningObjectives: max 20 items, each max 500 characters
+          - targetAudience: max 1000 characters
+        </limits>
+        <enforcement>Validated on both client (form) and server (Zod schema)</enforcement>
+      </consideration>
+
+      <consideration priority="medium">
+        <title>Authorization</title>
+        <description>Only course instructors and admins can create/edit course prerequisites</description>
+        <implementation>Existing RBAC from Story 1.10 applies</implementation>
+        <verification>Test with student role - should be denied access</verification>
+      </consideration>
+
+      <consideration priority="low">
+        <title>Prerequisite Confirmation</title>
+        <description>Confirmation checkbox is informational only, not enforced server-side</description>
+        <rationale>Hard enforcement deferred to post-MVP (assumption A6)</rationale>
+        <risk>Checkbox can be bypassed via DevTools - acceptable for MVP</risk>
+      </consideration>
+    </security-considerations>
+
+    <performance-considerations>
+      <consideration>
+        <title>Database Query Impact</title>
+        <description>New fields add minimal overhead to course queries</description>
+        <impact>~13KB max per course (prerequisites 2KB + objectives 10KB + audience 1KB)</impact>
+        <mitigation>No additional joins required; fields part of Course model</mitigation>
+      </consideration>
+
+      <consideration>
+        <title>Page Load Impact</title>
+        <description>Additional data transferred to client for course detail pages</description>
+        <impact>Negligible - text data compresses well, array rendering is fast</impact>
+        <mitigation>Conditional rendering - only show sections when data exists</mitigation>
+      </consideration>
+    </performance-considerations>
+  </implementation-guidance>
+
+  <testing-requirements>
+    <unit-tests>
+      <test-suite file="src/validators/__tests__/course.test.ts">
+        <test>Prerequisites validation - valid: null, empty, 2000 chars</test>
+        <test>Prerequisites validation - invalid: 2001+ chars</test>
+        <test>Learning objectives validation - valid: [], [1 objective], [20 objectives]</test>
+        <test>Learning objectives validation - invalid: 21+ objectives, objective > 500 chars</test>
+        <test>Target audience validation - valid: null, empty, 1000 chars</test>
+        <test>Target audience validation - invalid: 1001+ chars</test>
+        <test>Edge case: All fields null (backward compatibility)</test>
+        <test>Edge case: All fields at max length</test>
+        <test>Validation error messages are descriptive</test>
+      </test-suite>
+      <coverage-target>90%+ for validation logic</coverage-target>
+    </unit-tests>
+
+    <integration-tests>
+      <test-suite file="src/app/api/instructor/courses/__tests__/route.test.ts">
+        <test>POST /api/instructor/courses - create with all new fields populated</test>
+        <test>POST /api/instructor/courses - create with new fields null/empty</test>
+        <test>POST /api/instructor/courses - reject invalid prerequisites (too long)</test>
+        <test>POST /api/instructor/courses - reject invalid objectives (too many, too long)</test>
+        <test>PUT /api/instructor/courses/[id] - update prerequisites only</test>
+        <test>PUT /api/instructor/courses/[id] - update learning objectives array</test>
+        <test>PUT /api/instructor/courses/[id] - update target audience</test>
+        <test>PUT /api/instructor/courses/[id] - update all new fields simultaneously</test>
+        <test>GET /api/instructor/courses/[id] - returns new fields in response</test>
+        <test>GET /api/student/courses/[id] - returns new fields for student view</test>
+        <test>Verify data persistence: Create course → fetch course → assert fields match</test>
+      </test-suite>
+      <coverage-target>70%+ for API endpoints</coverage-target>
+    </integration-tests>
+
+    <e2e-tests>
+      <test-suite file="__tests__/e2e/course-prerequisites.spec.ts">
+        <test name="Student views course with prerequisites">
+          <steps>
+            1. Create test course with prerequisites, learning objectives, target audience
+            2. Login as student
+            3. Navigate to course detail page
+            4. Verify prerequisites section displayed with info styling
+            5. Verify learning objectives list displayed with bullets
+            6. Verify target audience displayed as paragraph
+            7. Verify sections not shown when data is null/empty
+          </steps>
+        </test>
+
+        <test name="Student enrolls with prerequisite confirmation">
+          <steps>
+            1. Create test course with prerequisites
+            2. Login as student
+            3. Navigate to course detail page
+            4. Verify prerequisites warning callout shown before enrollment
+            5. Verify confirmation checkbox displayed
+            6. Attempt enrollment without checking → verify button disabled
+            7. Check confirmation checkbox → verify button enabled
+            8. Complete enrollment → verify success
+          </steps>
+        </test>
+
+        <test name="Course without prerequisites - no confirmation needed">
+          <steps>
+            1. Create test course without prerequisites
+            2. Login as student
+            3. Navigate to course detail page
+            4. Verify no prerequisite warning shown
+            5. Verify no confirmation checkbox shown
+            6. Verify direct enrollment works without confirmation
+          </steps>
+        </test>
+
+        <test name="Instructor creates course with prerequisites">
+          <steps>
+            1. Login as instructor
+            2. Navigate to course creation form
+            3. Fill in prerequisites textarea (500 chars)
+            4. Add 5 learning objectives
+            5. Fill in target audience (200 chars)
+            6. Submit form
+            7. Verify course created successfully
+            8. Navigate to course detail → verify all fields displayed
+          </steps>
+        </test>
+
+        <test name="Instructor edits course to add prerequisites">
+          <steps>
+            1. Create test course without prerequisites
+            2. Login as instructor (course owner)
+            3. Navigate to course edit form
+            4. Add prerequisites text
+            5. Add learning objectives array
+            6. Add target audience
+            7. Save changes
+            8. Verify update successful
+            9. Navigate to course detail → verify new fields displayed
+          </steps>
+        </test>
+      </test-suite>
+      <test-framework>Playwright</test-framework>
+    </e2e-tests>
+
+    <test-data-factory>
+      <description>Helper function for creating test courses with prerequisites</description>
+      <implementation>
+        <![CDATA[
+// Test data factory
+export const createTestCourseWithPrerequisites = async (prisma: PrismaClient) => {
+  return await prisma.course.create({
+    data: {
+      title: 'Advanced Machine Learning',
+      code: 'ML-301',
+      semester: 'Fall 2025',
+      year: 2025,
+      instructorId: 'test-instructor-id',
+      prerequisites: 'Students should have:\n- Completed ML-201 (Introduction to ML)\n- Strong Python programming skills\n- Understanding of linear algebra and calculus',
+      learningObjectives: [
+        'Build and train deep neural networks using TensorFlow',
+        'Implement advanced optimization algorithms',
+        'Evaluate model performance using various metrics',
+        'Deploy ML models to production environments',
+        'Apply transfer learning techniques'
+      ],
+      targetAudience: 'This course is designed for data scientists and ML engineers with 1-2 years of experience who want to advance their skills in deep learning and model deployment.',
+    },
+  });
+};
+
+export const createTestCourseWithoutPrerequisites = async (prisma: PrismaClient) => {
+  return await prisma.course.create({
+    data: {
+      title: 'Introduction to Programming',
+      code: 'CS-101',
+      semester: 'Spring 2025',
+      year: 2025,
+      instructorId: 'test-instructor-id',
+      // prerequisites: null (default)
+      // learningObjectives: [] (default)
+      // targetAudience: null (default)
+    },
+  });
+};
+        ]]>
+      </implementation>
+    </test-data-factory>
+  </testing-requirements>
+
+  <dependencies>
+    <upstream-dependencies>
+      <dependency>
+        <story-id>1.1</story-id>
+        <story-title>Database Setup (PostgreSQL Migration)</story-title>
+        <reason>Requires PostgreSQL database for migration</reason>
+        <status>completed</status>
+      </dependency>
+
+      <dependency>
+        <story-id>1.8</story-id>
+        <story-title>Input Validation with Zod</story-title>
+        <reason>Uses Zod validation schemas and existing validation utilities</reason>
+        <status>completed</status>
+      </dependency>
+
+      <dependency>
+        <story-id>1.10</story-id>
+        <story-title>RBAC Implementation</story-title>
+        <reason>Relies on existing role-based access control for instructor authorization</reason>
+        <status>completed</status>
+      </dependency>
+
+      <dependency>
+        <epic-id>1</epic-id>
+        <epic-title>Foundation &amp; Infrastructure</epic-title>
+        <reason>Requires core infrastructure (Prisma, NextAuth, validation) in place</reason>
+        <status>completed</status>
+      </dependency>
+    </upstream-dependencies>
+
+    <downstream-dependencies>
+      <dependency>
+        <epic-id>3</epic-id>
+        <epic-title>Accessibility &amp; UX Refinements</epic-title>
+        <reason>Course prerequisite display UI will be audited for accessibility</reason>
+        <impact>May require accessibility improvements to prerequisite sections</impact>
+      </dependency>
+
+      <dependency>
+        <epic-id>4</epic-id>
+        <epic-title>Production Deployment</epic-title>
+        <reason>Database migration must run successfully in production</reason>
+        <impact>Migration must be tested on staging with production data copy first</impact>
+      </dependency>
+    </downstream-dependencies>
+
+    <concurrent-stories>
+      <story id="2.7" title="Feedback Templates for Instructors">
+        <relationship>Independent - can be implemented in parallel</relationship>
+      </story>
+
+      <story id="2.6" title="Admin Dashboard - System Statistics">
+        <relationship>Independent - can be implemented in parallel</relationship>
+      </story>
+    </concurrent-stories>
+
+    <external-dependencies>
+      <dependency>
+        <name>PostgreSQL Database</name>
+        <version>15+</version>
+        <purpose>Database migration target</purpose>
+        <status>available</status>
+      </dependency>
+
+      <dependency>
+        <name>Prisma CLI</name>
+        <version>6.9.0</version>
+        <purpose>Migration generation and execution</purpose>
+        <status>installed</status>
+      </dependency>
+
+      <dependency>
+        <name>Zod</name>
+        <version>4.1.13</version>
+        <purpose>Validation schema library</purpose>
+        <status>installed</status>
+      </dependency>
+    </external-dependencies>
+  </dependencies>
+
+  <risks-and-mitigations>
+    <risk severity="low">
+      <title>Migration Failure on Existing Data</title>
+      <description>Migration could fail if existing courses have incompatible data</description>
+      <likelihood>low</likelihood>
+      <impact>high</impact>
+      <mitigation>All new fields nullable; test migration on staging with production data copy first</mitigation>
+    </risk>
+
+    <risk severity="low">
+      <title>Learning Objectives Array Too Large</title>
+      <description>Instructors might want more than 20 learning objectives</description>
+      <likelihood>low</likelihood>
+      <impact>low</impact>
+      <mitigation>Limit enforced in validation; can be increased post-MVP if needed</mitigation>
+    </risk>
+
+    <risk severity="medium">
+      <title>Rich Text Formatting Requested</title>
+      <description>Instructors may request bold, italics, links in prerequisites text</description>
+      <likelihood>medium</likelihood>
+      <impact>low</impact>
+      <mitigation>Plain text only for MVP; rich text editor deferred to post-MVP (per Q4 resolution)</mitigation>
+    </risk>
+
+    <risk severity="low">
+      <title>Prerequisite Confirmation Checkbox Bypassed</title>
+      <description>Tech-savvy students could bypass checkbox via browser DevTools</description>
+      <likelihood>medium</likelihood>
+      <impact>low</impact>
+      <mitigation>Acceptable for MVP (informational only per assumption A6); server-side enforcement deferred</mitigation>
+    </risk>
+
+    <risk severity="low">
+      <title>Character Limits Insufficient</title>
+      <description>2000 chars for prerequisites might not be enough for some courses</description>
+      <likelihood>low</likelihood>
+      <impact>low</impact>
+      <mitigation>Validate during beta testing; can increase limit easily (TEXT field, no DB constraint)</mitigation>
+    </risk>
+  </risks-and-mitigations>
+
+  <edge-cases>
+    <case>
+      <scenario>Existing courses with null prerequisites</scenario>
+      <expected-behavior>Sections not displayed; no errors; course functions normally</expected-behavior>
+      <test-coverage>E2E test for backward compatibility</test-coverage>
+    </case>
+
+    <case>
+      <scenario>Empty learning objectives array</scenario>
+      <expected-behavior>Learning objectives section not displayed</expected-behavior>
+      <test-coverage>Unit test for conditional rendering logic</test-coverage>
+    </case>
+
+    <case>
+      <scenario>Very long prerequisites text (2000 chars)</scenario>
+      <expected-behavior>Text displayed with scrolling or truncation; character limit enforced on input</expected-behavior>
+      <test-coverage>Integration test with max-length input</test-coverage>
+    </case>
+
+    <case>
+      <scenario>20 learning objectives (max limit)</scenario>
+      <expected-behavior>All objectives displayed; "Add objective" button disabled</expected-behavior>
+      <test-coverage>Unit test for array limit validation</test-coverage>
+    </case>
+
+    <case>
+      <scenario>Prerequisites with line breaks and special characters</scenario>
+      <expected-behavior>Formatting preserved with white-space: pre-wrap; special chars sanitized</expected-behavior>
+      <test-coverage>Integration test with multi-line input</test-coverage>
+    </case>
+
+    <case>
+      <scenario>Student attempts enrollment without prerequisites confirmation</scenario>
+      <expected-behavior>Enrollment button disabled; tooltip explains requirement</expected-behavior>
+      <test-coverage>E2E test for enrollment flow validation</test-coverage>
+    </case>
+
+    <case>
+      <scenario>Instructor edits course to remove prerequisites</scenario>
+      <expected-behavior>Prerequisites cleared; warning and checkbox no longer shown to students</expected-behavior>
+      <test-coverage>Integration test for update with null values</test-coverage>
+    </case>
+  </edge-cases>
+
+  <implementation-notes>
+    <note priority="high">
+      <title>PostgreSQL Array Type</title>
+      <description>Learning objectives uses PostgreSQL TEXT[] type, which Prisma handles automatically</description>
+      <action>No special handling needed for array serialization/deserialization</action>
+    </note>
+
+    <note priority="high">
+      <title>Form State Management for Learning Objectives</title>
+      <description>Learning objectives array requires dynamic add/remove functionality</description>
+      <recommendation>Use React useState with array manipulation helpers; consider using react-hook-form for complex validation</recommendation>
+    </note>
+
+    <note priority="medium">
+      <title>Enrollment UI Location</title>
+      <description>Need to locate where enrollment button/modal is implemented</description>
+      <action>Search for enrollment logic in course detail page or separate enrollment component</action>
+    </note>
+
+    <note priority="medium">
+      <title>Backward Compatibility</title>
+      <description>All existing courses will have null prerequisites after migration</description>
+      <action>Ensure all UI components handle null/undefined values gracefully with conditional rendering</action>
+    </note>
+
+    <note priority="low">
+      <title>Character Counters</title>
+      <description>Character counters enhance UX by showing remaining characters</description>
+      <implementation>Display "X / 2000 characters" below textarea; update on input change</implementation>
+    </note>
+
+    <note priority="low">
+      <title>Placeholder Text</title>
+      <description>Good placeholder text guides instructors on what to enter</description>
+      <examples>
+        - Prerequisites: "List any prerequisites students should have (e.g., prior courses, skills, knowledge)..."
+        - Learning Objectives: "What will students be able to do after completing this course?"
+        - Target Audience: "Describe who should take this course (e.g., experience level, background, goals)..."
+      </examples>
+    </note>
+  </implementation-notes>
+
+  <follow-up-stories>
+    <story priority="low">
+      <title>Rich Text Editor for Course Prerequisites</title>
+      <description>Replace plain text fields with rich text editor supporting formatting (bold, italics, lists)</description>
+      <rationale>Instructors may want formatted prerequisites for better readability</rationale>
+      <estimated-effort>medium</estimated-effort>
+    </story>
+
+    <story priority="medium">
+      <title>Hard Prerequisite Enforcement</title>
+      <description>Block enrollment if student hasn't completed prerequisite courses</description>
+      <rationale>Ensure students have required background before enrolling</rationale>
+      <dependencies>Requires prerequisite course linkage and student course history</dependencies>
+      <estimated-effort>high</estimated-effort>
+    </story>
+
+    <story priority="low">
+      <title>Learning Objectives Reordering</title>
+      <description>Drag-and-drop interface for instructors to reorder learning objectives</description>
+      <rationale>Improved UX for managing objective priority</rationale>
+      <estimated-effort>low</estimated-effort>
+    </story>
+
+    <story priority="low">
+      <title>Prerequisite Course Linking</title>
+      <description>Link prerequisites to specific courses in the system (vs. free text)</description>
+      <rationale>Enables automatic prerequisite checking and course recommendation</rationale>
+      <estimated-effort>high</estimated-effort>
+    </story>
+  </follow-up-stories>
+</story-context>

@@ -1,0 +1,863 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context id="1-7-rate-limiting-implementation" v="1.0">
+
+  <!-- ================================================================
+       METADATA
+       ================================================================ -->
+  <metadata>
+    <epic-id>1</epic-id>
+    <story-id>1.7</story-id>
+    <title>Rate Limiting Implementation</title>
+    <status>ready-for-dev</status>
+    <generated-at>2025-11-25</generated-at>
+    <generator>Story Context Generator v1.0</generator>
+    <source-story-path>docs/stories/1-7-rate-limiting-implementation.md</source-story-path>
+  </metadata>
+
+  <!-- ================================================================
+       STORY DEFINITION
+       ================================================================ -->
+  <story>
+    <as-a>system administrator</as-a>
+    <i-want>API rate limiting to prevent abuse and DoS attacks</i-want>
+    <so-that>the platform remains stable under malicious or excessive traffic</so-that>
+
+    <tasks>
+      <task id="1" status="pending">
+        <description>Install and configure Upstash Rate Limit</description>
+        <acceptance-criteria>AC: 1, 2, 3</acceptance-criteria>
+        <subtasks>
+          <subtask>Install dependencies: npm install @upstash/ratelimit @upstash/redis</subtask>
+          <subtask>Create Upstash account at https://upstash.com</subtask>
+          <subtask>Create Redis database (Free tier: 10K commands/day)</subtask>
+          <subtask>Add environment variables to .env.local</subtask>
+          <subtask>Verify .env.local is in .gitignore</subtask>
+          <subtask>Unit test verifies environment variables load correctly</subtask>
+        </subtasks>
+      </task>
+
+      <task id="2" status="pending">
+        <description>Create rate limiting utilities</description>
+        <acceptance-criteria>AC: 1, 2, 3, 4</acceptance-criteria>
+        <subtasks>
+          <subtask>Create /src/lib/rate-limit.ts with rate limiter instances</subtask>
+          <subtask>Configure ipRateLimit: 100 requests/minute</subtask>
+          <subtask>Configure userRateLimit: 200 requests/minute</subtask>
+          <subtask>Configure loginRateLimit: 5 attempts/15 minutes</subtask>
+          <subtask>Export helper function checkRateLimit(identifier, limiter)</subtask>
+        </subtasks>
+      </task>
+
+      <task id="3" status="pending">
+        <description>Implement global rate limiting middleware</description>
+        <acceptance-criteria>AC: 1, 2, 5</acceptance-criteria>
+        <subtasks>
+          <subtask>Create /src/middleware.ts for global API route protection</subtask>
+          <subtask>Extract client IP from x-forwarded-for header</subtask>
+          <subtask>Apply IP-based rate limiting to all /api/* routes</subtask>
+          <subtask>Return HTTP 429 with retry-after header on limit exceeded</subtask>
+          <subtask>Log rate limit violations with IP and endpoint</subtask>
+        </subtasks>
+      </task>
+
+      <task id="4" status="pending">
+        <description>Implement authenticated user rate limiting</description>
+        <acceptance-criteria>AC: 3</acceptance-criteria>
+        <subtasks>
+          <subtask>Create helper function applyUserRateLimit(userId, request)</subtask>
+          <subtask>Document pattern for API routes to call after authentication</subtask>
+          <subtask>Apply to high-traffic endpoints (student/courses, instructor/assignments)</subtask>
+        </subtasks>
+      </task>
+
+      <task id="5" status="pending">
+        <description>Implement strict login rate limiting</description>
+        <acceptance-criteria>AC: 4, 5</acceptance-criteria>
+        <subtasks>
+          <subtask>Apply loginRateLimit on failed login attempts (use email as identifier)</subtask>
+          <subtask>Return HTTP 429 with 15-minute retry-after on rate limit exceeded</subtask>
+          <subtask>Log violation with hashed email and IP address</subtask>
+          <subtask>Reset rate limit counter on successful login</subtask>
+        </subtasks>
+      </task>
+
+      <task id="6" status="pending">
+        <description>Implement rate limit logging and monitoring</description>
+        <acceptance-criteria>AC: 7</acceptance-criteria>
+        <subtasks>
+          <subtask>Log rate limit violations with structured format (level, type, identifier, endpoint)</subtask>
+          <subtask>Enable Upstash analytics dashboard access</subtask>
+          <subtask>Document how to review rate limit violations in Upstash console</subtask>
+        </subtasks>
+      </task>
+
+      <task id="7" status="pending">
+        <description>Validate rate limiting with load testing</description>
+        <acceptance-criteria>AC: 6</acceptance-criteria>
+        <subtasks>
+          <subtask>Install load testing tool: npm install -D k6 or use Artillery</subtask>
+          <subtask>Create load test script /scripts/load-test-rate-limits.js</subtask>
+          <subtask>Test 101 requests from same IP in 60 seconds</subtask>
+          <subtask>Test 201 authenticated requests from same user in 60 seconds</subtask>
+          <subtask>Test 6 failed logins from same email</subtask>
+          <subtask>Document load test execution results</subtask>
+        </subtasks>
+      </task>
+
+      <task id="8" status="pending">
+        <description>Create rate limiting documentation</description>
+        <acceptance-criteria>AC: 8</acceptance-criteria>
+        <subtasks>
+          <subtask>Document Upstash account creation and Redis setup</subtask>
+          <subtask>Document environment variable configuration</subtask>
+          <subtask>Document rate limiting thresholds and rationale</subtask>
+          <subtask>Document middleware implementation pattern</subtask>
+          <subtask>Document troubleshooting (false positives, Redis failures, tier limits)</subtask>
+          <subtask>Save to /docs/rate-limiting.md</subtask>
+        </subtasks>
+      </task>
+    </tasks>
+  </story>
+
+  <!-- ================================================================
+       ACCEPTANCE CRITERIA (Authoritative)
+       ================================================================ -->
+  <acceptance-criteria>
+    <criterion id="1" priority="critical">
+      <description>Rate limiting middleware implemented - Per-IP and per-user rate limiting active on all API routes</description>
+      <test-approach>Integration test: Send requests to /api/student/courses, verify middleware executes</test-approach>
+    </criterion>
+
+    <criterion id="2" priority="critical">
+      <description>Per-IP rate limit configured - 100 requests/minute (configurable via environment variable)</description>
+      <test-approach>Integration test: Send 101 requests from same IP in 1 minute, verify 101st returns 429</test-approach>
+    </criterion>
+
+    <criterion id="3" priority="critical">
+      <description>Per-user rate limit configured - 200 requests/minute (configurable via environment variable)</description>
+      <test-approach>Integration test: Send 201 authenticated requests from same user in 1 minute, verify 201st returns 429</test-approach>
+    </criterion>
+
+    <criterion id="4" priority="critical">
+      <description>Login endpoint protected - 5 failed attempts → 15-minute lockout with clear error messaging</description>
+      <test-approach>Integration test: Send 6 failed logins for same email, verify 6th returns 429 with 15-minute lockout message</test-approach>
+    </criterion>
+
+    <criterion id="5" priority="critical">
+      <description>Rate limit exceeded responses - HTTP 429 status with retry-after header indicating cooldown period</description>
+      <test-approach>Integration test: Trigger rate limit, verify response includes 429 status, Retry-After header, and JSON error body</test-approach>
+    </criterion>
+
+    <criterion id="6" priority="high">
+      <description>Rate limiting validated - Load testing confirms limits enforced correctly under concurrent traffic</description>
+      <test-approach>Load test: Use k6 or Artillery to simulate concurrent traffic, verify no false positives/negatives</test-approach>
+    </criterion>
+
+    <criterion id="7" priority="high">
+      <description>Monitoring configured - Rate limit violations logged to application logs with IP address and user context</description>
+      <test-approach>Integration test: Trigger rate limit, verify log entry created with correct structure (type, identifier, endpoint, limit, resetAt)</test-approach>
+    </criterion>
+
+    <criterion id="8" priority="medium">
+      <description>Documentation created - Rate limiting configuration and troubleshooting guide saved to /docs/rate-limiting.md</description>
+      <test-approach>Manual review: Verify documentation exists and covers all required sections (setup, config, troubleshooting, monitoring)</test-approach>
+    </criterion>
+  </acceptance-criteria>
+
+  <!-- ================================================================
+       ARTIFACTS - Documentation
+       ================================================================ -->
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture Document</title>
+        <section>Security Architecture - Rate Limiting Strategy</section>
+        <snippet>
+**Rate Limiting Strategy** [Source: docs/architecture.md#Security-Architecture]
+- **Per-IP Rate Limit**: 100 requests/minute (protects against unauthenticated DoS attacks)
+- **Per-User Rate Limit**: 200 requests/minute (higher limit for authenticated users)
+- **Login Rate Limit**: 5 failed attempts → 15-minute lockout (prevents brute-force password attacks)
+- **Implementation Pattern**: Global middleware for IP-based, per-route helper for user-based
+- **Error Response**: HTTP 429 with `retry-after` header and structured JSON error
+        </snippet>
+      </doc>
+
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture Document</title>
+        <section>Technology Stack - Rate Limiting</section>
+        <snippet>
+**Rate Limiting Technology Decision** [Source: docs/architecture.md#Architecture-Decision-Summary]
+- **Choice**: Upstash Rate Limit (serverless Redis)
+- **Rationale**: Zero infrastructure management, Vercel Edge compatible (&lt; 10ms latency), free tier covers beta (10K commands/day)
+- **Cost Trajectory**: Free → ~$10/month for production scale
+- **Key Feature**: Sliding window algorithm prevents burst traffic exploitation
+        </snippet>
+      </doc>
+
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture Document</title>
+        <section>Project Structure - Middleware</section>
+        <snippet>
+**File Locations** [Source: docs/architecture.md#Project-Structure]
+- Rate limiting utilities: `/src/lib/rate-limit.ts`
+- Global middleware: `/src/middleware.ts` (Next.js 15 middleware convention)
+- Logger utility: `/src/lib/logger.ts` (shared with Story 1.1)
+- Load test scripts: `/scripts/load-test-rate-limits.js`
+- Documentation: `/docs/rate-limiting.md`
+- Environment variables: `.env.local` (gitignored, local development only)
+        </snippet>
+      </doc>
+
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Technical Specification - Epic 1</title>
+        <section>Non-Functional Requirements - Security</section>
+        <snippet>
+**OWASP Mapping** [Source: docs/tech-spec-epic-1.md#Non-Functional-Requirements]
+- **OWASP Category**: A05: Security Misconfiguration (rate limiting prevents DoS exploitation)
+- **Compliance**: Aligns with NFR004 security requirements (OWASP Top 10 protections)
+
+**DoS Attack Prevention** [Source: docs/tech-spec-epic-1.md#Non-Functional-Requirements]
+- Rate limiting is PRIMARY defense against DoS attacks targeting API endpoints
+- Sliding window algorithm prevents "burst at window boundary" exploitation
+- IP-based limiting protects unauthenticated endpoints (login, registration, public APIs)
+- User-based limiting allows higher quotas for authenticated legitimate users
+        </snippet>
+      </doc>
+
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Technical Specification - Epic 1</title>
+        <section>Dependencies - Upstash Rate Limit</section>
+        <snippet>
+**NPM Packages** (new dependencies)
+- `@upstash/ratelimit@^2.0.4`: Upstash rate limiting library with sliding window algorithm
+- `@upstash/redis@^1.37.0`: Serverless Redis client for Upstash
+
+**External Service Integrations**
+- **Service:** Upstash Redis (serverless)
+- **Integration:** `@upstash/ratelimit` library
+- **Credentials:** `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`
+- **Edge Compatibility:** Runs on Vercel Edge Runtime (co-located with application)
+- **Analytics:** Built-in rate limit analytics dashboard
+
+**Environment Variables:**
+```bash
+UPSTASH_REDIS_REST_URL="https://your-redis.upstash.io"
+UPSTASH_REDIS_REST_TOKEN="your-upstash-token"
+RATE_LIMIT_IP_MAX="100"
+RATE_LIMIT_USER_MAX="200"
+RATE_LIMIT_LOGIN_MAX="5"
+```
+        </snippet>
+      </doc>
+
+      <doc>
+        <path>docs/PRD.md</path>
+        <title>Product Requirements Document</title>
+        <section>Functional Requirements - Security</section>
+        <snippet>
+**FR005**: System shall implement rate limiting (100 requests/minute per IP, 200 requests/minute per authenticated user)
+**FR006**: System shall validate all API inputs using Zod schemas to prevent injection attacks and data corruption
+        </snippet>
+      </doc>
+    </docs>
+
+    <!-- ================================================================
+         ARTIFACTS - Code
+         ================================================================ -->
+    <code>
+      <file>
+        <path>src/lib/auth.ts</path>
+        <kind>existing-library</kind>
+        <symbol>authOptions</symbol>
+        <lines>1-70</lines>
+        <reason>NextAuth configuration - used to extract authenticated user ID for user-based rate limiting</reason>
+        <snippet>
+export const authOptions: NextAuthOptions = {
+  adapter: PrismaAdapter(prisma),
+  providers: [CredentialsProvider({ ... })],
+  session: { strategy: 'jwt' },
+  callbacks: {
+    jwt: async ({ token, user }) => {
+      if (user) {
+        token.id = user.id
+        token.role = user.role
+      }
+      return token
+    },
+    session: async ({ session, token }) => {
+      if (token) {
+        session.user.id = token.id as string
+        session.user.role = token.role as string
+      }
+      return session
+    }
+  }
+}
+        </snippet>
+      </file>
+
+      <file>
+        <path>src/lib/prisma.ts</path>
+        <kind>existing-library</kind>
+        <symbol>prisma</symbol>
+        <lines>1-9</lines>
+        <reason>Prisma client singleton - not directly used for rate limiting, but shows project pattern for library initialization</reason>
+        <snippet>
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined
+}
+
+export const prisma = globalForPrisma.prisma ?? new PrismaClient()
+
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+        </snippet>
+      </file>
+
+      <file>
+        <path>src/app/api/student/courses/route.ts</path>
+        <kind>example-api-route</kind>
+        <symbol>GET</symbol>
+        <lines>1-41</lines>
+        <reason>Example API route showing current authentication pattern - will be extended with user-based rate limiting</reason>
+        <snippet>
+export async function GET() {
+  try {
+    const session = await getServerSession(authOptions)
+
+    if (!session || session.user.role !== 'STUDENT') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const enrollments = await prisma.enrollment.findMany({
+      where: {
+        userId: session.user.id,
+        course: { isActive: true }
+      },
+      include: { course: { include: { instructor: true } } }
+    })
+
+    return NextResponse.json(enrollments.map(e => e.course))
+  } catch (error) {
+    console.error('Error fetching student courses:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+        </snippet>
+      </file>
+
+      <file>
+        <path>src/app/api/auth/[...nextauth]/route.ts</path>
+        <kind>auth-handler</kind>
+        <symbol>handler</symbol>
+        <lines>1-5</lines>
+        <reason>NextAuth handler - login endpoint that needs strict rate limiting protection</reason>
+        <snippet>
+import NextAuth from 'next-auth'
+import { authOptions } from '@/lib/auth'
+
+const handler = NextAuth(authOptions)
+
+export { handler as GET, handler as POST }
+        </snippet>
+      </file>
+
+      <file>
+        <path>src/lib/rate-limit.ts</path>
+        <kind>new-to-create</kind>
+        <symbol>ipRateLimit, userRateLimit, loginRateLimit</symbol>
+        <lines>N/A</lines>
+        <reason>NEW FILE - Rate limiting utilities with Upstash Redis configuration (Task 2)</reason>
+        <snippet>
+// To be created - Example implementation from docs/stories/1-7-rate-limiting-implementation.md:
+import { Ratelimit } from '@upstash/ratelimit';
+import { Redis } from '@upstash/redis';
+
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL!,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+});
+
+export const ipRateLimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(
+    parseInt(process.env.RATE_LIMIT_IP_MAX || '100'),
+    '1 m'
+  ),
+  analytics: true,
+  prefix: 'ratelimit:ip',
+});
+
+export const userRateLimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(
+    parseInt(process.env.RATE_LIMIT_USER_MAX || '200'),
+    '1 m'
+  ),
+  analytics: true,
+  prefix: 'ratelimit:user',
+});
+
+export const loginRateLimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(
+    parseInt(process.env.RATE_LIMIT_LOGIN_MAX || '5'),
+    '15 m'
+  ),
+  analytics: true,
+  prefix: 'ratelimit:login',
+});
+        </snippet>
+      </file>
+
+      <file>
+        <path>src/middleware.ts</path>
+        <kind>new-to-create</kind>
+        <symbol>middleware, config</symbol>
+        <lines>N/A</lines>
+        <reason>NEW FILE - Global middleware for IP-based rate limiting on all API routes (Task 3)</reason>
+        <snippet>
+// To be created - Example implementation from docs/stories/1-7-rate-limiting-implementation.md:
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { ipRateLimit } from '@/lib/rate-limit';
+
+export async function middleware(request: NextRequest) {
+  const ip = request.ip ??
+    request.headers.get('x-forwarded-for')?.split(',')[0].trim() ??
+    '127.0.0.1';
+
+  try {
+    const { success, limit, reset, remaining } = await ipRateLimit.limit(ip);
+
+    if (!success) {
+      console.warn({
+        type: 'rate_limit_exceeded',
+        limiter: 'ip',
+        identifier: ip,
+        endpoint: request.nextUrl.pathname,
+        limit, reset, remaining,
+      });
+
+      return NextResponse.json(
+        {
+          error: {
+            code: 'RATE_LIMIT_EXCEEDED',
+            message: 'Too many requests. Please try again later.',
+            details: { limit, remaining, resetAt: new Date(reset).toISOString() },
+          },
+        },
+        {
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': limit.toString(),
+            'X-RateLimit-Remaining': remaining.toString(),
+            'X-RateLimit-Reset': new Date(reset).toISOString(),
+            'Retry-After': Math.ceil((reset - Date.now()) / 1000).toString(),
+          },
+        }
+      );
+    }
+
+    return NextResponse.next();
+  } catch (error) {
+    console.error({ error, message: 'Rate limit check failed, allowing request' });
+    return NextResponse.next();
+  }
+}
+
+export const config = {
+  matcher: '/api/:path*',
+};
+        </snippet>
+      </file>
+    </code>
+
+    <!-- ================================================================
+         ARTIFACTS - Dependencies
+         ================================================================ -->
+    <dependencies>
+      <existing>
+        <package name="next" version="15.3.3" purpose="Next.js framework - provides middleware API for global rate limiting" />
+        <package name="next-auth" version="4.24.11" purpose="Authentication - used to extract authenticated user ID for user-based rate limiting" />
+        <package name="@prisma/client" version="6.9.0" purpose="Database ORM - not directly used for rate limiting but project dependency" />
+      </existing>
+
+      <new-required>
+        <package name="@upstash/ratelimit" version="^2.0.4" purpose="Upstash rate limiting library with sliding window algorithm" />
+        <package name="@upstash/redis" version="^1.37.0" purpose="Serverless Redis client for Upstash" />
+      </new-required>
+
+      <new-dev>
+        <package name="k6" version="latest" purpose="Load testing tool for validating rate limits under concurrent traffic (alternative: Artillery)" />
+      </new-dev>
+    </dependencies>
+  </artifacts>
+
+  <!-- ================================================================
+       CONSTRAINTS - Development Constraints
+       ================================================================ -->
+  <constraints>
+    <technical>
+      <constraint type="fail-open-behavior">
+        <description>If Upstash Redis unavailable (network failure, service outage), middleware should fail-open (allow request) to avoid blocking all traffic</description>
+        <rationale>Brief vulnerability window acceptable vs. complete service outage. Trade-off documented in architecture.</rationale>
+        <implementation>Wrap rate limit check in try-catch, log error, return NextResponse.next() on exception</implementation>
+      </constraint>
+
+      <constraint type="environment-variables">
+        <description>All rate limiting configuration must be via environment variables (no hardcoded limits)</description>
+        <rationale>Enables easy adjustment without code changes during beta testing if false positives detected</rationale>
+        <implementation>Use process.env.RATE_LIMIT_IP_MAX with fallback defaults (100, 200, 5)</implementation>
+      </constraint>
+
+      <constraint type="credentials-security">
+        <description>UPSTASH_REDIS_REST_TOKEN provides full access to Redis instance - never log token</description>
+        <rationale>Security-sensitive credential. If accidentally committed to git, treat as P1 security incident.</rationale>
+        <implementation>Ensure .env.local in .gitignore, never log token in application code or error messages</implementation>
+      </constraint>
+
+      <constraint type="middleware-performance">
+        <description>Rate limit check overhead must be &lt; 10ms per request (p95)</description>
+        <rationale>Vercel Edge deployment ensures low latency. Upstash co-located with application on Vercel Edge.</rationale>
+        <implementation>Add timing logs around ipRateLimit.limit() calls during load testing to validate</implementation>
+      </constraint>
+    </technical>
+
+    <architectural>
+      <constraint type="sliding-window-algorithm">
+        <description>Must use sliding window algorithm (not fixed window) to prevent burst-at-boundary exploitation</description>
+        <rationale>Industry standard for rate limiting. Prevents attackers from sending 100 requests at 11:59:59 and 100 more at 12:00:01.</rationale>
+        <implementation>Upstash Ratelimit.slidingWindow() enforces this automatically</implementation>
+      </constraint>
+
+      <constraint type="per-route-opt-in">
+        <description>User-based rate limiting requires per-route opt-in (not automatic middleware)</description>
+        <rationale>Not all routes need user-based limiting. High-traffic endpoints opt in after authentication check.</rationale>
+        <implementation>Document pattern for API routes: check session → apply userRateLimit.limit(session.user.id)</implementation>
+      </constraint>
+    </architectural>
+
+    <operational>
+      <constraint type="false-positive-monitoring">
+        <description>Monitor rate limit violations weekly during first month of beta for false positives (corporate VPNs, school networks)</description>
+        <rationale>Legitimate users on shared IPs may trigger IP-based limits. User-based limiting mitigates but requires monitoring.</rationale>
+        <implementation>Review Upstash analytics dashboard weekly. If false positives detected, increase RATE_LIMIT_IP_MAX to 150.</implementation>
+      </constraint>
+
+      <constraint type="upstash-free-tier">
+        <description>Upstash free tier: 10K commands/day. 100 req/min × 60 min × 24 hours = 144K potential checks/day.</description>
+        <rationale>Free tier supports ~70 minutes of continuous 100 req/min traffic (sufficient for beta testing).</rationale>
+        <implementation>Monitor Upstash dashboard for usage. Upgrade to paid plan ($10/month) if needed during active development.</implementation>
+      </constraint>
+    </operational>
+  </constraints>
+
+  <!-- ================================================================
+       INTERFACES - Key Interfaces/APIs
+       ================================================================ -->
+  <interfaces>
+    <api-endpoints>
+      <endpoint>
+        <path>All /api/* routes</path>
+        <method>ALL</method>
+        <middleware>IP-based rate limiting (100 req/min)</middleware>
+        <response-on-limit>
+          <status>429</status>
+          <headers>
+            <header name="X-RateLimit-Limit">100</header>
+            <header name="X-RateLimit-Remaining">0</header>
+            <header name="X-RateLimit-Reset">2025-11-25T12:00:00Z</header>
+            <header name="Retry-After">60</header>
+          </headers>
+          <body>
+            {
+              "error": {
+                "code": "RATE_LIMIT_EXCEEDED",
+                "message": "Too many requests. Please try again later.",
+                "details": {
+                  "limit": 100,
+                  "remaining": 0,
+                  "resetAt": "2025-11-25T12:00:00Z"
+                }
+              }
+            }
+          </body>
+        </response-on-limit>
+      </endpoint>
+
+      <endpoint>
+        <path>/api/auth/[...nextauth]</path>
+        <method>POST</method>
+        <middleware>Login rate limiting (5 failed attempts/15 min)</middleware>
+        <response-on-limit>
+          <status>429</status>
+          <headers>
+            <header name="Retry-After">900</header>
+          </headers>
+          <body>
+            {
+              "error": {
+                "code": "RATE_LIMIT_EXCEEDED",
+                "message": "Too many failed login attempts. Please try again in 15 minutes.",
+                "details": {
+                  "limit": 5,
+                  "remaining": 0,
+                  "resetAt": "2025-11-25T12:15:00Z"
+                }
+              }
+            }
+          </body>
+        </response-on-limit>
+      </endpoint>
+
+      <endpoint>
+        <path>/api/student/courses (example high-traffic endpoint)</path>
+        <method>GET</method>
+        <middleware>IP-based (100 req/min) + User-based (200 req/min) rate limiting</middleware>
+        <response-on-limit>
+          <status>429</status>
+          <headers>
+            <header name="X-RateLimit-Limit">200</header>
+            <header name="X-RateLimit-Remaining">0</header>
+            <header name="Retry-After">60</header>
+          </headers>
+          <body>
+            {
+              "error": {
+                "code": "RATE_LIMIT_EXCEEDED",
+                "message": "Too many requests. Please try again later.",
+                "details": {
+                  "limit": 200,
+                  "remaining": 0,
+                  "resetAt": "2025-11-25T12:01:00Z"
+                }
+              }
+            }
+          </body>
+        </response-on-limit>
+      </endpoint>
+    </api-endpoints>
+
+    <utility-functions>
+      <function>
+        <name>ipRateLimit.limit(ip: string)</name>
+        <module>src/lib/rate-limit.ts</module>
+        <signature>
+          async limit(identifier: string): Promise&lt;{
+            success: boolean;
+            limit: number;
+            remaining: number;
+            reset: number;
+          }&gt;
+        </signature>
+        <purpose>Check IP-based rate limit for given IP address. Returns success=false if limit exceeded.</purpose>
+        <usage>Called by middleware on every /api/* request</usage>
+      </function>
+
+      <function>
+        <name>userRateLimit.limit(userId: string)</name>
+        <module>src/lib/rate-limit.ts</module>
+        <signature>
+          async limit(identifier: string): Promise&lt;{
+            success: boolean;
+            limit: number;
+            remaining: number;
+            reset: number;
+          }&gt;
+        </signature>
+        <purpose>Check user-based rate limit for authenticated user. Returns success=false if limit exceeded.</purpose>
+        <usage>Called by high-traffic API routes after authentication check</usage>
+      </function>
+
+      <function>
+        <name>loginRateLimit.limit(email: string)</name>
+        <module>src/lib/rate-limit.ts</module>
+        <signature>
+          async limit(identifier: string): Promise&lt;{
+            success: boolean;
+            limit: number;
+            remaining: number;
+            reset: number;
+          }&gt;
+        </signature>
+        <purpose>Check login rate limit for given email. Returns success=false if limit exceeded (5 failed attempts).</purpose>
+        <usage>Called by login handler on failed authentication attempts</usage>
+      </function>
+    </utility-functions>
+  </interfaces>
+
+  <!-- ================================================================
+       TESTS - Testing Standards and Ideas
+       ================================================================ -->
+  <tests>
+    <standards>
+      <standard>Unit tests: 90%+ coverage for /src/lib/rate-limit.ts</standard>
+      <standard>Integration tests: All rate limiting scenarios (IP, user, login) validated</standard>
+      <standard>Load tests: k6 or Artillery to simulate concurrent traffic</standard>
+      <standard>Performance target: Rate limit check overhead &lt; 10ms per request</standard>
+    </standards>
+
+    <locations>
+      <location>__tests__/unit/lib/rate-limit.test.ts</location>
+      <location>__tests__/integration/api/rate-limiting.test.ts</location>
+      <location>scripts/load-test-rate-limits.js</location>
+    </locations>
+
+    <test-ideas>
+      <test-idea>
+        <ac-id>1, 2</ac-id>
+        <type>integration</type>
+        <description>IP-based rate limiting on /api/student/courses</description>
+        <steps>
+          1. Send 100 requests from same IP address to /api/student/courses in 60 seconds
+          2. Verify all 100 requests return 200 OK
+          3. Send 101st request from same IP
+          4. Verify 101st request returns 429 with X-RateLimit-* headers
+          5. Wait 60 seconds
+          6. Send request from same IP
+          7. Verify request returns 200 OK (rate limit reset)
+        </steps>
+      </test-idea>
+
+      <test-idea>
+        <ac-id>3</ac-id>
+        <type>integration</type>
+        <description>User-based rate limiting on authenticated endpoint</description>
+        <steps>
+          1. Authenticate as test user, obtain session token
+          2. Send 200 requests with session token to /api/student/courses in 60 seconds
+          3. Verify all 200 requests return 200 OK
+          4. Send 201st request with same session token
+          5. Verify 201st request returns 429 with user-based rate limit error
+          6. Send request from different user (different session)
+          7. Verify request returns 200 OK (rate limits are per-user isolated)
+        </steps>
+      </test-idea>
+
+      <test-idea>
+        <ac-id>4</ac-id>
+        <type>integration</type>
+        <description>Login rate limiting on failed authentication</description>
+        <steps>
+          1. Send POST /api/auth/callback/credentials with invalid password (email: test@example.com)
+          2. Verify response is 401 Unauthorized
+          3. Repeat 4 more times (total 5 failed attempts)
+          4. Send 6th failed login attempt for same email
+          5. Verify response is 429 with message "Too many failed login attempts. Please try again in 15 minutes."
+          6. Verify Retry-After header is 900 seconds
+          7. Send login attempt with correct password for same email
+          8. Verify response is still 429 (rate limit not reset on successful login after lockout)
+          9. Wait 15 minutes
+          10. Send login attempt with correct password
+          11. Verify response is 200 OK (rate limit reset after 15 minutes)
+        </steps>
+      </test-idea>
+
+      <test-idea>
+        <ac-id>5</ac-id>
+        <type>integration</type>
+        <description>HTTP 429 response format validation</description>
+        <steps>
+          1. Trigger rate limit (send 101 requests from same IP)
+          2. Verify response status is 429
+          3. Verify response headers include:
+             - X-RateLimit-Limit: 100
+             - X-RateLimit-Remaining: 0
+             - X-RateLimit-Reset: [ISO 8601 timestamp]
+             - Retry-After: [seconds until reset]
+          4. Verify response body is JSON:
+             {
+               "error": {
+                 "code": "RATE_LIMIT_EXCEEDED",
+                 "message": "Too many requests. Please try again later.",
+                 "details": {
+                   "limit": 100,
+                   "remaining": 0,
+                   "resetAt": "2025-11-25T12:00:00Z"
+                 }
+               }
+             }
+        </steps>
+      </test-idea>
+
+      <test-idea>
+        <ac-id>6</ac-id>
+        <type>load</type>
+        <description>Concurrent traffic validation with k6</description>
+        <steps>
+          1. Install k6: npm install -D k6
+          2. Create k6 script scripts/load-test-rate-limits.js
+          3. Test scenario 1: 100 concurrent clients sending 2 requests each in 1 minute (200 total requests)
+             - Verify no false positives (all requests should succeed if from different IPs)
+          4. Test scenario 2: Single client sending 101 requests in 1 minute
+             - Verify 101st request returns 429 (rate limit enforced)
+          5. Test scenario 3: 10 concurrent authenticated users sending 25 requests each
+             - Verify user-based limits are independent (no cross-user pollution)
+          6. Measure rate limit check latency (p50, p95, p99)
+             - Verify p95 latency &lt; 10ms
+        </steps>
+      </test-idea>
+
+      <test-idea>
+        <ac-id>7</ac-id>
+        <type>integration</type>
+        <description>Rate limit violation logging</description>
+        <steps>
+          1. Clear application logs
+          2. Send 101 requests from same IP to trigger rate limit
+          3. Verify log entry created with structure:
+             {
+               "level": "warn",
+               "message": "Rate limit exceeded",
+               "context": {
+                 "type": "ip",
+                 "identifier": "1.2.3.4",
+                 "endpoint": "/api/student/courses",
+                 "limit": 100,
+                 "remaining": 0,
+                 "resetAt": "2025-11-25T12:00:00Z"
+               }
+             }
+          4. Verify log includes IP address and endpoint
+          5. Verify Upstash analytics dashboard shows rate limit hit
+        </steps>
+      </test-idea>
+
+      <test-idea>
+        <ac-id>All</ac-id>
+        <type>unit</type>
+        <description>Rate limiter initialization with environment variables</description>
+        <steps>
+          1. Set environment variables: RATE_LIMIT_IP_MAX=50, RATE_LIMIT_USER_MAX=150, RATE_LIMIT_LOGIN_MAX=3
+          2. Import ipRateLimit, userRateLimit, loginRateLimit from src/lib/rate-limit.ts
+          3. Verify ipRateLimit configured with 50 requests/minute
+          4. Verify userRateLimit configured with 150 requests/minute
+          5. Verify loginRateLimit configured with 3 attempts/15 minutes
+          6. Test with missing environment variables (verify defaults: 100, 200, 5)
+        </steps>
+      </test-idea>
+
+      <test-idea>
+        <ac-id>All</ac-id>
+        <type>security</type>
+        <description>Rate limiting bypass attempts</description>
+        <steps>
+          1. Send 101 requests with spoofed X-Forwarded-For headers (different IPs)
+             - Verify middleware extracts correct IP from x-forwarded-for
+             - Verify rate limit still enforced per actual IP
+          2. Send 101 requests with different User-Agent headers
+             - Verify rate limit enforced (User-Agent not part of identifier)
+          3. Send 101 requests with different session tokens from same IP
+             - Verify IP-based rate limit enforced (user-based limit separate)
+          4. Verify rate limit counters isolated per identifier (no cross-user pollution)
+        </steps>
+      </test-idea>
+    </test-ideas>
+  </tests>
+
+</story-context>

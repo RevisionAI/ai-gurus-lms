@@ -1,0 +1,1318 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>2.3</story-id>
+    <story-title>Gradebook Filtering &amp; CSV Export</story-title>
+    <epic>Epic 2: Feature Completion &amp; Admin Capabilities</epic>
+    <status>drafted</status>
+    <generated-date>2025-11-26</generated-date>
+    <context-version>1.0</context-version>
+  </metadata>
+
+  <!-- ============================================ -->
+  <!-- STORY SUMMARY -->
+  <!-- ============================================ -->
+  <story-summary>
+    <user-story>
+      As an instructor,
+      I want to filter the gradebook and export grades to CSV,
+      so that I can focus on specific students/assignments and maintain records externally.
+    </user-story>
+
+    <business-value>
+      Enables instructors to efficiently analyze student performance by filtering gradebook data by student name,
+      assignment, date range, and grade status. CSV export provides offline record-keeping and integration with
+      external tools like Excel for advanced analysis, grade reporting, and compliance documentation.
+    </business-value>
+
+    <scope>
+      - Real-time student name search filtering with debounce (300ms)
+      - Assignment dropdown filter (all or single assignment)
+      - Date range filter for assignment due dates
+      - Grade status filter (all, graded, pending, late, missing)
+      - CSV export respecting current filters
+      - Export filename pattern: {CourseCode}_grades_{YYYY-MM-DD}.csv
+      - Filter state persistence in URL query parameters
+      - Keyboard shortcut (Ctrl+E / Cmd+E) for export
+    </scope>
+
+    <out-of-scope>
+      - PDF export (deferred to post-MVP)
+      - Email grade reports (deferred to post-MVP)
+      - Batch grade updates via CSV import (deferred to post-MVP)
+      - Advanced chart/graph visualizations (deferred to post-MVP)
+      - Custom column selection for export (all columns exported)
+    </out-of-scope>
+  </story-summary>
+
+  <!-- ============================================ -->
+  <!-- ACCEPTANCE CRITERIA -->
+  <!-- ============================================ -->
+  <acceptance-criteria>
+    <criterion id="AC-2.3.1" priority="MUST">
+      <description>Filter by student name with real-time search filtering</description>
+      <validation>
+        - Student name input field with search icon
+        - Debounced filtering (300ms delay) to reduce API calls
+        - Case-insensitive partial match (e.g., "john" matches "John Doe")
+        - Clear button appears when text present
+        - Grid updates immediately after debounce delay
+      </validation>
+      <tests>
+        - Unit test: Verify debounce logic delays filter update by 300ms
+        - Integration test: Verify API filters students by name correctly
+        - E2E test: Type student name, verify grid updates
+      </tests>
+    </criterion>
+
+    <criterion id="AC-2.3.2" priority="MUST">
+      <description>Filter by assignment via dropdown selector</description>
+      <validation>
+        - Dropdown shows "All Assignments" + list of assignment titles
+        - Selection updates assignmentId filter state
+        - Grid displays only selected assignment column when filtered
+        - "All Assignments" option shows full gradebook
+      </validation>
+      <tests>
+        - Unit test: Verify dropdown state management
+        - Integration test: Verify API filters by assignmentId
+        - E2E test: Select assignment, verify grid shows only that assignment
+      </tests>
+    </criterion>
+
+    <criterion id="AC-2.3.3" priority="MUST">
+      <description>Filter by date range (assignment due dates)</description>
+      <validation>
+        - "From Date" and "To Date" inputs (HTML date type)
+        - Validation: From date must be &lt;= To date
+        - Clear button resets date range
+        - Only assignments with due dates in range are shown
+      </validation>
+      <tests>
+        - Unit test: Verify date range validation logic
+        - Integration test: Verify API filters by date range
+        - E2E test: Set date range, verify only matching assignments shown
+      </tests>
+    </criterion>
+
+    <criterion id="AC-2.3.4" priority="MUST">
+      <description>Filter by grade status (all, graded, pending, late, missing)</description>
+      <validation>
+        - Dropdown with options: All, Graded, Pending, Late, Missing
+        - Default: All
+        - Selection updates status filter state
+        - Grid shows only rows/cells matching status
+      </validation>
+      <tests>
+        - Unit test: Verify status filter state management
+        - Integration test: Verify API filters by status correctly
+        - E2E test: Select "Pending", verify only pending grades shown
+      </tests>
+    </criterion>
+
+    <criterion id="AC-2.3.5" priority="MUST">
+      <description>CSV export button generates downloadable file</description>
+      <validation>
+        - "Export to CSV" button in gradebook header (top-right)
+        - Button disabled when no students enrolled
+        - Click triggers browser download
+        - Success toast: "Grades exported successfully"
+        - Error toast on failure: "Failed to export grades. Please try again."
+        - Loading spinner during export
+      </validation>
+      <tests>
+        - Unit test: Verify export button state management
+        - Integration test: Verify export endpoint returns CSV
+        - E2E test: Click export, verify CSV file downloads
+      </tests>
+    </criterion>
+
+    <criterion id="AC-2.3.6" priority="MUST">
+      <description>CSV format includes: Student Name, Email, Assignment scores, Total, GPA</description>
+      <validation>
+        - Header row: "Student Name,Email,&lt;Assignment1 Title&gt;,&lt;Assignment2 Title&gt;,...,Total Points,Percentage,GPA"
+        - Data rows: Student name, email, assignment scores (or "N/A"), total, percentage, GPA
+        - Special characters escaped (quotes, commas, newlines)
+        - Null/undefined scores show as "N/A"
+        - UTF-8 BOM prepended for Excel compatibility
+      </validation>
+      <tests>
+        - Unit test: CSV generation with various inputs (empty, single, multiple, special chars)
+        - Integration test: Verify CSV content matches gradebook data
+        - E2E test: Parse downloaded CSV, verify structure and data
+      </tests>
+    </criterion>
+
+    <criterion id="AC-2.3.7" priority="MUST">
+      <description>Export respects current filters (only visible rows exported)</description>
+      <validation>
+        - Export URL includes current filter query parameters
+        - CSV contains only filtered data (student name, assignment, status)
+        - Row count in CSV matches filtered gradebook row count
+      </validation>
+      <tests>
+        - Unit test: Verify filter parameter serialization
+        - Integration test: Compare filtered CSV vs unfiltered CSV row counts
+        - E2E test: Apply filters, export, verify CSV contains only filtered data
+      </tests>
+    </criterion>
+
+    <criterion id="AC-2.3.8" priority="MUST">
+      <description>Export filename follows pattern: {CourseCode}_grades_{YYYY-MM-DD}.csv</description>
+      <validation>
+        - Filename format: CS101_grades_2025-11-26.csv
+        - Uses course code from database
+        - Date formatted using date-fns format(new Date(), 'yyyy-MM-dd')
+        - Content-Disposition header sets filename
+      </validation>
+      <tests>
+        - Unit test: Verify filename generation logic
+        - Integration test: Verify Content-Disposition header matches pattern
+        - E2E test: Verify downloaded file has correct name
+      </tests>
+    </criterion>
+
+    <criterion id="AC-2.3.9" priority="MUST">
+      <description>Unit tests cover CSV generation logic</description>
+      <validation>
+        - Test CSV generation with empty gradebook (header only)
+        - Test CSV generation with single student/assignment
+        - Test CSV generation with multiple students/assignments
+        - Test CSV escaping for special characters (quotes, commas, newlines)
+        - Test CSV handles null scores as "N/A"
+        - Test Unicode character handling (emoji, non-Latin scripts)
+      </validation>
+      <tests>
+        - /__tests__/unit/lib/csv-export.test.ts with 100% coverage
+      </tests>
+    </criterion>
+
+    <criterion id="AC-2.3.10" priority="MUST">
+      <description>Integration tests verify export endpoint returns correct CSV format</description>
+      <validation>
+        - Test export endpoint returns 200 with text/csv content-type
+        - Test export endpoint respects student name filter
+        - Test export endpoint respects assignment filter
+        - Test export endpoint respects date range filter
+        - Test export endpoint respects status filter
+        - Test export endpoint returns correct filename
+        - Test export endpoint returns 403 for non-instructor
+        - Test export endpoint rate limiting (429 on 11th request)
+      </validation>
+      <tests>
+        - /__tests__/integration/api/gradebook-export.test.ts
+      </tests>
+    </criterion>
+
+    <criterion id="AC-2.3.11" priority="MUST">
+      <description>E2E test validates filter application and CSV download</description>
+      <validation>
+        - Test scenario: Instructor applies filters and exports CSV
+        - Test scenario: Filter state persists in URL
+        - Test scenario: Keyboard shortcut (Ctrl+E) triggers export
+        - Verify CSV download triggered with correct filename
+        - Verify CSV content matches filtered gradebook data
+      </validation>
+      <tests>
+        - /__tests__/e2e/gradebook-filtering-export.spec.ts
+      </tests>
+    </criterion>
+  </acceptance-criteria>
+
+  <!-- ============================================ -->
+  <!-- TECHNICAL CONTEXT -->
+  <!-- ============================================ -->
+  <technical-context>
+    <architecture-alignment>
+      <component name="GradebookFilters">
+        <location>/src/components/gradebook/GradebookFilters.tsx</location>
+        <description>Filter controls component with student search, assignment dropdown, date range, and status filter</description>
+        <dependencies>
+          - useState, useEffect from React
+          - useSearchParams, useRouter from next/navigation (URL sync)
+          - useDebouncedValue custom hook (300ms debounce)
+          - Radix UI Dropdown for filters
+          - date-fns for date formatting
+        </dependencies>
+      </component>
+
+      <component name="CSVExporter">
+        <location>/src/lib/csv-export.ts</location>
+        <description>CSV generation utility with escaping and streaming support</description>
+        <functions>
+          - generateGradebookCSV(matrix: GradebookMatrix, courseCode: string): string
+          - generateCSVFilename(courseCode: string): string
+          - escapeCSV(value: string | number | null): string (private helper)
+        </functions>
+        <dependencies>
+          - date-fns (for filename date formatting)
+        </dependencies>
+      </component>
+
+      <component name="ExportAPI">
+        <location>/src/app/api/instructor/gradebook/[courseId]/export/route.ts</location>
+        <description>CSV export API endpoint with authentication and rate limiting</description>
+        <methods>GET</methods>
+        <query-params>
+          - studentFilter?: string (student name search)
+          - assignmentId?: string (filter to single assignment)
+          - dateFrom?: string (ISO date string)
+          - dateTo?: string (ISO date string)
+          - status?: 'all' | 'graded' | 'pending' | 'late' | 'missing'
+        </query-params>
+        <response-headers>
+          - Content-Type: text/csv; charset=utf-8
+          - Content-Disposition: attachment; filename="{CourseCode}_grades_{YYYY-MM-DD}.csv"
+          - Content-Length: {csvString.length}
+        </response-headers>
+      </component>
+
+      <component name="GradebookValidation">
+        <location>/src/validators/gradebook.ts</location>
+        <description>Zod validation schemas for filter parameters</description>
+        <schemas>
+          - gradebookFiltersSchema (studentFilter, assignmentId, dateFrom, dateTo, status)
+        </schemas>
+      </component>
+    </architecture-alignment>
+
+    <data-models>
+      <model name="GradebookMatrix">
+        <source>Story 2.1: Gradebook Grid View</source>
+        <structure>
+          interface GradebookMatrix {
+            students: {
+              id: string;
+              name: string;
+              email: string;
+              grades: {
+                assignmentId: string;
+                score: number | null;
+                status: 'graded' | 'pending' | 'late' | 'missing';
+                submissionId: string | null;
+              }[];
+              totalPoints: number;
+              percentage: number;
+              gpa: number | null;
+            }[];
+            assignments: {
+              id: string;
+              title: string;
+              maxPoints: number;
+              dueDate: Date;
+            }[];
+          }
+        </structure>
+      </model>
+
+      <model name="GradebookFilters">
+        <structure>
+          interface GradebookFilters {
+            studentFilter: string;
+            assignmentId: string | null;
+            dateFrom: Date | null;
+            dateTo: Date | null;
+            status: 'all' | 'graded' | 'pending' | 'late' | 'missing';
+          }
+        </structure>
+        <default-values>
+          {
+            studentFilter: '',
+            assignmentId: null,
+            dateFrom: null,
+            dateTo: null,
+            status: 'all'
+          }
+        </default-values>
+      </model>
+    </data-models>
+
+    <api-contracts>
+      <endpoint method="GET" path="/api/instructor/gradebook/[courseId]">
+        <description>Fetch gradebook data with filters (extended from Story 2.1)</description>
+        <query-parameters>
+          - studentFilter?: string (case-insensitive partial match on user.name)
+          - assignmentId?: string (CUID, filter to single assignment)
+          - dateFrom?: string (ISO date, filter assignments by dueDate &gt;= dateFrom)
+          - dateTo?: string (ISO date, filter assignments by dueDate &lt;= dateTo)
+          - status?: 'all' | 'graded' | 'pending' | 'late' | 'missing'
+        </query-parameters>
+        <response-success status="200">
+          {
+            "data": GradebookMatrix
+          }
+        </response-success>
+        <response-error status="400">
+          {
+            "error": {
+              "code": "INVALID_INPUT",
+              "message": "From date must be before or equal to To date"
+            }
+          }
+        </response-error>
+        <response-error status="403">
+          {
+            "error": {
+              "code": "FORBIDDEN",
+              "message": "Not instructor for this course"
+            }
+          }
+        </response-error>
+      </endpoint>
+
+      <endpoint method="GET" path="/api/instructor/gradebook/[courseId]/export">
+        <description>Export gradebook data to CSV with filters</description>
+        <authorization>Instructor must own course</authorization>
+        <rate-limiting>10 exports per 10 minutes per instructor (Upstash)</rate-limiting>
+        <query-parameters>Same as gradebook GET endpoint</query-parameters>
+        <response-success status="200">
+          Headers: {
+            "Content-Type": "text/csv; charset=utf-8",
+            "Content-Disposition": "attachment; filename=\"CS101_grades_2025-11-26.csv\"",
+            "Content-Length": "12345"
+          }
+          Body: CSV file content
+        </response-success>
+        <response-error status="403">
+          {
+            "error": {
+              "code": "FORBIDDEN",
+              "message": "Not instructor for this course"
+            }
+          }
+        </response-error>
+        <response-error status="429">
+          {
+            "error": {
+              "code": "RATE_LIMITED",
+              "message": "Too many exports. Try again later."
+            }
+          }
+        </response-error>
+      </endpoint>
+    </api-contracts>
+
+    <database-queries>
+      <query name="FilteredGradebookQuery">
+        <description>Prisma query with filter conditions</description>
+        <implementation>
+          // Student filter (case-insensitive partial match)
+          const studentWhere = {
+            deletedAt: null,
+            ...(filters.studentFilter &amp;&amp; {
+              name: { contains: filters.studentFilter, mode: 'insensitive' }
+            })
+          };
+
+          // Assignment filter conditions
+          const assignmentWhere = {
+            courseId,
+            deletedAt: null,
+            ...(filters.assignmentId &amp;&amp; { id: filters.assignmentId }),
+            ...(filters.dateFrom &amp;&amp; { dueDate: { gte: new Date(filters.dateFrom) } }),
+            ...(filters.dateTo &amp;&amp; { dueDate: { lte: new Date(filters.dateTo) } })
+          };
+
+          // Fetch students and assignments with filters
+          const enrollments = await prisma.enrollment.findMany({
+            where: { courseId, user: studentWhere },
+            include: { user: { select: { id: true, name: true, email: true } } }
+          });
+
+          const assignments = await prisma.assignment.findMany({
+            where: assignmentWhere,
+            include: {
+              grades: { where: { student: studentWhere } },
+              submissions: { where: { student: studentWhere } }
+            },
+            orderBy: { dueDate: 'asc' }
+          });
+
+          // Apply status filter in post-processing
+          // (graded, pending, late, missing logic based on grade/submission existence and due date)
+        </implementation>
+      </query>
+    </database-queries>
+
+    <dependencies>
+      <npm-package name="date-fns" version="4.1.0">
+        <usage>Date formatting for CSV filename (format(new Date(), 'yyyy-MM-dd'))</usage>
+        <status>Already installed</status>
+      </npm-package>
+
+      <npm-package name="@radix-ui/react-dropdown-menu" version="2.1.15">
+        <usage>Filter dropdown components</usage>
+        <status>Already installed</status>
+      </npm-package>
+
+      <npm-package name="lucide-react" version="0.514.0">
+        <usage>Icons for filters and export button (Download, Search, Filter)</usage>
+        <status>Already installed</status>
+      </npm-package>
+
+      <npm-package name="react-hot-toast" version="2.5.2">
+        <usage>Success/error notifications for export</usage>
+        <status>Already installed</status>
+      </npm-package>
+
+      <npm-package name="@upstash/ratelimit" version="2.0.7">
+        <usage>Rate limiting on export endpoint (10 per 10 minutes)</usage>
+        <status>Already installed</status>
+      </npm-package>
+
+      <npm-package name="zod">
+        <usage>Filter parameter validation</usage>
+        <status>Already installed</status>
+      </npm-package>
+    </dependencies>
+  </technical-context>
+
+  <!-- ============================================ -->
+  <!-- EXISTING CODE CONTEXT -->
+  <!-- ============================================ -->
+  <existing-code-context>
+    <existing-file path="/src/app/instructor/gradebook/page.tsx">
+      <description>Current gradebook page with basic grid and client-side CSV export</description>
+      <key-patterns>
+        - Fetches courses and assignments via API
+        - Client-side CSV generation in handleExportGrades()
+        - Basic CSV escaping for quotes and commas
+        - Course dropdown selector
+        - Color-coded grade display
+      </key-patterns>
+      <reuse-opportunities>
+        - Existing course selection dropdown
+        - Grade display color logic (getGradeColorClass)
+        - CSV export button UI pattern
+        - Loading states and error handling
+      </reuse-opportunities>
+      <enhancement-needed>
+        - Add filter controls (student name, assignment, date, status)
+        - Move CSV generation to server-side API
+        - Add URL query parameter sync for filters
+        - Add debounced student name search
+        - Integrate with Story 2.1 gradebook API endpoint
+      </enhancement-needed>
+    </existing-file>
+
+    <existing-file path="/src/lib/validation.ts">
+      <description>Validation utilities with Zod helpers</description>
+      <key-patterns>
+        - validateRequest() for API request body validation
+        - cuidSchema for CUID validation
+        - stringWithLength() for bounded string validation
+        - Consistent error response format
+      </key-patterns>
+      <reuse-opportunities>
+        - Use cuidSchema for assignmentId validation
+        - Use validateRequest() in export API endpoint
+        - Create gradebookFiltersSchema with date range refinement
+      </reuse-opportunities>
+    </existing-file>
+
+    <existing-file path="/src/lib/gpa.ts">
+      <description>GPA calculation utilities</description>
+      <key-patterns>
+        - calculateGPA(grades: GradeInput[]): GPAResult | null
+        - Handles weighted grades
+        - Returns null for no grades
+        - Rounds to 2 decimal places
+      </key-patterns>
+      <reuse-opportunities>
+        - Use in CSV export to calculate student GPA column
+        - Already integrated in gradebook data from Story 2.1
+      </reuse-opportunities>
+    </existing-file>
+
+    <existing-file path="/src/lib/sanitize.ts">
+      <description>HTML sanitization utilities with DOMPurify</description>
+      <key-patterns>
+        - sanitizeHtml() for rich text content
+        - stripHtml() for plain text extraction
+        - containsDangerousContent() for XSS detection
+      </key-patterns>
+      <reuse-opportunities>
+        - Use stripHtml() on student names in CSV to remove any HTML
+        - Use for sanitizing assignment titles in CSV headers
+      </reuse-opportunities>
+    </existing-file>
+
+    <existing-api-pattern path="/src/app/api/instructor/courses/[id]/route.ts">
+      <description>Authorization pattern for instructor-owned resources</description>
+      <authorization-check>
+        const session = await getServerSession(authOptions);
+        if (!session?.user || session.user.role !== 'INSTRUCTOR') {
+          return NextResponse.json(
+            { error: { code: 'UNAUTHORIZED', message: 'Must be instructor' } },
+            { status: 401 }
+          );
+        }
+
+        const course = await prisma.course.findFirst({
+          where: {
+            id: params.courseId,
+            instructorId: session.user.id,
+            deletedAt: null
+          }
+        });
+
+        if (!course) {
+          return NextResponse.json(
+            { error: { code: 'FORBIDDEN', message: 'Not instructor for this course' } },
+            { status: 403 }
+          );
+        }
+      </authorization-check>
+      <reuse-in>Export API endpoint for instructor authorization</reuse-in>
+    </existing-api-pattern>
+
+    <existing-pattern name="Rate Limiting">
+      <source>/src/lib/rate-limit.ts (Story 1.7)</source>
+      <implementation>
+        import { ratelimit } from '@/lib/rate-limit';
+
+        const identifier = `export:${session.user.id}:${params.courseId}`;
+        const { success } = await ratelimit.limit(identifier);
+
+        if (!success) {
+          return NextResponse.json(
+            { error: { code: 'RATE_LIMITED', message: 'Too many exports. Try again later.' } },
+            { status: 429 }
+          );
+        }
+      </implementation>
+      <reuse-in>Export API endpoint to limit 10 exports per 10 minutes</reuse-in>
+    </existing-pattern>
+  </existing-code-context>
+
+  <!-- ============================================ -->
+  <!-- IMPLEMENTATION GUIDANCE -->
+  <!-- ============================================ -->
+  <implementation-guidance>
+    <guideline category="CSV Generation" priority="CRITICAL">
+      <title>CSV Escaping and Special Characters</title>
+      <description>
+        Properly escape CSV fields to handle quotes, commas, newlines, and Unicode characters.
+        Prepend UTF-8 BOM (\uFEFF) for Excel compatibility.
+      </description>
+      <code-example language="typescript">
+        // CSV field escaping function
+        const escapeCSV = (value: string | number | null): string =&gt; {
+          if (value === null || value === undefined) return 'N/A';
+
+          const str = String(value);
+
+          // If field contains comma, quote, or newline, wrap in quotes and escape quotes
+          if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+            return `"${str.replace(/"/g, '""')}"`;
+          }
+
+          return str;
+        };
+
+        // CSV generation with UTF-8 BOM
+        export function generateGradebookCSV(
+          matrix: GradebookMatrix,
+          courseCode: string
+        ): string {
+          // Build header row
+          const assignmentColumns = matrix.assignments.map(a =&gt; escapeCSV(a.title));
+          const headerRow = [
+            'Student Name',
+            'Email',
+            ...assignmentColumns,
+            'Total Points',
+            'Percentage',
+            'GPA'
+          ].join(',');
+
+          // Build data rows
+          const dataRows = matrix.students.map(student =&gt; {
+            const assignmentScores = matrix.assignments.map(assignment =&gt; {
+              const grade = student.grades.find(g =&gt; g.assignmentId === assignment.id);
+              return escapeCSV(grade?.score ?? null);
+            });
+
+            return [
+              escapeCSV(student.name),
+              escapeCSV(student.email),
+              ...assignmentScores,
+              escapeCSV(student.totalPoints),
+              escapeCSV(`${student.percentage.toFixed(2)}%`),
+              escapeCSV(student.gpa?.toFixed(2) ?? 'N/A')
+            ].join(',');
+          });
+
+          // Combine with UTF-8 BOM for Excel compatibility
+          const csv = [headerRow, ...dataRows].join('\n');
+          return '\uFEFF' + csv;  // UTF-8 BOM
+        }
+      </code-example>
+      <testing-requirements>
+        - Test with student names containing commas: "Doe, John"
+        - Test with assignment titles containing quotes: "Assignment #1 \"Introduction\""
+        - Test with Unicode characters: emoji (📚), Chinese (学生), Arabic (طالب)
+        - Test with null scores (should show "N/A")
+        - Verify Excel opens CSV correctly without encoding issues
+      </testing-requirements>
+    </guideline>
+
+    <guideline category="CSV Streaming" priority="HIGH">
+      <title>Memory-Efficient CSV Generation for Large Datasets</title>
+      <description>
+        For datasets &gt; 100 students, use streaming to avoid memory pressure.
+        Process rows in batches of 50.
+      </description>
+      <code-example language="typescript">
+        import { Readable } from 'stream';
+
+        export function generateGradebookCSVStream(
+          matrix: GradebookMatrix,
+          courseCode: string
+        ): Readable {
+          const BATCH_SIZE = 50;
+          let currentIndex = 0;
+
+          // Create readable stream
+          return new Readable({
+            read() {
+              // First push: header row
+              if (currentIndex === 0) {
+                this.push(generateHeaderRow(matrix) + '\n');
+              }
+
+              // Subsequent pushes: batches of student rows
+              const endIndex = Math.min(currentIndex + BATCH_SIZE, matrix.students.length);
+
+              for (let i = currentIndex; i &lt; endIndex; i++) {
+                this.push(generateStudentRow(matrix.students[i], matrix.assignments) + '\n');
+              }
+
+              currentIndex = endIndex;
+
+              // End stream when all students processed
+              if (currentIndex &gt;= matrix.students.length) {
+                this.push(null);  // Signal end of stream
+              }
+            }
+          });
+        }
+
+        // API endpoint usage
+        export async function GET(request: Request) {
+          const gradebookMatrix = await fetchGradebookData(courseId, filters);
+
+          if (gradebookMatrix.students.length &gt; 100) {
+            // Use streaming for large datasets
+            const stream = generateGradebookCSVStream(gradebookMatrix, courseCode);
+            return new Response(stream, { headers: { ... } });
+          } else {
+            // Use string generation for small datasets
+            const csv = generateGradebookCSV(gradebookMatrix, courseCode);
+            return new Response(csv, { headers: { ... } });
+          }
+        }
+      </code-example>
+      <performance-target>
+        - Export completes within 5 seconds for 100 students × 30 assignments
+        - Export completes within 30 seconds for 500 students × 50 assignments
+      </performance-target>
+    </guideline>
+
+    <guideline category="Filtering" priority="HIGH">
+      <title>Real-Time Student Name Search with Debounce</title>
+      <description>
+        Debounce student name input by 300ms to reduce API calls while maintaining responsive UI.
+      </description>
+      <code-example language="typescript">
+        import { useState, useEffect } from 'react';
+
+        // Custom hook for debounced value
+        function useDebouncedValue&lt;T&gt;(value: T, delay: number): T {
+          const [debouncedValue, setDebouncedValue] = useState(value);
+
+          useEffect(() => {
+            const handler = setTimeout(() =&gt; {
+              setDebouncedValue(value);
+            }, delay);
+
+            return () =&gt; clearTimeout(handler);
+          }, [value, delay]);
+
+          return debouncedValue;
+        }
+
+        // GradebookFilters component usage
+        function GradebookFilters({ onFilterChange }) {
+          const [studentInput, setStudentInput] = useState('');
+          const debouncedStudentFilter = useDebouncedValue(studentInput, 300);
+
+          useEffect(() => {
+            // Update parent filter state after debounce
+            onFilterChange(prev =&gt; ({ ...prev, studentFilter: debouncedStudentFilter }));
+          }, [debouncedStudentFilter]);
+
+          return (
+            &lt;input
+              type="text"
+              value={studentInput}
+              onChange={(e) =&gt; setStudentInput(e.target.value)}
+              placeholder="Search students..."
+            /&gt;
+          );
+        }
+      </code-example>
+      <testing-requirements>
+        - Unit test: Verify debounce delays update by exactly 300ms
+        - Unit test: Verify rapid typing doesn't trigger multiple API calls
+        - Integration test: Verify API receives correct filtered value
+      </testing-requirements>
+    </guideline>
+
+    <guideline category="Filtering" priority="MEDIUM">
+      <title>URL Query Parameter Sync for Filter Persistence</title>
+      <description>
+        Sync filter state with URL query parameters for shareable filtered views and browser navigation.
+      </description>
+      <code-example language="typescript">
+        import { useSearchParams, useRouter } from 'next/navigation';
+
+        function GradebookPage() {
+          const searchParams = useSearchParams();
+          const router = useRouter();
+          const [filters, setFilters] = useState&lt;GradebookFilters&gt;(() =&gt; {
+            // Initialize from URL on mount
+            return {
+              studentFilter: searchParams.get('studentFilter') || '',
+              assignmentId: searchParams.get('assignmentId') || null,
+              dateFrom: searchParams.get('dateFrom') ? new Date(searchParams.get('dateFrom')!) : null,
+              dateTo: searchParams.get('dateTo') ? new Date(searchParams.get('dateTo')!) : null,
+              status: (searchParams.get('status') as GradebookFilters['status']) || 'all',
+            };
+          });
+
+          // Update URL when filters change
+          useEffect(() => {
+            const params = new URLSearchParams();
+
+            if (filters.studentFilter) params.set('studentFilter', filters.studentFilter);
+            if (filters.assignmentId) params.set('assignmentId', filters.assignmentId);
+            if (filters.dateFrom) params.set('dateFrom', filters.dateFrom.toISOString());
+            if (filters.dateTo) params.set('dateTo', filters.dateTo.toISOString());
+            if (filters.status !== 'all') params.set('status', filters.status);
+
+            // Use shallow routing (no full page reload)
+            router.push(`?${params.toString()}`, { shallow: true });
+          }, [filters]);
+
+          return (
+            &lt;div&gt;
+              &lt;GradebookFilters filters={filters} onFilterChange={setFilters} /&gt;
+              &lt;GradebookGrid filters={filters} /&gt;
+            &lt;/div&gt;
+          );
+        }
+      </code-example>
+      <benefits>
+        - Shareable filtered gradebook URLs
+        - Browser back/forward navigation preserves filters
+        - CSV export automatically includes current filters via URL params
+      </benefits>
+    </guideline>
+
+    <guideline category="Date Handling" priority="HIGH">
+      <title>Date-fns Usage for Filename Generation</title>
+      <description>
+        Use date-fns format() for consistent date formatting in CSV filenames.
+        Always use 'yyyy-MM-dd' format for ISO 8601 compliance.
+      </description>
+      <code-example language="typescript">
+        import { format } from 'date-fns';
+
+        export function generateCSVFilename(courseCode: string): string {
+          const dateStr = format(new Date(), 'yyyy-MM-dd');
+          return `${courseCode}_grades_${dateStr}.csv`;
+        }
+
+        // Example output: "CS101_grades_2025-11-26.csv"
+      </code-example>
+      <validation>
+        - Filename must match pattern: /^[A-Z0-9]+_grades_\d{4}-\d{2}-\d{2}\.csv$/
+        - Date must be in YYYY-MM-DD format (ISO 8601)
+        - Course code must be alphanumeric uppercase
+      </validation>
+    </guideline>
+
+    <guideline category="Keyboard Shortcuts" priority="MEDIUM">
+      <title>Keyboard Shortcut for CSV Export (Ctrl+E / Cmd+E)</title>
+      <description>
+        Add keyboard shortcut for quick CSV export. Use Ctrl+E on Windows/Linux, Cmd+E on Mac.
+      </description>
+      <code-example language="typescript">
+        useEffect(() => {
+          const handleKeyDown = (e: KeyboardEvent) => {
+            // Check for Ctrl+E (Windows/Linux) or Cmd+E (Mac)
+            if ((e.ctrlKey || e.metaKey) &amp;&amp; e.key === 'e') {
+              e.preventDefault();  // Prevent browser default behavior
+              handleExportClick();
+            }
+          };
+
+          window.addEventListener('keydown', handleKeyDown);
+          return () =&gt; window.removeEventListener('keydown', handleKeyDown);
+        }, [filters]);  // Dependency on filters to capture current state
+      </code-example>
+      <accessibility>
+        - Display keyboard shortcut hint near export button: "Export (Ctrl+E)"
+        - Ensure focus is on export button after shortcut triggers
+      </accessibility>
+    </guideline>
+
+    <guideline category="Error Handling" priority="HIGH">
+      <title>Export Error Handling and User Feedback</title>
+      <description>
+        Provide clear feedback for export success, failure, and edge cases.
+      </description>
+      <code-example language="typescript">
+        const handleExportClick = async () => {
+          setExporting(true);
+
+          try {
+            // Build export URL with current filters
+            const params = new URLSearchParams();
+            if (filters.studentFilter) params.set('studentFilter', filters.studentFilter);
+            // ... add other filters
+
+            const exportUrl = `/api/instructor/gradebook/${courseId}/export?${params.toString()}`;
+
+            // Trigger browser download
+            window.open(exportUrl, '_blank');
+
+            toast.success('Grades exported successfully');
+          } catch (error) {
+            console.error('Export failed:', error);
+            toast.error('Failed to export grades. Please try again.');
+
+            // Log to Sentry if available
+            if (typeof Sentry !== 'undefined') {
+              Sentry.captureException(error, {
+                tags: { feature: 'gradebook_export', courseId },
+              });
+            }
+          } finally {
+            setExporting(false);
+          }
+        };
+      </code-example>
+      <edge-cases>
+        - No students enrolled: Disable export button, show tooltip "No students to export"
+        - No assignments: Export header row only with student names and emails
+        - Rate limit exceeded: Show toast "Too many exports. Please wait and try again."
+        - Network error: Show toast "Network error. Please check your connection."
+      </edge-cases>
+    </guideline>
+  </implementation-guidance>
+
+  <!-- ============================================ -->
+  <!-- TESTING REQUIREMENTS -->
+  <!-- ============================================ -->
+  <testing-requirements>
+    <unit-tests>
+      <test-suite file="/__tests__/unit/components/GradebookFilters.test.tsx">
+        <test name="Student name filter updates state correctly">
+          - Render GradebookFilters component
+          - Type student name in search input
+          - Verify debounced value updates after 300ms
+          - Verify onFilterChange callback called with correct value
+        </test>
+
+        <test name="Assignment filter updates state correctly">
+          - Render GradebookFilters with assignments prop
+          - Select assignment from dropdown
+          - Verify onFilterChange called with assignmentId
+        </test>
+
+        <test name="Date range filter updates state correctly">
+          - Set "From Date" to 2025-01-01
+          - Set "To Date" to 2025-12-31
+          - Verify onFilterChange called with both dates
+        </test>
+
+        <test name="Date range validation (From &lt;= To)">
+          - Set "From Date" to 2025-12-31
+          - Set "To Date" to 2025-01-01
+          - Verify error toast shown
+          - Verify filter state not updated
+        </test>
+
+        <test name="Status filter updates state correctly">
+          - Select "Pending" from status dropdown
+          - Verify onFilterChange called with status='pending'
+        </test>
+
+        <test name="Clear All Filters resets all filter state">
+          - Set multiple filters (student, assignment, date, status)
+          - Click "Clear All Filters" button
+          - Verify all filters reset to default values
+        </test>
+
+        <test name="Debounce logic delays student name search">
+          - Type "John" in student name input
+          - Verify onFilterChange NOT called immediately
+          - Wait 300ms
+          - Verify onFilterChange called with "John"
+        </test>
+      </test-suite>
+
+      <test-suite file="/__tests__/unit/lib/csv-export.test.ts">
+        <test name="CSV generation with empty gradebook (header only)">
+          - Call generateGradebookCSV with empty students array
+          - Verify header row present
+          - Verify no data rows
+        </test>
+
+        <test name="CSV generation with single student/assignment">
+          - Create matrix with 1 student, 1 assignment
+          - Verify header: "Student Name,Email,Assignment1,Total Points,Percentage,GPA"
+          - Verify data row with correct values
+        </test>
+
+        <test name="CSV generation with multiple students/assignments">
+          - Create matrix with 3 students, 5 assignments
+          - Verify all students included
+          - Verify all assignments included in header
+          - Verify row count matches student count
+        </test>
+
+        <test name="CSV escaping for special characters">
+          - Student name: "Doe, John" (comma)
+          - Assignment title: "Assignment \"Intro\"" (quotes)
+          - Verify fields wrapped in quotes and quotes escaped
+          - Expected: "\"Doe, John\"", "\"Assignment \"\"Intro\"\"\""
+        </test>
+
+        <test name="CSV handles null scores as N/A">
+          - Create grade with score: null
+          - Verify CSV cell shows "N/A"
+        </test>
+
+        <test name="CSV filename generation with course code and date">
+          - Call generateCSVFilename("CS101")
+          - Verify format: CS101_grades_YYYY-MM-DD.csv
+          - Verify date is today's date in yyyy-MM-dd format
+        </test>
+
+        <test name="Unicode character handling">
+          - Student name: "学生 (Student)" (Chinese)
+          - Student name: "طالب (Student)" (Arabic)
+          - Student name: "Student 📚" (emoji)
+          - Verify CSV correctly encodes all characters
+          - Verify UTF-8 BOM prepended (\uFEFF)
+        </test>
+      </test-suite>
+    </unit-tests>
+
+    <integration-tests>
+      <test-suite file="/__tests__/integration/api/gradebook-export.test.ts">
+        <test name="Export endpoint returns 200 with CSV content-type">
+          - Authenticate as instructor
+          - Call GET /api/instructor/gradebook/[courseId]/export
+          - Verify status: 200
+          - Verify Content-Type: text/csv; charset=utf-8
+        </test>
+
+        <test name="Export endpoint respects student name filter">
+          - Create 3 students: "Alice", "Bob", "Charlie"
+          - Call export with studentFilter=Bob
+          - Parse CSV
+          - Verify only "Bob" row present
+        </test>
+
+        <test name="Export endpoint respects assignment filter">
+          - Create 5 assignments
+          - Call export with assignmentId={assignment3.id}
+          - Parse CSV header
+          - Verify only assignment3 column present (plus student info, totals)
+        </test>
+
+        <test name="Export endpoint respects date range filter">
+          - Create assignments with due dates: 2025-01-01, 2025-06-15, 2025-12-31
+          - Call export with dateFrom=2025-06-01, dateTo=2025-07-01
+          - Parse CSV header
+          - Verify only 2025-06-15 assignment present
+        </test>
+
+        <test name="Export endpoint respects status filter">
+          - Create students with mixed grade statuses (graded, pending, missing)
+          - Call export with status=pending
+          - Parse CSV
+          - Verify only students with pending grades included
+        </test>
+
+        <test name="Export endpoint respects combined filters">
+          - Apply studentFilter + status filter
+          - Verify CSV contains only rows matching both filters
+        </test>
+
+        <test name="Export endpoint returns correct filename">
+          - Course code: "CS101"
+          - Call export
+          - Verify Content-Disposition header contains: CS101_grades_{today}.csv
+        </test>
+
+        <test name="Export endpoint returns 403 for non-instructor">
+          - Authenticate as student
+          - Call export
+          - Verify status: 403
+          - Verify error code: FORBIDDEN
+        </test>
+
+        <test name="Export endpoint rate limiting (429 on 11th request)">
+          - Authenticate as instructor
+          - Call export 10 times (should succeed)
+          - Call export 11th time
+          - Verify status: 429
+          - Verify error code: RATE_LIMITED
+          - Verify Retry-After header present
+        </test>
+      </test-suite>
+    </integration-tests>
+
+    <e2e-tests>
+      <test-suite file="/__tests__/e2e/gradebook-filtering-export.spec.ts">
+        <test name="Instructor filters gradebook and exports CSV">
+          <steps>
+            1. Login as instructor
+            2. Navigate to course gradebook
+            3. Type "John" in student name filter
+            4. Wait 300ms (debounce)
+            5. Verify grid shows only students with "John" in name
+            6. Select assignment from dropdown
+            7. Verify grid shows only selected assignment column
+            8. Select status "Pending"
+            9. Verify grid shows only pending grades
+            10. Click "Clear All Filters"
+            11. Verify grid shows all data
+            12. Apply student + status filters (combined)
+            13. Click "Export to CSV" button
+            14. Verify download triggered
+            15. Verify filename matches pattern: {CourseCode}_grades_{YYYY-MM-DD}.csv
+            16. Parse downloaded CSV file
+            17. Verify CSV contains only filtered rows (student name matches, status = pending)
+            18. Verify CSV header includes correct assignment titles
+            19. Verify CSV data matches gradebook grid display
+          </steps>
+        </test>
+
+        <test name="Filter state persists in URL">
+          <steps>
+            1. Login as instructor
+            2. Navigate to gradebook
+            3. Apply filters (student=John, status=pending)
+            4. Copy current URL
+            5. Navigate away to dashboard
+            6. Paste URL into address bar and navigate
+            7. Verify filters restored from URL
+            8. Verify gradebook displays correct filtered data
+          </steps>
+        </test>
+
+        <test name="Keyboard shortcut triggers export">
+          <steps>
+            1. Login as instructor
+            2. Navigate to gradebook
+            3. Press Ctrl+E (Windows/Linux) or Cmd+E (Mac)
+            4. Verify CSV download triggered
+            5. Verify success toast shown
+          </steps>
+        </test>
+      </test-suite>
+    </e2e-tests>
+
+    <coverage-target>
+      <metric name="Unit Test Coverage">100% for csv-export.ts</metric>
+      <metric name="Integration Test Coverage">All filter combinations tested</metric>
+      <metric name="E2E Test Coverage">All user flows validated</metric>
+    </coverage-target>
+  </testing-requirements>
+
+  <!-- ============================================ -->
+  <!-- DEPENDENCIES -->
+  <!-- ============================================ -->
+  <dependencies>
+    <story-dependencies>
+      <dependency id="Story 2.1" type="PREREQUISITE">
+        <title>Gradebook Grid View Implementation</title>
+        <reason>Story 2.3 requires gradebook API endpoint and GradebookMatrix type from Story 2.1</reason>
+        <blocking>YES - Cannot implement filtering without base gradebook API</blocking>
+      </dependency>
+
+      <dependency id="Story 2.4" type="PARALLEL">
+        <title>GPA Calculation Implementation</title>
+        <reason>Story 2.3 displays GPA in CSV export (will use GPA calculation from Story 2.4)</reason>
+        <blocking>NO - Can use placeholder "N/A" if Story 2.4 not complete</blocking>
+      </dependency>
+
+      <dependency id="Story 1.7" type="PREREQUISITE">
+        <title>Rate Limiting Implementation</title>
+        <reason>Export endpoint requires rate limiting (10 exports per 10 minutes)</reason>
+        <blocking>YES - Rate limiting library must be available</blocking>
+      </dependency>
+
+      <dependency id="Story 1.8" type="PREREQUISITE">
+        <title>Input Validation with Zod</title>
+        <reason>Filter parameters must be validated with Zod schemas</reason>
+        <blocking>YES - Validation utilities must be available</blocking>
+      </dependency>
+    </story-dependencies>
+
+    <external-dependencies>
+      <service name="Neon PostgreSQL">
+        <usage>Database queries with filter conditions (Prisma)</usage>
+        <endpoint>DATABASE_URL environment variable</endpoint>
+      </service>
+
+      <service name="Upstash Redis">
+        <usage>Rate limiting for export endpoint (10 per 10 minutes)</usage>
+        <endpoint>UPSTASH_REDIS_REST_URL environment variable</endpoint>
+      </service>
+
+      <service name="Vercel Analytics">
+        <usage>Track export usage metrics (optional)</usage>
+      </service>
+
+      <service name="Sentry">
+        <usage>Error tracking for export failures (optional)</usage>
+      </service>
+    </external-dependencies>
+
+    <data-dependencies>
+      <model name="User">
+        <fields>id, name, email, deletedAt</fields>
+        <usage>Student filtering by name</usage>
+      </model>
+
+      <model name="Course">
+        <fields>id, code, instructorId, deletedAt</fields>
+        <usage>Authorization check and filename generation</usage>
+      </model>
+
+      <model name="Assignment">
+        <fields>id, title, maxPoints, dueDate, courseId, deletedAt</fields>
+        <usage>Assignment filtering and CSV headers</usage>
+      </model>
+
+      <model name="Grade">
+        <fields>id, points, assignmentId, studentId, createdAt</fields>
+        <usage>Grade data for CSV export</usage>
+      </model>
+
+      <model name="Submission">
+        <fields>id, assignmentId, studentId, submittedAt</fields>
+        <usage>Status filtering (pending, late, missing)</usage>
+      </model>
+
+      <model name="Enrollment">
+        <fields>userId, courseId</fields>
+        <usage>Student-course relationships</usage>
+      </model>
+    </data-dependencies>
+  </dependencies>
+
+  <!-- ============================================ -->
+  <!-- RISKS AND ASSUMPTIONS -->
+  <!-- ============================================ -->
+  <risks-and-assumptions>
+    <risk id="R1" severity="MEDIUM" likelihood="MEDIUM">
+      <description>Large CSV exports (500+ students) may timeout or exceed memory limits</description>
+      <impact>Export fails for large courses, poor user experience</impact>
+      <mitigation>
+        - Implement streaming CSV generation using Node.js Readable streams
+        - Set 30-second timeout for export endpoint
+        - Display progress indicator for large exports (if streaming)
+        - Test with 500 students × 50 assignments dataset
+      </mitigation>
+    </risk>
+
+    <risk id="R2" severity="LOW" likelihood="LOW">
+      <description>Excel may not correctly interpret UTF-8 CSV files (encoding issues)</description>
+      <impact>Special characters display incorrectly when opened in Excel</impact>
+      <mitigation>
+        - Add UTF-8 BOM (\uFEFF) to CSV output for Excel compatibility
+        - Test with Excel on Windows and Mac
+        - Document workaround: Import CSV using "Data > From Text/CSV" in Excel
+      </mitigation>
+    </risk>
+
+    <risk id="R3" severity="LOW" likelihood="MEDIUM">
+      <description>Date range filter may cause confusion if assignment due dates fall outside selected range</description>
+      <impact>Users confused why assignments not showing</impact>
+      <mitigation>
+        - Display clear messaging when filters result in empty gradebook
+        - Show number of filtered/total assignments in UI (e.g., "Showing 5 of 20 assignments")
+        - Add tooltip explaining date range filter behavior
+      </mitigation>
+    </risk>
+
+    <assumption id="A1">
+      <description>Filters applied client-side match filters applied server-side</description>
+      <validation>Ensure filter logic consistency between frontend (GradebookFilters) and backend (API endpoint)</validation>
+      <test>Integration tests verify filtered CSV matches filtered gradebook grid</test>
+    </assumption>
+
+    <assumption id="A2">
+      <description>Instructors expect "missing" assignments (no submission past due date) to appear in CSV</description>
+      <validation>Confirm with product owner that missing assignments should show as "N/A" in CSV</validation>
+      <alternative>Could show "Missing" text instead of "N/A" for clarity</alternative>
+    </assumption>
+
+    <assumption id="A3">
+      <description>Maximum class size is 100 students per course for MVP</description>
+      <validation>Confirmed with product owner; can revisit post-MVP if needed</validation>
+      <impact>If assumption invalid, implement streaming and progress indicators for large exports</impact>
+    </assumption>
+  </risks-and-assumptions>
+
+  <!-- ============================================ -->
+  <!-- COMPLETION CHECKLIST -->
+  <!-- ============================================ -->
+  <completion-checklist>
+    <phase name="Implementation">
+      <item>Create /src/components/gradebook/GradebookFilters.tsx component</item>
+      <item>Create /src/lib/csv-export.ts utility with generateGradebookCSV() and generateCSVFilename()</item>
+      <item>Create /src/app/api/instructor/gradebook/[courseId]/export/route.ts endpoint</item>
+      <item>Create /src/validators/gradebook.ts with gradebookFiltersSchema</item>
+      <item>Update /src/app/api/instructor/gradebook/[courseId]/route.ts with filter query params</item>
+      <item>Update /src/app/instructor/gradebook/page.tsx to integrate filters and export</item>
+      <item>Implement debounced student name search (300ms)</item>
+      <item>Implement URL query parameter sync for filters</item>
+      <item>Implement keyboard shortcut (Ctrl+E / Cmd+E) for export</item>
+      <item>Implement rate limiting on export endpoint (10 per 10 minutes)</item>
+      <item>Add success/error toasts for export feedback</item>
+    </phase>
+
+    <phase name="Testing">
+      <item>Create /__tests__/unit/components/GradebookFilters.test.tsx (7 tests)</item>
+      <item>Create /__tests__/unit/lib/csv-export.test.ts (7 tests, 100% coverage)</item>
+      <item>Create /__tests__/integration/api/gradebook-export.test.ts (9 tests)</item>
+      <item>Create /__tests__/e2e/gradebook-filtering-export.spec.ts (3 scenarios)</item>
+      <item>Verify all AC met with passing tests</item>
+    </phase>
+
+    <phase name="Documentation">
+      <item>Create /docs/gradebook-filtering-export.md with user guide</item>
+      <item>Document API endpoints in /docs/api-contracts.md</item>
+      <item>Add CSV format specification to documentation</item>
+      <item>Document keyboard shortcuts in user guide</item>
+    </phase>
+
+    <phase name="Validation">
+      <item>Manual test: Export CSV with various filters, verify data accuracy</item>
+      <item>Manual test: Open exported CSV in Excel, verify encoding and formatting</item>
+      <item>Manual test: Test with large dataset (100+ students), verify performance</item>
+      <item>Manual test: Test keyboard shortcut on Windows, Mac, and Linux</item>
+      <item>Code review: Verify CSV escaping logic handles all edge cases</item>
+      <item>Security review: Verify rate limiting prevents abuse</item>
+    </phase>
+  </completion-checklist>
+</story-context>
