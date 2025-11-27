@@ -52,7 +52,7 @@ export async function GET(request: Request) {
           error: {
             code: 'INVALID_INPUT',
             message: 'Invalid query parameters',
-            details: queryResult.error.errors,
+            details: queryResult.error.issues,
           },
         },
         { status: 400 }
