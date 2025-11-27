@@ -177,11 +177,11 @@ export function createValidationErrorResponse(error: ZodError): NextResponse {
  * Format Zod errors into user-friendly messages
  */
 export function formatZodErrors(error: ZodError): ValidationErrorDetail[] {
-  // Defensive check for edge cases where errors might be undefined
-  if (!error.errors || !Array.isArray(error.errors)) {
+  // Defensive check for edge cases where issues might be undefined
+  if (!error.issues || !Array.isArray(error.issues)) {
     return [{ path: 'root', message: 'Validation failed' }]
   }
-  return error.errors.map((e) => ({
+  return error.issues.map((e) => ({
     path: e.path.join('.') || 'root',
     message: e.message,
   }))

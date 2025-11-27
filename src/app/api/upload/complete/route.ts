@@ -53,12 +53,12 @@ export async function POST(request: NextRequest) {
       validated = uploadCompleteSchema.parse(body)
     } catch (error) {
       if (error instanceof ZodError) {
-        const firstError = error.errors[0]
+        const firstError = error.issues[0]
         return NextResponse.json(
           createUploadError(
             UploadErrorCodes.VALIDATION_ERROR,
             firstError?.message || 'Validation failed',
-            { errors: error.errors }
+            { errors: error.issues }
           ),
           { status: 400 }
         )
