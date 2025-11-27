@@ -1,9 +1,11 @@
+import { withSentryConfig } from '@sentry/nextjs'
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
   // Configure webpack to handle CSS files from node_modules
   webpack: (config) => {
-    return config;
+    return config
   },
 
   // Security Headers Configuration
@@ -21,16 +23,16 @@ const nextConfig = {
             value: [
               // Default fallback - restrict to same origin
               "default-src 'self'",
-              // Scripts - allow self, TinyMCE CDN, and inline (required for Next.js)
-              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdn.tiny.cloud",
+              // Scripts - allow self, TinyMCE CDN, Sentry, and inline (required for Next.js)
+              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdn.tiny.cloud https://*.sentry.io https://*.sentry-cdn.com",
               // Styles - allow self and inline (required for styled-jsx and Tailwind)
               "style-src 'self' 'unsafe-inline'",
               // Images - allow self, data URIs, HTTPS, and blob URLs
               "img-src 'self' data: https: blob:",
               // Fonts - allow self and data URIs
               "font-src 'self' data:",
-              // Connections - allow self, database, storage, rate limiting services
-              "connect-src 'self' https://*.neon.tech https://*.r2.cloudflarestorage.com https://*.upstash.io wss://*.neon.tech",
+              // Connections - allow self, database, storage, rate limiting services, and Sentry
+              "connect-src 'self' https://*.neon.tech https://*.r2.cloudflarestorage.com https://*.upstash.io wss://*.neon.tech https://*.sentry.io https://*.ingest.sentry.io",
               // Frames - allow self and YouTube for video embeds
               "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com",
               // Media - allow self and R2 CDN for video/audio content
@@ -45,6 +47,8 @@ const nextConfig = {
               "frame-ancestors 'self'",
               // Upgrade HTTP requests to HTTPS
               "upgrade-insecure-requests",
+              // Workers - allow self and blob for Sentry
+              "worker-src 'self' blob:",
             ].join('; '),
           },
           // Prevent clickjacking by restricting framing
@@ -81,8 +85,50 @@ const nextConfig = {
           },
         ],
       },
-    ];
+    ]
   },
 }
 
-module.exports = nextConfig
+// Sentry configuration options
+const sentryWebpackPluginOptions = {
+  // For all available options, see:
+  // https://github.com/getsentry/sentry-webpack-plugin#options
+
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+
+  // Only print logs for uploading source maps in CI
+  silent: !process.env.CI,
+
+  // For all available options, see:
+  // https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/
+
+  // Upload a larger set of source maps for prettier stack traces (increases build time)
+  widenClientFileUpload: true,
+
+  // Automatically annotate React components to show their full name in breadcrumbs and session replay
+  reactComponentAnnotation: {
+    enabled: true,
+  },
+
+  // Route browser requests to Sentry through a Next.js rewrite to circumvent ad-blockers.
+  // This can increase your server load as well as your hosting bill.
+  // Note: Check that the configured route will not match with your Next.js middleware, otherwise reporting of client-
+  // side errors will fail.
+  tunnelRoute: '/monitoring',
+
+  // Hides source maps from generated client bundles
+  hideSourceMaps: true,
+
+  // Automatically tree-shake Sentry logger statements to reduce bundle size
+  disableLogger: true,
+
+  // Enables automatic instrumentation of Vercel Cron Monitors. (Does not yet work with App Router route handlers.)
+  // See the following for more information:
+  // https://docs.sentry.io/product/crons/
+  // https://vercel.com/docs/cron-jobs
+  automaticVercelMonitors: true,
+}
+
+// Make sure adding Sentry options is the last code to run before exporting
+export default withSentryConfig(nextConfig, sentryWebpackPluginOptions)
