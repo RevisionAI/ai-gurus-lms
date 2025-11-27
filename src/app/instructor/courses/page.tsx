@@ -44,9 +44,9 @@ export default function InstructorCoursesPage() {
           const data = await response.json()
           setCourses(data)
           setError(null)
-        } catch (err: any) {
+        } catch (err: unknown) {
           console.error('Error fetching courses:', err)
-          setError(err.message || 'An unknown error occurred')
+          setError(err instanceof Error ? err.message : 'An unknown error occurred')
         } finally {
           setLoading(false)
         }

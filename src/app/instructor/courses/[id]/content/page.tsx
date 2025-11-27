@@ -74,7 +74,7 @@ function SortableItem({
   id: string
   index: number
   item: CourseContent
-  getContentIcon: (type: CourseContent['type']) => any
+  getContentIcon: (type: CourseContent['type']) => React.ComponentType<{ className?: string }>
   getContentIconColor: (type: CourseContent['type']) => string
   handleEdit: (item: CourseContent) => void
   togglePublished: (item: CourseContent) => void

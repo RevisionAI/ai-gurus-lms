@@ -65,7 +65,7 @@ export default function AssignmentsPage() {
           const promises = courses.map(course => 
             fetch(`/api/instructor/courses/${course.id}/assignments`)
               .then(res => res.ok ? res.json() : [])
-              .then((assignments: any[]) => {
+              .then((assignments: Record<string, unknown>[]) => {
                 // Ensure each assignment has proper course information
                 return assignments.map(assignment => {
                   if (!assignment.course) {

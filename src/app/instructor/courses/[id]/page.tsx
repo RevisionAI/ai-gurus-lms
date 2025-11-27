@@ -130,9 +130,9 @@ export default function CourseDetailPage() {
       }
       const students = await response.json()
       setAllStudents(students)
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching students:', error)
-      setEnrollmentError(error.message)
+      setEnrollmentError(error instanceof Error ? error.message : 'Unknown error')
     } finally {
       setIsLoadingStudents(false)
     }
@@ -166,9 +166,9 @@ export default function CourseDetailPage() {
       // Filter out the enrolled student from the all students list
       setAllStudents(students => students.filter(student => student.id !== selectedStudentId))
       setSelectedStudentId('')
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error enrolling student:', error)
-      setEnrollmentError(error.message)
+      setEnrollmentError(error instanceof Error ? error.message : 'Unknown error')
     } finally {
       setIsEnrolling(false)
     }
@@ -190,10 +190,10 @@ export default function CourseDetailPage() {
       }
       const updatedCourse = await response.json();
       setCourse(updatedCourse);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error updating course status:', error);
       // Handle error display to user, e.g., using a toast notification
-      alert(`Error: ${error.message}`); // Simple alert for now
+      alert(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`); // Simple alert for now
     } finally {
       setIsUpdatingStatus(false);
     }
