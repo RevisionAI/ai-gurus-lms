@@ -1,11 +1,11 @@
 /**
  * XSS Sanitization Utilities
  *
- * Provides HTML sanitization for rich text content using DOMPurify.
+ * Provides HTML sanitization for rich text content using sanitize-html.
  * Prevents XSS attacks while preserving safe HTML formatting.
  */
 
-import DOMPurify from 'isomorphic-dompurify'
+import sanitizeHtmlLib from 'sanitize-html'
 
 // ============================================
 // Configuration
@@ -61,54 +61,46 @@ const ALLOWED_TAGS = [
 ]
 
 /**
- * Allowed HTML attributes
+ * Allowed HTML attributes per tag
  */
-const ALLOWED_ATTR = [
-  // Links
-  'href',
-  'target',
-  'rel',
-  // Images
-  'src',
-  'alt',
-  'width',
-  'height',
-  // Tables
-  'colspan',
-  'rowspan',
-  // Styling (limited)
-  'class',
-]
+const ALLOWED_ATTRIBUTES: sanitizeHtmlLib.IOptions['allowedAttributes'] = {
+  a: ['href', 'target', 'rel'],
+  img: ['src', 'alt', 'width', 'height'],
+  th: ['colspan', 'rowspan'],
+  td: ['colspan', 'rowspan'],
+  '*': ['class'],
+}
 
 /**
- * DOMPurify configuration for rich text content
+ * sanitize-html configuration for rich text content
  */
-const SANITIZE_CONFIG: DOMPurify.Config = {
-  ALLOWED_TAGS,
-  ALLOWED_ATTR,
-  ALLOW_DATA_ATTR: false, // Disable data-* attributes
-  FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form', 'input', 'button'],
-  FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onblur', 'style'],
-  ADD_ATTR: ['target'], // Allow target attribute for links
-  ADD_TAGS: [], // No additional tags
+const SANITIZE_CONFIG: sanitizeHtmlLib.IOptions = {
+  allowedTags: ALLOWED_TAGS,
+  allowedAttributes: ALLOWED_ATTRIBUTES,
+  disallowedTagsMode: 'discard',
+  allowedSchemes: ['http', 'https', 'mailto'],
+  allowedSchemesByTag: {
+    img: ['http', 'https', 'data'],
+  },
+  allowProtocolRelative: false,
 }
 
 /**
  * Strict configuration that only allows basic text formatting
  */
-const STRICT_CONFIG: DOMPurify.Config = {
-  ALLOWED_TAGS: ['p', 'br', 'strong', 'b', 'em', 'i', 'u'],
-  ALLOWED_ATTR: [],
-  ALLOW_DATA_ATTR: false,
+const STRICT_CONFIG: sanitizeHtmlLib.IOptions = {
+  allowedTags: ['p', 'br', 'strong', 'b', 'em', 'i', 'u'],
+  allowedAttributes: {},
+  disallowedTagsMode: 'discard',
 }
 
 /**
  * Configuration for plain text (strips all HTML)
  */
-const PLAIN_TEXT_CONFIG: DOMPurify.Config = {
-  ALLOWED_TAGS: [],
-  ALLOWED_ATTR: [],
-  ALLOW_DATA_ATTR: false,
+const PLAIN_TEXT_CONFIG: sanitizeHtmlLib.IOptions = {
+  allowedTags: [],
+  allowedAttributes: {},
+  disallowedTagsMode: 'discard',
 }
 
 // ============================================
@@ -136,7 +128,7 @@ export function sanitizeHtml(html: string): string {
   }
 
   // Sanitize and return
-  return DOMPurify.sanitize(html, SANITIZE_CONFIG)
+  return sanitizeHtmlLib(html, SANITIZE_CONFIG)
 }
 
 /**
@@ -153,7 +145,7 @@ export function sanitizeStrict(html: string): string {
     return ''
   }
 
-  return DOMPurify.sanitize(html, STRICT_CONFIG)
+  return sanitizeHtmlLib(html, STRICT_CONFIG)
 }
 
 /**
@@ -170,7 +162,7 @@ export function stripHtml(html: string): string {
     return ''
   }
 
-  return DOMPurify.sanitize(html, PLAIN_TEXT_CONFIG)
+  return sanitizeHtmlLib(html, PLAIN_TEXT_CONFIG)
 }
 
 /**
@@ -188,7 +180,7 @@ export function sanitizeHtmlWithSafeLinks(html: string): string {
   }
 
   // First sanitize the HTML
-  let sanitized = DOMPurify.sanitize(html, SANITIZE_CONFIG)
+  let sanitized = sanitizeHtmlLib(html, SANITIZE_CONFIG)
 
   // Add safe attributes to all links
   sanitized = sanitized.replace(

@@ -66,9 +66,10 @@ function getRateLimiter(): Ratelimit | null {
  * Handles various proxy configurations (Vercel, Cloudflare, etc.)
  */
 function getClientIp(request: NextRequest): string {
-  // Vercel provides the IP directly
-  if (request.ip) {
-    return request.ip
+  // Vercel provides the IP directly (at runtime, not in types)
+  const vercelIp = (request as NextRequest & { ip?: string }).ip
+  if (vercelIp) {
+    return vercelIp
   }
 
   // Check common proxy headers

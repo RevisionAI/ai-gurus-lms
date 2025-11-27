@@ -24,7 +24,7 @@ export const signedUrlRequestSchema = z.object({
     .string()
     .refine(
       (type) => allowedMimeTypes.includes(type),
-      (type) => ({ message: `File type '${type}' is not allowed` })
+      { message: 'File type is not allowed' }
     ),
   size: z
     .number()

@@ -27,7 +27,7 @@ export default function InstructorCoursesPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const breadcrumbs = generateBreadcrumbs([
+  const breadcrumbs = generateBreadcrumbs.custom([
     { label: 'Dashboard', href: '/instructor/dashboard' }, // Assuming a dashboard exists
     { label: 'My Courses' }
   ])
@@ -58,11 +58,8 @@ export default function InstructorCoursesPage() {
     }
   }, [session])
 
-  if (!session || session.user.role !== 'INSTRUCTOR') {
-    return <ProtectedRoute role="INSTRUCTOR" />
-  }
-
   return (
+    <ProtectedRoute allowedRoles={['INSTRUCTOR']}>
     <div className="min-h-screen bg-gray-100">
       <Navbar />
       <div className="container mx-auto px-4 py-8">
@@ -127,5 +124,6 @@ export default function InstructorCoursesPage() {
         )}
       </div>
     </div>
+    </ProtectedRoute>
   )
 }

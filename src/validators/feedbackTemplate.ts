@@ -54,9 +54,7 @@ export const CATEGORY_COLORS: Record<TemplateCategory, string> = {
 export const feedbackTemplateSchema = z.object({
   name: stringWithLength(1, 100, 'Template name'),
   category: z.enum(TEMPLATE_CATEGORIES, {
-    errorMap: () => ({
-      message: `Category must be one of: ${TEMPLATE_CATEGORIES.join(', ')}`,
-    }),
+    message: `Category must be one of: ${TEMPLATE_CATEGORIES.join(', ')}`,
   }),
   template: z
     .string()
@@ -74,9 +72,7 @@ export const updateFeedbackTemplateSchema = z
     name: stringWithLength(1, 100, 'Template name').optional(),
     category: z
       .enum(TEMPLATE_CATEGORIES, {
-        errorMap: () => ({
-          message: `Category must be one of: ${TEMPLATE_CATEGORIES.join(', ')}`,
-        }),
+        message: `Category must be one of: ${TEMPLATE_CATEGORIES.join(', ')}`,
       })
       .optional(),
     template: z
