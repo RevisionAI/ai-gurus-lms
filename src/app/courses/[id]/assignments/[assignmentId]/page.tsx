@@ -100,9 +100,10 @@ export default function StudentAssignmentPage() {
 
     try {
       // Upload to R2 via signed URL
+      const assignmentId = Array.isArray(params.assignmentId) ? params.assignmentId[0] : params.assignmentId
       const result = await uploadToS3(file, {
         directory: 'submissions',
-        assignmentId: params.assignmentId,
+        assignmentId: assignmentId,
         isPublic: false,
       })
       setUploadedFile({ url: result.cdnUrl, filename: result.filename })
