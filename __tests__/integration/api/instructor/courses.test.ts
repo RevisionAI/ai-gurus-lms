@@ -108,7 +108,7 @@ describe('Instructor Courses API', () => {
         title: 'New Course',
         description: 'Course description',
         code: 'NEW-101',
-        semester: 'Spring 2025',
+        semester: 'Spring',
         year: 2025,
       };
 
@@ -150,7 +150,7 @@ describe('Instructor Courses API', () => {
         title: 'Advanced Programming',
         description: 'Advanced course',
         code: 'CS-201',
-        semester: 'Fall 2025',
+        semester: 'Fall',
         year: 2025,
         prerequisites: 'Basic understanding of programming concepts, completion of CS-101',
         learningObjectives: ['Master advanced algorithms', 'Understand design patterns'],
@@ -198,7 +198,7 @@ describe('Instructor Courses API', () => {
       const courseData = {
         title: 'Intro Course',
         code: 'INTRO-100',
-        semester: 'Spring 2025',
+        semester: 'Spring',
         year: 2025,
         // No prerequisites fields
       };
@@ -240,7 +240,7 @@ describe('Instructor Courses API', () => {
       // Missing 'code' field
       const incompleteData = {
         title: 'New Course',
-        semester: 'Spring 2025',
+        semester: 'Spring',
         year: 2025,
       };
 
@@ -273,7 +273,7 @@ describe('Instructor Courses API', () => {
       const courseData = {
         title: 'New Course',
         code: existingCode, // Code that already exists
-        semester: 'Spring 2025',
+        semester: 'Spring',
         year: 2025,
       };
 

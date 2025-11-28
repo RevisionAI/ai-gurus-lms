@@ -163,7 +163,7 @@ describe('createCourseSchema with prerequisites fields', () => {
   const validCourseBase = {
     title: 'Introduction to Programming',
     code: 'CS-101',
-    semester: 'Fall 2025',
+    semester: 'Fall',
     year: 2025,
   };
 

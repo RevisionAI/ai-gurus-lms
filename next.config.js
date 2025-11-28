@@ -25,14 +25,14 @@ const nextConfig = {
               "default-src 'self'",
               // Scripts - allow self, TinyMCE CDN, Sentry, and inline (required for Next.js)
               "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdn.tiny.cloud https://*.sentry.io https://*.sentry-cdn.com",
-              // Styles - allow self and inline (required for styled-jsx and Tailwind)
-              "style-src 'self' 'unsafe-inline'",
+              // Styles - allow self, inline (required for styled-jsx and Tailwind), and TinyMCE CDN
+              "style-src 'self' 'unsafe-inline' https://cdn.tiny.cloud",
               // Images - allow self, data URIs, HTTPS, and blob URLs
               "img-src 'self' data: https: blob:",
-              // Fonts - allow self and data URIs
-              "font-src 'self' data:",
-              // Connections - allow self, database, storage, rate limiting services, and Sentry
-              "connect-src 'self' https://*.neon.tech https://*.r2.cloudflarestorage.com https://*.upstash.io wss://*.neon.tech https://*.sentry.io https://*.ingest.sentry.io",
+              // Fonts - allow self, data URIs, and TinyMCE CDN
+              "font-src 'self' data: https://cdn.tiny.cloud",
+              // Connections - allow self, database, storage, rate limiting services, Sentry, and TinyMCE
+              "connect-src 'self' https://*.neon.tech https://*.r2.cloudflarestorage.com https://*.upstash.io wss://*.neon.tech https://*.sentry.io https://*.ingest.sentry.io https://cdn.tiny.cloud",
               // Frames - allow self and YouTube for video embeds
               "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com",
               // Media - allow self and R2 CDN for video/audio content

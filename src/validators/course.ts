@@ -61,8 +61,8 @@ export const createCourseSchema = z.object({
     .string()
     .trim()
     .regex(
-      /^(Spring|Summer|Fall|Winter) \d{4}$/,
-      'Semester must be format "Fall 2025"'
+      /^(Spring|Summer|Fall|Winter)$/,
+      'Semester must be Spring, Summer, Fall, or Winter'
     ),
   year: positiveIntSchema,
   isActive: z.boolean().optional().default(true),
@@ -94,7 +94,7 @@ export const updateCourseSchema = z
     semester: z
       .string()
       .trim()
-      .regex(/^(Spring|Summer|Fall|Winter) \d{4}$/)
+      .regex(/^(Spring|Summer|Fall|Winter)$/)
       .optional(),
     year: positiveIntSchema.optional(),
     isActive: z.boolean().optional(),
