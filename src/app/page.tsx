@@ -2,16 +2,17 @@
 
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import SmoothScroll from '@/components/creative/SmoothScroll'
 import KineticHero from '@/components/creative/KineticHero'
 import InteractiveFeatures from '@/components/creative/InteractiveFeatures'
 import CreativeCourseList from '@/components/creative/CreativeCourseList'
+import GrainOverlay from '@/components/creative/GrainOverlay'
 
 // Dynamically import 3D components
-const LiquidBrain = dynamic(() => import('@/components/creative/LiquidBrain'), {
+const ThreeBackground = dynamic(() => import('@/components/landing/ThreeBackground'), {
   ssr: false,
 })
 
@@ -25,6 +26,36 @@ interface Course {
   year: number | null
 }
 
+const FEATURED_COURSES: Course[] = [
+  {
+    id: 'c1',
+    name: 'Strategic AI Roadmaps',
+    code: 'STRAT-101',
+    description: 'Build your organization\'s AI implementation roadmap. Learn which use cases to prioritize, when to act, and when to wait.',
+    thumbnail: '/images/course-strategy.png',
+    semester: 'Q1',
+    year: 2025
+  },
+  {
+    id: 'c2',
+    name: 'Vendor Evaluation',
+    code: 'VEND-202',
+    description: 'Cut through the hype. Learn the right questions to ask vendors and how to calculate true implementation costs.',
+    thumbnail: '/images/course-vendor.png',
+    semester: 'Q1',
+    year: 2025
+  },
+  {
+    id: 'c3',
+    name: 'Technical Credibility',
+    code: 'TECH-303',
+    description: 'Understand transformer architecture at a strategic level. Speak credibly with technical teams and lead AI initiatives.',
+    thumbnail: '/images/course-tech.png',
+    semester: 'Q2',
+    year: 2025
+  }
+]
+
 export default function Home() {
   const { data: session, status } = useSession()
   const router = useRouter()
@@ -36,10 +67,17 @@ export default function Home() {
         const res = await fetch('/api/courses')
         if (res.ok) {
           const data = await res.json()
-          setCourses(data.slice(0, 6))
+          if (data && data.length > 0) {
+            setCourses(data.slice(0, 6))
+          } else {
+            setCourses(FEATURED_COURSES)
+          }
+        } else {
+          setCourses(FEATURED_COURSES)
         }
       } catch (error) {
         console.error('Failed to fetch courses:', error)
+        setCourses(FEATURED_COURSES)
       }
     }
     fetchCourses()
@@ -67,7 +105,10 @@ export default function Home() {
   return (
     <SmoothScroll>
       <div className="relative min-h-screen w-full bg-black text-white selection:bg-indigo-500 selection:text-white">
-        <LiquidBrain />
+        <GrainOverlay />
+        <Suspense fallback={null}>
+          <ThreeBackground />
+        </Suspense>
 
         {/* Navigation */}
         <nav className="fixed top-0 left-0 w-full z-50 px-6 py-6 flex justify-between items-center mix-blend-difference">
@@ -81,7 +122,7 @@ export default function Home() {
         <main>
           <KineticHero />
 
-          <div className="relative z-10 bg-black">
+          <div className="relative z-10 bg-black/50 backdrop-blur-sm">
             <InteractiveFeatures />
             <CreativeCourseList courses={courses} />
 
