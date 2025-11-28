@@ -58,7 +58,7 @@ function NeuralNetwork(props: any) {
           opacity={0.8}
         />
       </Points>
-      {/* @ts-ignore - Line types are tricky with drei */}
+      {/* @ts-expect-error - Line types are tricky with drei */}
       <Line
         points={connections}
         color="#4f46e5" // Indigo-600
