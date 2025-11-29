@@ -17,7 +17,7 @@ export async function GET(
     const { id } = await params
 
     // Check if student is enrolled in the course
-    const enrollment = await prisma.enrollment.findUnique({
+    const enrollment = await prisma.enrollments.findUnique({
       where: {
         userId_courseId: {
           userId: session.user.id,
@@ -30,12 +30,12 @@ export async function GET(
       return NextResponse.json({ error: 'Not enrolled in this course' }, { status: 403 })
     }
 
-    const discussions = await prisma.discussion.findMany({
+    const discussions = await prisma.discussions.findMany({
       where: {
         courseId: id
       },
       include: {
-        author: {
+        users: {
           select: {
             id: true,
             name: true,
@@ -44,7 +44,7 @@ export async function GET(
         },
         _count: {
           select: {
-            posts: true
+            discussion_posts: true
           }
         }
       },
@@ -54,7 +54,23 @@ export async function GET(
       ]
     })
 
-    return NextResponse.json(discussions)
+    // Transform for frontend compatibility:
+    // - 'users' → 'author'
+    // - '_count.discussion_posts' → '_count.posts'
+    const transformedDiscussions = discussions.map(discussion => ({
+      id: discussion.id,
+      title: discussion.title,
+      description: discussion.description,
+      isPinned: discussion.isPinned,
+      isLocked: discussion.isLocked,
+      createdAt: discussion.createdAt,
+      author: discussion.users,
+      _count: {
+        posts: discussion._count.discussion_posts
+      }
+    }))
+
+    return NextResponse.json(transformedDiscussions)
   } catch (error) {
     console.error('Error fetching discussions:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

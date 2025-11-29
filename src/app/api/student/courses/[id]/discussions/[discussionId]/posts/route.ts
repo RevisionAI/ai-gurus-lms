@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
+import { randomUUID } from 'crypto'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
@@ -17,7 +18,7 @@ export async function POST(
     const { id, discussionId } = await params
 
     // Check if student is enrolled in the course
-    const enrollment = await prisma.enrollment.findUnique({
+    const enrollment = await prisma.enrollments.findUnique({
       where: {
         userId_courseId: {
           userId: session.user.id,
@@ -31,7 +32,7 @@ export async function POST(
     }
 
     // Check if discussion exists and is not locked
-    const discussion = await prisma.discussion.findUnique({
+    const discussion = await prisma.discussions.findUnique({
       where: {
         id: discussionId,
         courseId: id
@@ -57,7 +58,7 @@ export async function POST(
 
     // If parentId is provided, verify the parent post exists
     if (parentId) {
-      const parentPost = await prisma.discussionPost.findUnique({
+      const parentPost = await prisma.discussion_posts.findUnique({
         where: {
           id: parentId,
           discussionId: discussionId
@@ -69,15 +70,17 @@ export async function POST(
       }
     }
 
-    const post = await prisma.discussionPost.create({
+    const post = await prisma.discussion_posts.create({
       data: {
+        id: randomUUID(),
         content: content.trim(),
         discussionId,
         authorId: session.user.id,
-        parentId: parentId || null
+        parentId: parentId || null,
+        updatedAt: new Date()
       },
       include: {
-        author: {
+        users: {
           select: {
             id: true,
             name: true,
@@ -87,7 +90,17 @@ export async function POST(
       }
     })
 
-    return NextResponse.json(post, { status: 201 })
+    // Transform 'users' to 'author' for frontend compatibility
+    const transformedPost = {
+      id: post.id,
+      content: post.content,
+      discussionId: post.discussionId,
+      parentId: post.parentId,
+      createdAt: post.createdAt,
+      author: post.users
+    }
+
+    return NextResponse.json(transformedPost, { status: 201 })
   } catch (error) {
     console.error('Error creating discussion post:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

@@ -17,7 +17,7 @@ export async function GET(
     const { id } = await params
 
     // Check if student is enrolled in the course
-    const enrollment = await prisma.enrollment.findUnique({
+    const enrollment = await prisma.enrollments.findUnique({
       where: {
         userId_courseId: {
           userId: session.user.id,
@@ -30,12 +30,12 @@ export async function GET(
       return NextResponse.json({ error: 'Not enrolled in this course' }, { status: 403 })
     }
 
-    const course = await prisma.course.findUnique({
+    const course = await prisma.courses.findUnique({
       where: {
         id
       },
       include: {
-        instructor: {
+        users: {
           select: {
             name: true
           }
@@ -47,7 +47,21 @@ export async function GET(
       return NextResponse.json({ error: 'Course not found' }, { status: 404 })
     }
 
-    return NextResponse.json(course)
+    // Transform 'users' to 'instructor' for frontend compatibility
+    const transformedCourse = {
+      id: course.id,
+      title: course.title,
+      description: course.description,
+      code: course.code,
+      semester: course.semester,
+      year: course.year,
+      prerequisites: course.prerequisites,
+      learningObjectives: course.learningObjectives,
+      targetAudience: course.targetAudience,
+      instructor: course.users
+    }
+
+    return NextResponse.json(transformedCourse)
   } catch (error) {
     console.error('Error fetching course:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
