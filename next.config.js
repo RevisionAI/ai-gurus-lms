@@ -8,6 +8,22 @@ const nextConfig = {
     return config
   },
 
+  // Allow external images from YouTube and other sources
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'img.youtube.com',
+        pathname: '/vi/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'i.ytimg.com',
+        pathname: '/**',
+      },
+    ],
+  },
+
   // Security Headers Configuration
   // Story 1.10: Security Audit Preparation
   async headers() {

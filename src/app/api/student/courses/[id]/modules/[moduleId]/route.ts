@@ -154,6 +154,7 @@ export async function GET(
       id: item.id,
       title: item.title,
       type: item.type,
+      fileUrl: item.fileUrl,
       thumbnailUrl: item.thumbnailUrl,
       orderIndex: item.orderIndex,
       isViewed: viewedContentIds.includes(item.id),

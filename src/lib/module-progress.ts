@@ -26,12 +26,12 @@ export interface ModuleProgressResult {
 }
 
 /**
- * Calculate module progress using the 50/50 formula (ADR-002)
- * Content = 50%, Assignments = 50%
+ * Calculate module progress using adaptive weighted formula
  *
- * Edge cases:
- * - No content: Content portion = 50% (auto-complete)
- * - No assignments: Assignment portion = 50% (auto-complete)
+ * If both content and assignments exist: 50/50 split
+ * If only content: 100% based on content viewed
+ * If only assignments: 100% based on assignments submitted
+ * If neither: 0% (empty module)
  */
 export async function calculateModuleProgress(
   moduleId: string,
@@ -78,20 +78,27 @@ export async function calculateModuleProgress(
     },
   });
 
-  // Calculate 50/50 progress
-  // Content portion: 50% of total
-  const contentPortion =
-    totalContentCount > 0
-      ? (contentViewed.length / totalContentCount) * 50
-      : 50; // Auto-complete if no content
+  // Calculate progress using adaptive weighting
+  // If both exist: 50/50 split. If only one: 100% weight to that type.
+  let moduleProgress = 0;
 
-  // Assignment portion: 50% of total
-  const assignmentPortion =
-    totalAssignmentCount > 0
-      ? (assignmentSubmittedCount / totalAssignmentCount) * 50
-      : 50; // Auto-complete if no assignments
+  const hasContent = totalContentCount > 0;
+  const hasAssignments = totalAssignmentCount > 0;
 
-  const moduleProgress = Math.round(contentPortion + assignmentPortion);
+  if (hasContent && hasAssignments) {
+    // Both exist: 50/50 split
+    const contentProgress = (contentViewed.length / totalContentCount) * 50;
+    const assignmentProgress = (assignmentSubmittedCount / totalAssignmentCount) * 50;
+    moduleProgress = Math.round(contentProgress + assignmentProgress);
+  } else if (hasContent) {
+    // Only content: 100% weight to content
+    moduleProgress = Math.round((contentViewed.length / totalContentCount) * 100);
+  } else if (hasAssignments) {
+    // Only assignments: 100% weight to assignments
+    moduleProgress = Math.round((assignmentSubmittedCount / totalAssignmentCount) * 100);
+  }
+  // else: no content or assignments = 0% (empty module)
+
   const isModuleComplete = moduleProgress >= 100;
 
   return {

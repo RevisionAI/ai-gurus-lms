@@ -128,6 +128,10 @@ export default function ModuleSidebar({
           const hasContent = (module.content?.length || 0) > 0
           const hasAssignments = (module.assignments?.length || 0) > 0
           const hasDiscussions = (module.discussions?.length || 0) > 0
+          // Check if we have real data (not placeholder with empty IDs)
+          const hasRealContentData = hasContent && module.content?.[0]?.id !== ''
+          const hasRealAssignmentData = hasAssignments && module.assignments?.[0]?.id !== ''
+          const hasRealDiscussionData = hasDiscussions && module.discussions?.[0]?.id !== ''
 
           return (
             <div key={module.id}>
@@ -168,8 +172,8 @@ export default function ModuleSidebar({
                   id={`module-${module.id}-content`}
                   className="bg-gray-50 py-2"
                 >
-                  {/* Content Section */}
-                  {hasContent && (
+                  {/* Content Section - only show if we have real data with IDs */}
+                  {hasRealContentData && (
                     <div className="px-3 md:px-4 py-2">
                       <div className="flex items-center gap-2 text-xs font-medium text-gray-500 uppercase mb-2">
                         <BookOpen className="h-3 w-3 md:h-4 md:w-4" />
@@ -209,8 +213,8 @@ export default function ModuleSidebar({
                     </div>
                   )}
 
-                  {/* Assignments Section */}
-                  {hasAssignments && (
+                  {/* Assignments Section - only show if we have real data with IDs */}
+                  {hasRealAssignmentData && (
                     <div className="px-3 md:px-4 py-2">
                       <div className="flex items-center gap-2 text-xs font-medium text-gray-500 uppercase mb-2">
                         <ClipboardList className="h-3 w-3 md:h-4 md:w-4" />
@@ -247,8 +251,8 @@ export default function ModuleSidebar({
                     </div>
                   )}
 
-                  {/* Discussions Section */}
-                  {hasDiscussions && (
+                  {/* Discussions Section - only show if we have real data with IDs */}
+                  {hasRealDiscussionData && (
                     <div className="px-3 md:px-4 py-2">
                       <div className="flex items-center gap-2 text-xs font-medium text-gray-500 uppercase mb-2">
                         <MessageSquare className="h-3 w-3 md:h-4 md:w-4" />
@@ -280,10 +284,37 @@ export default function ModuleSidebar({
                     </div>
                   )}
 
-                  {/* Empty state */}
+                  {/* Empty state - only show if truly no content */}
                   {!hasContent && !hasAssignments && !hasDiscussions && (
                     <div className="px-3 md:px-4 py-2 text-sm text-gray-500 italic">
                       No content in this module
+                    </div>
+                  )}
+
+                  {/* Show summary counts when content exists but we only have counts (placeholder data) */}
+                  {(hasContent || hasAssignments || hasDiscussions) &&
+                   !hasRealContentData && !hasRealAssignmentData && !hasRealDiscussionData && (
+                    <div className="px-3 md:px-4 py-2 text-sm text-gray-600">
+                      <div className="flex items-center gap-4">
+                        {hasContent && (
+                          <span className="flex items-center gap-1">
+                            <BookOpen className="h-4 w-4" />
+                            {module.content?.length} items
+                          </span>
+                        )}
+                        {hasAssignments && (
+                          <span className="flex items-center gap-1">
+                            <ClipboardList className="h-4 w-4" />
+                            {module.assignments?.length}
+                          </span>
+                        )}
+                        {hasDiscussions && (
+                          <span className="flex items-center gap-1">
+                            <MessageSquare className="h-4 w-4" />
+                            {module.discussions?.length}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>

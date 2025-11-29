@@ -24,6 +24,7 @@ interface ContentItem {
   id: string
   title: string
   type: 'TEXT' | 'VIDEO' | 'DOCUMENT' | 'LINK' | 'SCORM' | 'YOUTUBE'
+  fileUrl: string | null
   thumbnailUrl: string | null
   orderIndex: number
   isViewed: boolean
@@ -60,12 +61,17 @@ interface CourseInfo {
   title: string
 }
 
+type ContentType = 'TEXT' | 'VIDEO' | 'DOCUMENT' | 'LINK' | 'SCORM' | 'YOUTUBE'
+
 interface ModuleListItem {
   id: string
   title: string
   orderIndex: number
   progress: number
   isUnlocked: boolean
+  content?: { id: string; title: string; type: ContentType }[]
+  assignments?: { id: string; title: string }[]
+  discussions?: { id: string; title: string }[]
 }
 
 export default function StudentModuleDetailPage() {
@@ -88,7 +94,15 @@ export default function StudentModuleDetailPage() {
       const response = await fetch(`/api/student/courses/${courseId}/modules`)
       if (response.ok) {
         const data = await response.json()
-        setModulesList(data.modules || [])
+        // Map modules with content counts for sidebar display
+        const modulesWithContent = data.modules?.map((m: ModuleListItem & { contentCount?: number; assignmentCount?: number; discussionCount?: number }) => ({
+          ...m,
+          // If content count info is available, create placeholder arrays for the sidebar
+          content: m.contentCount ? Array(m.contentCount).fill({ id: '', title: '', type: 'TEXT' as ContentType }) : [],
+          assignments: m.assignmentCount ? Array(m.assignmentCount).fill({ id: '', title: '' }) : [],
+          discussions: m.discussionCount ? Array(m.discussionCount).fill({ id: '', title: '' }) : [],
+        })) || []
+        setModulesList(modulesWithContent)
       }
     } catch (err) {
       console.error('Error fetching modules list:', err)
@@ -326,6 +340,9 @@ export default function StudentModuleDetailPage() {
                     orderIndex: m.orderIndex,
                     isLocked: !m.isUnlocked,
                     progress: m.progress,
+                    content: m.content,
+                    assignments: m.assignments,
+                    discussions: m.discussions,
                   }))}
                   currentModuleId={moduleId}
                   isInstructor={false}
@@ -347,6 +364,9 @@ export default function StudentModuleDetailPage() {
                     orderIndex: m.orderIndex,
                     isLocked: !m.isUnlocked,
                     progress: m.progress,
+                    content: m.content,
+                    assignments: m.assignments,
+                    discussions: m.discussions,
                   }))}
                   currentModuleId={moduleId}
                   isInstructor={false}

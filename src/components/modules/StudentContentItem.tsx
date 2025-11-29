@@ -10,8 +10,46 @@ interface ContentItem {
   id: string
   title: string
   type: ContentType
+  fileUrl?: string | null
   thumbnailUrl?: string | null
   isViewed: boolean
+}
+
+/**
+ * Extract YouTube video ID from various URL formats
+ */
+function extractYouTubeId(url: string): string | null {
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+    /^([a-zA-Z0-9_-]{11})$/,
+  ]
+
+  for (const pattern of patterns) {
+    const match = url.match(pattern)
+    if (match) return match[1]
+  }
+  return null
+}
+
+/**
+ * Get thumbnail URL for content item
+ * For YouTube content without a stored thumbnail, generates one from the video ID
+ */
+function getContentThumbnail(item: ContentItem): string | null {
+  // Use stored thumbnail if available
+  if (item.thumbnailUrl) {
+    return item.thumbnailUrl
+  }
+
+  // For YouTube content, generate thumbnail from video URL
+  if (item.type === 'YOUTUBE' && item.fileUrl) {
+    const videoId = extractYouTubeId(item.fileUrl)
+    if (videoId) {
+      return `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`
+    }
+  }
+
+  return null
 }
 
 interface StudentContentItemProps {
@@ -64,6 +102,7 @@ export default function StudentContentItem({
   moduleId,
 }: StudentContentItemProps) {
   const Icon = getContentIcon(item.type)
+  const thumbnailUrl = getContentThumbnail(item)
 
   return (
     <Link
@@ -71,9 +110,9 @@ export default function StudentContentItem({
       className="flex items-center space-x-4 p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-gray-50 transition-all"
     >
       {/* Icon or Thumbnail */}
-      {item.thumbnailUrl ? (
+      {thumbnailUrl ? (
         <Image
-          src={item.thumbnailUrl}
+          src={thumbnailUrl}
           alt={item.title}
           width={48}
           height={48}
