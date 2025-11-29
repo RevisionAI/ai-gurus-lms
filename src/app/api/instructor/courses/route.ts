@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
+import { randomUUID } from 'crypto'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { notDeleted } from '@/lib/soft-delete'
 import { createCourseSchema } from '@/validators/course'
 
 export async function GET() {
@@ -12,9 +14,10 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const courses = await prisma.course.findMany({
+    const courses = await prisma.courses.findMany({
       where: {
-        instructorId: session.user.id
+        instructorId: session.user.id,
+        ...notDeleted
       },
       include: {
         _count: {
@@ -71,7 +74,7 @@ export async function POST(request: NextRequest) {
     } = validation.data
 
     // Check if course code already exists
-    const existingCourse = await prisma.course.findUnique({
+    const existingCourse = await prisma.courses.findUnique({
       where: { code }
     })
 
@@ -82,8 +85,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const course = await prisma.course.create({
+    const course = await prisma.courses.create({
       data: {
+        id: randomUUID(),
         title,
         description,
         code,
@@ -93,7 +97,8 @@ export async function POST(request: NextRequest) {
         prerequisites,
         learningObjectives,
         targetAudience,
-        instructorId: session.user.id
+        instructorId: session.user.id,
+        updatedAt: new Date()
       }
     })
 
