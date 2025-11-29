@@ -11,7 +11,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const enrollments = await prisma.enrollment.findMany({
+    const enrollments = await prisma.enrollments.findMany({
       where: {
         userId: session.user.id
       },
@@ -22,21 +22,21 @@ export async function GET() {
 
     const courseIds = enrollments.map(e => e.courseId)
 
-    const announcements = await prisma.announcement.findMany({
+    const announcements = await prisma.announcements.findMany({
       where: {
         courseId: {
           in: courseIds
         }
       },
       include: {
-        course: {
+        courses: {
           select: {
             id: true,
             title: true,
             code: true
           }
         },
-        author: {
+        users: {
           select: {
             name: true
           }
@@ -48,7 +48,17 @@ export async function GET() {
       take: 5
     })
 
-    return NextResponse.json(announcements)
+    // Transform 'courses' to 'course' and 'users' to 'author' for frontend compatibility
+    const transformedAnnouncements = announcements.map(announcement => ({
+      id: announcement.id,
+      title: announcement.title,
+      content: announcement.content,
+      createdAt: announcement.createdAt,
+      course: announcement.courses,
+      author: announcement.users
+    }))
+
+    return NextResponse.json(transformedAnnouncements)
   } catch (error) {
     console.error('Error fetching recent announcements:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

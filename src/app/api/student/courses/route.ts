@@ -11,17 +11,17 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const enrollments = await prisma.enrollment.findMany({
+    const enrollments = await prisma.enrollments.findMany({
       where: {
         userId: session.user.id,
-        course: {
+        courses: {
           isActive: true
         }
       },
       include: {
-        course: {
+        courses: {
           include: {
-            instructor: {
+            users: {
               select: {
                 name: true
               }
@@ -31,7 +31,13 @@ export async function GET() {
       }
     })
 
-    const courses = enrollments.map(enrollment => enrollment.course)
+    // Transform 'users' to 'instructor' for frontend compatibility
+    const courses = enrollments.map(enrollment => ({
+      id: enrollment.courses.id,
+      title: enrollment.courses.title,
+      code: enrollment.courses.code,
+      instructor: enrollment.courses.users
+    }))
 
     return NextResponse.json(courses)
   } catch (error) {
