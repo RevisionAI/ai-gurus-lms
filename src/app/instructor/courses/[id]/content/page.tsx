@@ -449,7 +449,7 @@ export default function CourseContentPage() {
         setEditingContent(null)
         setUploadedFile(null)
         setUploadedThumbnail(null)
-        setSelectedModuleId(null)
+        // Keep selectedModuleId so user can continue adding content to same module
         setFormData({
           title: '',
           type: 'TEXT',
@@ -458,11 +458,7 @@ export default function CourseContentPage() {
           thumbnailUrl: '',
           isPublished: false
         })
-
-        // Clear URL params after successful submission
-        if (moduleIdFromUrl) {
-          router.replace(`/instructor/courses/${params.id}/content`)
-        }
+        // Don't clear URL params - keep module context for adding more content
       } else {
         const errorData = await response.json()
         console.error('API Error:', errorData)
