@@ -6,7 +6,7 @@ import Link from 'next/link'
 import Navbar from '@/components/Navbar'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import ModuleList from '@/components/modules/ModuleList'
-import { Users, ClipboardList, MessageSquare, Settings, Plus, FileText, Calendar, BookOpen, Video, File, Link as LinkIcon, X, Search, Layers } from 'lucide-react'
+import { Users, ClipboardList, MessageSquare, Settings, Plus, FileText, Calendar, X, Layers, BookOpen } from 'lucide-react'
 
 interface Course {
   id: string
@@ -28,16 +28,6 @@ interface Course {
   }
 }
 
-interface Assignment {
-  id: string
-  title: string
-  dueDate: string | null
-  isPublished: boolean
-  _count: {
-    submissions: number
-  }
-}
-
 interface Enrollment {
   id: string
   user: {
@@ -47,22 +37,11 @@ interface Enrollment {
   }
 }
 
-interface CourseContent {
-  id: string
-  title: string
-  type: 'TEXT' | 'VIDEO' | 'DOCUMENT' | 'LINK' | 'SCORM' | 'YOUTUBE'
-  isPublished: boolean
-  createdAt: string
-  thumbnailUrl?: string
-}
-
 export default function CourseDetailPage() {
   const params = useParams()
   const router = useRouter()
   const [course, setCourse] = useState<Course | null>(null)
-  const [assignments, setAssignments] = useState<Assignment[]>([])
   const [enrollments, setEnrollments] = useState<Enrollment[]>([])
-  const [content, setContent] = useState<CourseContent[]>([])
   const [activeTab, setActiveTab] = useState('overview')
   const [loading, setLoading] = useState(true)
   const [showAddStudentModal, setShowAddStudentModal] = useState(false)
@@ -76,11 +55,9 @@ export default function CourseDetailPage() {
   useEffect(() => {
     const fetchCourseData = async () => {
       try {
-        const [courseRes, assignmentsRes, enrollmentsRes, contentRes] = await Promise.all([
+        const [courseRes, enrollmentsRes] = await Promise.all([
           fetch(`/api/instructor/courses/${params.id}`),
-          fetch(`/api/instructor/courses/${params.id}/assignments`),
-          fetch(`/api/instructor/courses/${params.id}/enrollments`),
-          fetch(`/api/instructor/courses/${params.id}/content`)
+          fetch(`/api/instructor/courses/${params.id}/enrollments`)
         ])
 
         if (courseRes.ok) {
@@ -88,19 +65,9 @@ export default function CourseDetailPage() {
           setCourse(courseData)
         }
 
-        if (assignmentsRes.ok) {
-          const assignmentsData = await assignmentsRes.json()
-          setAssignments(assignmentsData)
-        }
-
         if (enrollmentsRes.ok) {
           const enrollmentsData = await enrollmentsRes.json()
           setEnrollments(enrollmentsData)
-        }
-
-        if (contentRes.ok) {
-          const contentData = await contentRes.json()
-          setContent(contentData)
         }
       } catch (error) {
         console.error('Error fetching course data:', error)
@@ -200,30 +167,6 @@ export default function CourseDetailPage() {
     }
   };
 
-  const getContentIcon = (type: CourseContent['type']) => {
-    switch (type) {
-      case 'TEXT': return FileText
-      case 'VIDEO': return Video
-      case 'YOUTUBE': return Video
-      case 'DOCUMENT': return File
-      case 'LINK': return LinkIcon
-      case 'SCORM': return BookOpen
-      default: return FileText
-    }
-  }
-
-  const getContentIconColor = (type: CourseContent['type']) => {
-    switch (type) {
-      case 'TEXT': return 'text-gray-600 bg-gray-50'
-      case 'VIDEO': return 'text-red-600 bg-red-50'
-      case 'YOUTUBE': return 'text-red-600 bg-red-50'
-      case 'DOCUMENT': return 'text-green-600 bg-green-50'
-      case 'LINK': return 'text-purple-600 bg-purple-50'
-      case 'SCORM': return 'text-blue-600 bg-blue-50'
-      default: return 'text-gray-600 bg-gray-50'
-    }
-  }
-
   if (loading) {
     return (
       <ProtectedRoute allowedRoles={['INSTRUCTOR']}>
@@ -258,9 +201,7 @@ export default function CourseDetailPage() {
   const tabs = [
     { id: 'overview', name: 'Overview', icon: FileText },
     { id: 'modules', name: 'Modules', icon: Layers },
-    { id: 'content', name: 'Content', icon: BookOpen },
     { id: 'students', name: 'Students', icon: Users },
-    { id: 'assignments', name: 'Assignments', icon: ClipboardList },
     { id: 'settings', name: 'Settings', icon: Settings }
   ]
 
@@ -409,40 +350,16 @@ export default function CourseDetailPage() {
                       <div className="space-y-3">
                         <button
                           onClick={() => setActiveTab('modules')}
-                          className="block w-full text-left p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                          className="block w-full text-left p-3 border border-indigo-200 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors"
                         >
                           <div className="flex items-center">
                             <Layers className="h-5 w-5 text-indigo-600 mr-3" />
-                            <span className="font-medium">Manage Modules</span>
+                            <div>
+                              <span className="font-medium text-indigo-900">Manage Modules</span>
+                              <p className="text-xs text-indigo-600 mt-0.5">Add content, assignments & discussions within modules</p>
+                            </div>
                           </div>
                         </button>
-                        <Link
-                          href={`/instructor/courses/${course.id}/assignments/new`}
-                          className="block p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                        >
-                          <div className="flex items-center">
-                            <ClipboardList className="h-5 w-5 text-yellow-600 mr-3" />
-                            <span className="font-medium">Create Assignment</span>
-                          </div>
-                        </Link>
-                        <Link
-                          href={`/instructor/courses/${course.id}/content`}
-                          className="block p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                        >
-                          <div className="flex items-center">
-                            <BookOpen className="h-5 w-5 text-blue-600 mr-3" />
-                            <span className="font-medium">Manage Content</span>
-                          </div>
-                        </Link>
-                        <Link
-                          href={`/instructor/courses/${course.id}/discussions`}
-                          className="block p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                        >
-                          <div className="flex items-center">
-                            <MessageSquare className="h-5 w-5 text-green-600 mr-3" />
-                            <span className="font-medium">Manage Discussions</span>
-                          </div>
-                        </Link>
                         <Link
                           href={`/instructor/courses/${course.id}/announcements`}
                           className="block p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
@@ -452,6 +369,24 @@ export default function CourseDetailPage() {
                             <span className="font-medium">Manage Announcements</span>
                           </div>
                         </Link>
+                        <Link
+                          href={`/instructor/courses/${course.id}/gradebook`}
+                          className="block p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                        >
+                          <div className="flex items-center">
+                            <ClipboardList className="h-5 w-5 text-yellow-600 mr-3" />
+                            <span className="font-medium">View Gradebook</span>
+                          </div>
+                        </Link>
+                        <button
+                          onClick={() => setActiveTab('students')}
+                          className="block w-full text-left p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                        >
+                          <div className="flex items-center">
+                            <Users className="h-5 w-5 text-blue-600 mr-3" />
+                            <span className="font-medium">Manage Students</span>
+                          </div>
+                        </button>
                       </div>
                     </div>
 
@@ -467,84 +402,6 @@ export default function CourseDetailPage() {
 
               {activeTab === 'modules' && (
                 <ModuleList courseId={course.id} />
-              )}
-
-              {activeTab === 'content' && (
-                <div>
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-medium text-gray-900">Course Content ({content.length})</h3>
-                    <Link
-                      href={`/instructor/courses/${course.id}/content`}
-                      className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-                    >
-                      <Plus className="h-4 w-4 mr-1" />
-                      Manage Content
-                    </Link>
-                  </div>
-                  {content.length === 0 ? (
-                    <div className="text-center py-8">
-                      <BookOpen className="mx-auto h-12 w-12 text-gray-400" />
-                      <h3 className="mt-2 text-sm font-medium text-gray-900">No content yet</h3>
-                      <p className="mt-1 text-sm text-gray-500">
-                        Start by adding learning materials for your students.
-                      </p>
-                      <div className="mt-6">
-                        <Link
-                          href={`/instructor/courses/${course.id}/content`}
-                          className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-                        >
-                          <Plus className="h-4 w-4 mr-1" />
-                          Add Content
-                        </Link>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {content.slice(0, 5).map((item) => {
-                        const Icon = getContentIcon(item.type)
-                        const iconColor = getContentIconColor(item.type)
-                        return (
-                          <div key={item.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
-                            <div className="flex items-center space-x-3">
-                              {item.thumbnailUrl ? (
-                                <img 
-                                  src={item.thumbnailUrl} 
-                                  alt={item.title}
-                                  className="h-10 w-10 object-cover rounded border border-gray-200"
-                                />
-                              ) : (
-                                <div className={`h-10 w-10 flex items-center justify-center rounded border border-gray-200 ${iconColor}`}>
-                                  <Icon className="h-5 w-5" />
-                                </div>
-                              )}
-                              <div>
-                                <h4 className="font-medium text-gray-900">{item.title}</h4>
-                                <div className="flex items-center space-x-2 mt-1">
-                                  <span className="text-sm text-gray-500 capitalize">
-                                    {item.type.toLowerCase()}
-                                  </span>
-                                  <span className={`text-sm ${item.isPublished ? 'text-green-600' : 'text-yellow-600'}`}>
-                                    {item.isPublished ? 'Published' : 'Draft'}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        )
-                      })}
-                      {content.length > 5 && (
-                        <div className="text-center pt-2">
-                          <Link
-                            href={`/instructor/courses/${course.id}/content`}
-                            className="text-sm text-blue-600 hover:text-blue-500"
-                          >
-                            View all {content.length} content items
-                          </Link>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
               )}
 
               {activeTab === 'students' && (
@@ -569,55 +426,6 @@ export default function CourseDetailPage() {
                           <button className="text-sm text-blue-600 hover:text-blue-500">
                             View Profile
                           </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {activeTab === 'assignments' && (
-                <div>
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-medium text-gray-900">Assignments ({assignments.length})</h3>
-                    <Link
-                      href={`/instructor/courses/${course.id}/assignments/new`}
-                      className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-                    >
-                      <Plus className="h-4 w-4 mr-1" />
-                      New Assignment
-                    </Link>
-                  </div>
-                  {assignments.length === 0 ? (
-                    <p className="text-gray-500">No assignments created yet.</p>
-                  ) : (
-                    <div className="space-y-3">
-                      {assignments.map((assignment) => (
-                        <div key={assignment.id} className="p-3 border border-gray-200 rounded-lg">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <h4 className="font-medium text-gray-900">{assignment.title}</h4>
-                              <div className="flex items-center space-x-4 mt-1">
-                                {assignment.dueDate && (
-                                  <span className="text-sm text-gray-500">
-                                    Due: {new Date(assignment.dueDate).toLocaleDateString()}
-                                  </span>
-                                )}
-                                <span className={`text-sm ${assignment.isPublished ? 'text-green-600' : 'text-yellow-600'}`}>
-                                  {assignment.isPublished ? 'Published' : 'Draft'}
-                                </span>
-                                <span className="text-sm text-blue-600">
-                                  {assignment._count.submissions} submissions
-                                </span>
-                              </div>
-                            </div>
-                            <Link
-                              href={`/instructor/assignments/${assignment.id}`}
-                              className="text-sm text-blue-600 hover:text-blue-500"
-                            >
-                              Manage
-                            </Link>
-                          </div>
                         </div>
                       ))}
                     </div>

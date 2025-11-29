@@ -8,7 +8,7 @@ import Navbar from '@/components/Navbar'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import Breadcrumb, { generateBreadcrumbs } from '@/components/Breadcrumb'
 import StudentModuleList from '@/components/modules/StudentModuleList'
-import { BookOpen, ClipboardList, MessageSquare, Clock, FileText, Video, File, Link as LinkIcon, ExternalLink, Calendar, ArrowLeft, Layers } from 'lucide-react'
+import { BookOpen, ClipboardList, MessageSquare, Clock, Calendar, Layers, ArrowLeft, FileText, Video, File, Link as LinkIcon } from 'lucide-react'
 
 interface Course {
   id: string
@@ -185,8 +185,6 @@ export default function StudentCourseDetailPage() {
   const tabs = [
     { id: 'overview', name: 'Overview', icon: BookOpen },
     { id: 'modules', name: 'Modules', icon: Layers },
-    { id: 'content', name: 'Content', icon: FileText },
-    { id: 'assignments', name: 'Assignments', icon: ClipboardList },
     { id: 'discussions', name: 'Discussions', icon: MessageSquare },
     { id: 'announcements', name: 'Announcements', icon: Calendar }
   ]
@@ -455,184 +453,6 @@ export default function StudentCourseDetailPage() {
                 <div>
                   <h3 className="text-lg font-medium text-gray-900 mb-4">Course Modules</h3>
                   <StudentModuleList courseId={course.id} />
-                </div>
-              )}
-
-              {activeTab === 'content' && (
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">Course Content</h3>
-                  {content.length === 0 ? (
-                    <div className="text-center py-8">
-                      <FileText className="mx-auto h-12 w-12 text-gray-400" />
-                      <h3 className="mt-2 text-sm font-medium text-gray-900">No content available</h3>
-                      <p className="mt-1 text-sm text-gray-500">
-                        Your instructor hasn't published any content yet.
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {content.map((item) => {
-                        const Icon = getContentIcon(item.type)
-                        return (
-                          <div key={item.id} className="border border-gray-200 rounded-lg p-4">
-                            <div className="flex items-start space-x-3">
-                              {/* Thumbnail or Icon */}
-                              {item.thumbnailUrl ? (
-                                <img 
-                                  src={item.thumbnailUrl} 
-                                  alt={item.title}
-                                  className="h-16 w-16 object-cover rounded-md border border-gray-200 flex-shrink-0"
-                                />
-                              ) : (
-                                <div className={`h-16 w-16 flex items-center justify-center rounded-md border border-gray-200 flex-shrink-0 ${getContentIconColor(item.type)}`}>
-                                  <Icon className="h-8 w-8" />
-                                </div>
-                              )}
-                              
-                              <div className="flex-1">
-                                <h4 className="font-medium text-gray-900 mb-2">{item.title}</h4>
-                                
-                                {item.type === 'TEXT' && item.content && (
-                                  <div className="prose prose-sm max-w-none text-gray-600">
-                                    <pre className="whitespace-pre-wrap font-sans">{item.content}</pre>
-                                  </div>
-                                )}
-
-                                {item.type === 'YOUTUBE' && item.fileUrl && (
-                                  <div className="mt-2">
-                                    {(() => {
-                                      const videoId = extractYouTubeId(item.fileUrl)
-                                      return videoId ? (
-                                        <div className="space-y-3">
-                                          <div className="aspect-video">
-                                            <iframe
-                                              src={`https://www.youtube.com/embed/${videoId}`}
-                                              title={item.title}
-                                              className="w-full h-full rounded-lg border border-gray-200"
-                                              frameBorder="0"
-                                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                              allowFullScreen
-                                            />
-                                          </div>
-                                          <div className="flex items-center justify-between">
-                                            <a
-                                              href={item.fileUrl}
-                                              target="_blank"
-                                              rel="noopener noreferrer"
-                                              className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-                                            >
-                                              <ExternalLink className="h-4 w-4 mr-1" />
-                                              Watch on YouTube
-                                            </a>
-                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
-                                              YouTube Video
-                                            </span>
-                                          </div>
-                                        </div>
-                                      ) : (
-                                        <a
-                                          href={item.fileUrl}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-                                        >
-                                          <ExternalLink className="h-4 w-4 mr-1" />
-                                          Watch on YouTube
-                                        </a>
-                                      )
-                                    })()}
-                                  </div>
-                                )}
-                                
-                                {(item.type === 'VIDEO' || item.type === 'DOCUMENT' || item.type === 'SCORM') && item.fileUrl && (
-                                  <div className="mt-2">
-                                    <a
-                                      href={item.fileUrl}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-                                    >
-                                      <ExternalLink className="h-4 w-4 mr-1" />
-                                      {item.fileUrl.startsWith('/uploads/') ? 'Download' : 'View'} {item.type.toLowerCase()}
-                                    </a>
-                                    {item.fileUrl.startsWith('/uploads/') && (
-                                      <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                                        Uploaded file
-                                      </span>
-                                    )}
-                                  </div>
-                                )}
-                                
-                                {item.type === 'LINK' && item.fileUrl && (
-                                  <div className="mt-2">
-                                    <a
-                                      href={item.fileUrl}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="inline-flex items-center text-blue-600 hover:text-blue-500"
-                                    >
-                                      <ExternalLink className="h-4 w-4 mr-1" />
-                                      {item.fileUrl}
-                                    </a>
-                                  </div>
-                                )}
-                                
-                                <div className="flex items-center space-x-4 mt-3 text-sm text-gray-500">
-                                  <span className="capitalize">{item.type.toLowerCase()}</span>
-                                  <span>•</span>
-                                  <span>Added {new Date(item.createdAt).toLocaleDateString()}</span>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {activeTab === 'assignments' && (
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">All Assignments</h3>
-                  {assignments.length === 0 ? (
-                    <p className="text-gray-500">No assignments available.</p>
-                  ) : (
-                    <div className="space-y-3">
-                      {assignments.map((assignment) => (
-                        <Link
-                          key={assignment.id}
-                          href={`/courses/${course.id}/assignments/${assignment.id}`}
-                          className="block p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                        >
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <h4 className="font-medium text-gray-900">{assignment.title}</h4>
-                              <div className="flex items-center space-x-4 mt-1">
-                                <span className="text-sm text-gray-500">
-                                  Max Points: {assignment.maxPoints}
-                                </span>
-                                {assignment.dueDate && (
-                                  <span className={`text-sm ${
-                                    new Date(assignment.dueDate) < new Date() 
-                                      ? 'text-red-600' 
-                                      : 'text-gray-500'
-                                  }`}>
-                                    Due: {new Date(assignment.dueDate).toLocaleDateString()}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                View Assignment
-                              </span>
-                            </div>
-                          </div>
-                        </Link>
-                      ))}
-                    </div>
-                  )}
                 </div>
               )}
 
