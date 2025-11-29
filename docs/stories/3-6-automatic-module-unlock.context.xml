@@ -1,0 +1,749 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>3-6-automatic-module-unlock</story-id>
+    <story-title>Automatic Module Unlock</story-title>
+    <epic>Epic 3: Student Module Experience</epic>
+    <status>ready-for-dev</status>
+    <generated-date>2025-11-28</generated-date>
+    <dependencies>
+      <dependency>3-5-assignment-progress-in-modules</dependency>
+      <dependency>1-4-add-module-progress-tracking-model</dependency>
+    </dependencies>
+  </metadata>
+
+  <story-overview>
+    <user-story>
+      As a student,
+      I want the next module to unlock when I complete the current one,
+      so that I can continue learning.
+    </user-story>
+
+    <acceptance-criteria>
+      <criterion id="AC1">When module reaches 100% completion, next module unlocks</criterion>
+      <criterion id="AC2">Unlock happens immediately (no page refresh needed)</criterion>
+      <criterion id="AC3">Visual feedback: module card animates to "Available"</criterion>
+      <criterion id="AC4">Toast notification: "Module 2 is now available!"</criterion>
+      <criterion id="AC5">Unlock logic runs on assignment submission and content completion</criterion>
+    </acceptance-criteria>
+
+    <key-requirements>
+      <requirement>Server-side unlock logic to prevent client bypass (ADR-001)</requirement>
+      <requirement>Check next module on every progress-changing action</requirement>
+      <requirement>Return unlock data in API response (no separate unlock call)</requirement>
+      <requirement>Real-time UI update without page refresh</requirement>
+      <requirement>Toast notification with module name and optional navigation</requirement>
+      <requirement>Smooth animation for module card state change</requirement>
+    </key-requirements>
+  </story-overview>
+
+  <technical-implementation>
+    <architecture-alignment>
+      <reference>
+        <source>docs/architecture-course-modules.md#ADR-001</source>
+        <principle>Server-Side Unlock Logic</principle>
+        <note>Unlock status calculated server-side to prevent client bypass and maintain single source of truth</note>
+      </reference>
+
+      <reference>
+        <source>docs/architecture-course-modules.md#Progress-Calculation</source>
+        <principle>50/50 Progress Formula</principle>
+        <note>Module completion = 50% content viewed + 50% assignments submitted</note>
+      </reference>
+
+      <reference>
+        <source>docs/PRD-course-modules.md#FR021</source>
+        <requirement>Completing a module automatically unlocks the next sequential module</requirement>
+      </reference>
+    </architecture-alignment>
+
+    <database-schema>
+      <model name="Module">
+        <field name="requiresPrevious" type="Boolean" description="If true, module requires previous module completion to unlock" />
+        <field name="orderIndex" type="Int" description="Sequential ordering for prerequisite chain" />
+      </model>
+
+      <model name="ModuleProgress">
+        <field name="completedAt" type="DateTime?" description="Set when module reaches 100% completion" />
+        <field name="contentViewed" type="String[]" description="Array of content IDs viewed" />
+      </model>
+    </database-schema>
+  </technical-implementation>
+
+  <existing-code-patterns>
+    <pattern name="Module Progress Calculation">
+      <location>Will be created in /src/lib/module-progress.ts (from Story 3-5)</location>
+      <description>Calculates module completion percentage based on content viewed and assignments submitted</description>
+      <example><![CDATA[
+export async function calculateModuleProgress(
+  moduleId: string,
+  userId: string
+): Promise<ModuleProgressResult> {
+  // Get module with published content and assignments
+  const module = await prisma.module.findUnique({
+    where: { id: moduleId },
+    include: {
+      content: { where: { isPublished: true, deletedAt: null } },
+      assignments: { where: { isPublished: true, deletedAt: null } }
+    }
+  });
+
+  // Get progress record
+  const progress = await prisma.moduleProgress.findUnique({
+    where: { moduleId_userId: { moduleId, userId } }
+  });
+
+  // Get submissions
+  const submissions = await prisma.submission.findMany({
+    where: {
+      studentId: userId,
+      assignmentId: { in: module.assignments.map(a => a.id) }
+    }
+  });
+
+  const contentViewed = progress?.contentViewed.length ?? 0;
+  const contentTotal = module.content.length;
+  const assignmentsSubmitted = submissions.length;
+  const assignmentsTotal = module.assignments.length;
+
+  // 50/50 split calculation
+  let contentScore = contentTotal > 0 ? (contentViewed / contentTotal) * 50 : 50;
+  let assignmentScore = assignmentsTotal > 0 ? (assignmentsSubmitted / assignmentsTotal) * 50 : 50;
+
+  const percentage = Math.round(contentScore + assignmentScore);
+
+  return {
+    percentage,
+    isComplete: percentage === 100,
+    contentViewed,
+    contentTotal,
+    assignmentsSubmitted,
+    assignmentsTotal
+  };
+}
+      ]]></example>
+    </pattern>
+
+    <pattern name="Module Unlock Check">
+      <location>Will be created in /src/lib/modules.ts</location>
+      <description>Checks if next module should unlock based on current module completion</description>
+      <example><![CDATA[
+export async function checkAndUnlockNextModule(
+  moduleId: string,
+  userId: string
+): Promise<{ unlockedModule?: { id: string; title: string } }> {
+  // Get current module with course and all modules
+  const module = await prisma.module.findUnique({
+    where: { id: moduleId },
+    include: {
+      course: {
+        include: {
+          modules: {
+            where: { deletedAt: null },
+            orderBy: { orderIndex: 'asc' }
+          }
+        }
+      }
+    }
+  });
+
+  if (!module) return {};
+
+  // Find next module (orderIndex + 1)
+  const nextModule = module.course.modules.find(
+    m => m.orderIndex === module.orderIndex + 1
+  );
+
+  // No next module or next module doesn't require previous
+  if (!nextModule || !nextModule.requiresPrevious) {
+    return {};
+  }
+
+  // Check if current module is complete
+  const currentProgress = await calculateModuleProgress(moduleId, userId);
+
+  if (!currentProgress.isComplete) {
+    return {};
+  }
+
+  // Current module is complete, next module should unlock
+  return {
+    unlockedModule: {
+      id: nextModule.id,
+      title: nextModule.title
+    }
+  };
+}
+      ]]></example>
+    </pattern>
+
+    <pattern name="Toast Notifications">
+      <location>react-hot-toast (already installed)</location>
+      <package>react-hot-toast@^2.5.2</package>
+      <usage-example><![CDATA[
+import toast from 'react-hot-toast'
+
+// Success toast with custom styling
+toast.success('Module Unlocked!', {
+  description: `${unlockedModule.title} is now available`,
+  duration: 5000,
+  position: 'top-center'
+});
+
+// Or custom toast with action
+toast(
+  (t) => (
+    <div className="flex items-center gap-3">
+      <div className="flex-1">
+        <p className="font-semibold">Module Unlocked! 🎉</p>
+        <p className="text-sm text-gray-600">{unlockedModule.title} is now available</p>
+      </div>
+      <button
+        onClick={() => {
+          toast.dismiss(t.id);
+          router.push(`/student/courses/${courseId}/modules/${unlockedModule.id}`);
+        }}
+        className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+      >
+        Go to Module
+      </button>
+    </div>
+  ),
+  { duration: 5000 }
+);
+      ]]></usage-example>
+    </pattern>
+
+    <pattern name="Existing Submission API">
+      <location>/src/app/api/student/assignments/[id]/submission/route.ts</location>
+      <description>Assignment submission endpoint - needs enhancement for unlock check</description>
+      <current-implementation><![CDATA[
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  // ... existing validation ...
+
+  const submission = await prisma.submission.create({
+    data: {
+      content: content || null,
+      fileUrl: fileUrl || null,
+      assignmentId: id,
+      studentId: session.user.id
+    }
+  });
+
+  return NextResponse.json(submission, { status: 201 });
+}
+      ]]></current-implementation>
+      <enhancement-needed>After submission, check module progress and unlock next module if complete</enhancement-needed>
+    </pattern>
+
+    <pattern name="API Response Pattern">
+      <description>Standard pattern for returning data from instructor API endpoints</description>
+      <reference>/src/app/api/instructor/courses/[id]/modules/route.ts</reference>
+      <example><![CDATA[
+return NextResponse.json({
+  modules: response
+});
+      ]]></example>
+    </pattern>
+
+    <pattern name="Authentication Check">
+      <description>Standard session check pattern used across API routes</description>
+      <example><![CDATA[
+const session = await getServerSession(authOptions);
+
+if (!session || session.user.role !== 'STUDENT') {
+  return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+}
+      ]]></example>
+    </pattern>
+
+    <pattern name="React State Management">
+      <description>Pattern from existing module components</description>
+      <reference>/src/components/modules/ModuleList.tsx</reference>
+      <example><![CDATA[
+const [modules, setModules] = useState<Module[]>([]);
+
+// Optimistic update pattern
+const updateModuleState = (moduleId: string, updates: Partial<Module>) => {
+  setModules(prev => prev.map(m =>
+    m.id === moduleId ? { ...m, ...updates } : m
+  ));
+};
+      ]]></example>
+    </pattern>
+
+    <pattern name="Tailwind CSS Animations">
+      <description>Animation classes available in existing Tailwind config</description>
+      <example><![CDATA[
+// Fade in animation
+className="animate-in fade-in duration-300"
+
+// Slide in from bottom
+className="animate-in slide-in-from-bottom-4 duration-500"
+
+// Combined with scale
+className="animate-in fade-in zoom-in-95 duration-300"
+
+// Custom transition
+className="transition-all duration-300 ease-in-out"
+      ]]></example>
+    </pattern>
+  </existing-code-patterns>
+
+  <files-to-create>
+    <file path="/src/lib/module-progress.ts">
+      <purpose>Module progress calculation utilities (may exist from Story 3-5)</purpose>
+      <exports>
+        <export>calculateModuleProgress(moduleId, userId): ModuleProgressResult</export>
+        <export>markContentViewed(moduleId, userId, contentId): ModuleProgressResult</export>
+        <export>interface ModuleProgressResult</export>
+      </exports>
+    </file>
+
+    <file path="/src/lib/modules.ts">
+      <purpose>Module unlock logic and utilities</purpose>
+      <exports>
+        <export>checkAndUnlockNextModule(moduleId, userId): Promise</export>
+        <export>isModuleUnlocked(moduleId, userId): Promise&lt;boolean&gt;</export>
+        <export>isModuleCompleted(moduleId, userId): Promise&lt;boolean&gt;</export>
+      </exports>
+    </file>
+  </files-to-create>
+
+  <files-to-modify>
+    <file path="/src/app/api/student/assignments/[id]/submission/route.ts">
+      <changes>
+        <change>
+          <location>POST handler, after submission creation</location>
+          <action>Check module progress and unlock next module if complete</action>
+          <code-snippet><![CDATA[
+// After submission created
+const submission = await prisma.submission.create({ ... });
+
+// NEW: Check if this submission completes the module
+if (assignment.moduleId) {
+  const { checkAndUnlockNextModule } = await import('@/lib/modules');
+  const unlockResult = await checkAndUnlockNextModule(
+    assignment.moduleId,
+    session.user.id
+  );
+
+  // Include unlock info in response
+  return NextResponse.json({
+    submission,
+    moduleProgress: unlockResult.progress,
+    unlockedModule: unlockResult.unlockedModule
+  }, { status: 201 });
+}
+
+return NextResponse.json(submission, { status: 201 });
+          ]]></code-snippet>
+        </change>
+      </changes>
+    </file>
+
+    <file path="/src/app/api/student/courses/[id]/modules/[moduleId]/content/[contentId]/complete/route.ts">
+      <changes>
+        <change>
+          <location>POST handler (will be created in previous story)</location>
+          <action>After marking content viewed, check for module completion and unlock</action>
+          <code-snippet><![CDATA[
+import { markContentViewed } from '@/lib/module-progress';
+import { checkAndUnlockNextModule } from '@/lib/modules';
+
+export async function POST(request, { params }) {
+  // ... auth and validation ...
+
+  // Mark content as viewed
+  const progress = await markContentViewed(moduleId, userId, contentId);
+
+  // Check if module is now complete and unlock next
+  let unlockResult = {};
+  if (progress.isComplete) {
+    unlockResult = await checkAndUnlockNextModule(moduleId, userId);
+  }
+
+  return NextResponse.json({
+    success: true,
+    moduleProgress: progress.percentage,
+    isModuleComplete: progress.isComplete,
+    ...unlockResult
+  });
+}
+          ]]></code-snippet>
+        </change>
+      </changes>
+    </file>
+
+    <file path="/src/components/modules/StudentModuleCard.tsx">
+      <changes>
+        <change>
+          <location>Component render (will be created in Story 3-1)</location>
+          <action>Add animation classes for unlock state transition</action>
+          <code-snippet><![CDATA[
+// Add state for unlock animation
+const [isUnlocking, setIsUnlocking] = useState(false);
+
+// When module status changes from locked to unlocked
+useEffect(() => {
+  if (wasLocked && module.isUnlocked) {
+    setIsUnlocking(true);
+    setTimeout(() => setIsUnlocking(false), 1000);
+  }
+}, [module.isUnlocked]);
+
+// In render
+<div className={cn(
+  "module-card",
+  isUnlocking && "animate-in zoom-in-95 fade-in duration-500"
+)}>
+  {/* Lock icon transition */}
+  <div className={cn(
+    "transition-all duration-300",
+    module.isUnlocked ? "opacity-0 scale-0" : "opacity-100 scale-100"
+  )}>
+    <Lock className="w-5 h-5" />
+  </div>
+
+  {/* Available icon transition */}
+  <div className={cn(
+    "transition-all duration-300",
+    module.isUnlocked ? "opacity-100 scale-100" : "opacity-0 scale-0"
+  )}>
+    <CheckCircle className="w-5 h-5 text-green-600" />
+  </div>
+</div>
+          ]]></code-snippet>
+        </change>
+      </changes>
+    </file>
+
+    <file path="/src/components/modules/StudentModuleOverview.tsx">
+      <changes>
+        <change>
+          <location>Content/Assignment completion handlers (will be created in Story 3-1)</location>
+          <action>Handle unlock response and show toast</action>
+          <code-snippet><![CDATA[
+import toast from 'react-hot-toast';
+
+const handleContentComplete = async (contentId: string) => {
+  const response = await fetch(`/api/student/courses/${courseId}/modules/${moduleId}/content/${contentId}/complete`, {
+    method: 'POST'
+  });
+
+  const data = await response.json();
+
+  // Update local state
+  if (data.isModuleComplete) {
+    updateModuleProgress(moduleId, 100);
+  }
+
+  // Show unlock notification
+  if (data.unlockedModule) {
+    toast.success(
+      `Module Unlocked! 🎉\n${data.unlockedModule.title} is now available`,
+      {
+        duration: 5000,
+        position: 'top-center'
+      }
+    );
+
+    // Update next module's unlock status
+    updateModuleUnlockStatus(data.unlockedModule.id, true);
+  }
+};
+          ]]></code-snippet>
+        </change>
+      </changes>
+    </file>
+  </files-to-modify>
+
+  <api-contracts>
+    <endpoint method="POST" path="/api/student/courses/[id]/modules/[moduleId]/content/[contentId]/complete">
+      <description>Mark content as viewed and check for module unlock</description>
+      <request-body>None</request-body>
+      <response-success status="200">
+        <json><![CDATA[
+{
+  "success": true,
+  "moduleProgress": 100,
+  "isModuleComplete": true,
+  "unlockedModule": {
+    "id": "clyyy...",
+    "title": "Decision Framework"
+  }
+}
+        ]]></json>
+      </response-success>
+      <response-without-unlock status="200">
+        <json><![CDATA[
+{
+  "success": true,
+  "moduleProgress": 75,
+  "isModuleComplete": false
+}
+        ]]></json>
+      </response-without-unlock>
+    </endpoint>
+
+    <endpoint method="POST" path="/api/student/assignments/[id]/submission">
+      <description>Submit assignment (enhanced to check for module unlock)</description>
+      <request-body>
+        <json><![CDATA[
+{
+  "content": "Assignment text",
+  "fileUrl": "https://..."
+}
+        ]]></json>
+      </request-body>
+      <response-success status="201">
+        <json><![CDATA[
+{
+  "submission": {
+    "id": "clxxx...",
+    "content": "...",
+    "submittedAt": "2025-11-28T10:00:00Z"
+  },
+  "moduleProgress": 100,
+  "unlockedModule": {
+    "id": "clyyy...",
+    "title": "Decision Framework"
+  }
+}
+        ]]></json>
+      </response-success>
+    </endpoint>
+  </api-contracts>
+
+  <ui-flow>
+    <flow name="Content Completion Unlock">
+      <step>1. Student views final content item in module</step>
+      <step>2. Client calls POST /api/.../content/[contentId]/complete</step>
+      <step>3. Server: markContentViewed updates progress</step>
+      <step>4. Server: calculateModuleProgress returns 100%</step>
+      <step>5. Server: checkAndUnlockNextModule finds next module</step>
+      <step>6. Server: Returns { isModuleComplete: true, unlockedModule: {...} }</step>
+      <step>7. Client: Receives response</step>
+      <step>8. Client: Shows toast "Decision Framework is now available!"</step>
+      <step>9. Client: Updates next module card to "Available" with animation</step>
+      <step>10. Client: Module card animates from Locked to Available state</step>
+    </flow>
+
+    <flow name="Assignment Submission Unlock">
+      <step>1. Student submits final assignment in module</step>
+      <step>2. Client calls POST /api/student/assignments/[id]/submission</step>
+      <step>3. Server: Creates submission record</step>
+      <step>4. Server: Gets assignment.moduleId</step>
+      <step>5. Server: checkAndUnlockNextModule calculates progress</step>
+      <step>6. Server: If 100%, returns unlock data</step>
+      <step>7. Client: Shows toast notification</step>
+      <step>8. Client: Updates UI with unlocked module</step>
+    </flow>
+
+    <flow name="No Unlock Scenario">
+      <step>1. Student completes content/assignment</step>
+      <step>2. Server calculates progress (e.g., 80%)</step>
+      <step>3. Server: Module not complete, no unlock check</step>
+      <step>4. Server: Returns { moduleProgress: 80, isModuleComplete: false }</step>
+      <step>5. Client: Updates progress bar, no toast</step>
+    </flow>
+  </ui-flow>
+
+  <testing-requirements>
+    <test-case id="TC1">
+      <scenario>Complete module with content only (no assignments)</scenario>
+      <given>Module has 3 content items, 0 assignments, next module requires previous</given>
+      <when>Student views 3rd content item</when>
+      <then>Next module unlocks, toast shows, card animates</then>
+    </test-case>
+
+    <test-case id="TC2">
+      <scenario>Complete module with assignment submission</scenario>
+      <given>Module has 2 content items (viewed), 1 assignment (not submitted), next module requires previous</given>
+      <when>Student submits assignment</when>
+      <then>Progress = 100%, next module unlocks, toast notification appears</then>
+    </test-case>
+
+    <test-case id="TC3">
+      <scenario>Last module completion (no next module)</scenario>
+      <given>Student is completing final module in course</given>
+      <when>Module reaches 100%</when>
+      <then>No unlock data returned, no toast shown (module just shows complete)</then>
+    </test-case>
+
+    <test-case id="TC4">
+      <scenario>Next module does not require previous</scenario>
+      <given>Module 2 has requiresPrevious = false</given>
+      <when>Student completes Module 1</when>
+      <then>No unlock triggered (Module 2 already available)</then>
+    </test-case>
+
+    <test-case id="TC5">
+      <scenario>Partial module completion</scenario>
+      <given>Module has 4 content items</given>
+      <when>Student views 3rd item (75%)</when>
+      <then>Progress updates to 75%, no unlock, no toast</then>
+    </test-case>
+
+    <test-case id="TC6">
+      <scenario>Real-time UI update</scenario>
+      <given>Student on course overview page with modules visible</given>
+      <when>Unlock occurs</when>
+      <then>Module card updates without page refresh, animation plays</then>
+    </test-case>
+
+    <test-case id="TC7">
+      <scenario>Toast action button</scenario>
+      <given>Module unlocked, toast shown</given>
+      <when>Student clicks "Go to Module" in toast</when>
+      <then>Navigates to newly unlocked module</then>
+    </test-case>
+
+    <test-case id="TC8">
+      <scenario>Idempotent unlock</scenario>
+      <given>Module already at 100%, next module already unlocked</given>
+      <when>API called again (e.g., refresh)</when>
+      <then>No duplicate toast, no duplicate unlock</then>
+    </test-case>
+  </testing-requirements>
+
+  <edge-cases>
+    <edge-case>
+      <scenario>Student completes content/assignment in different order</scenario>
+      <handling>Either content completion or assignment submission can trigger unlock - server checks total progress each time</handling>
+    </edge-case>
+
+    <edge-case>
+      <scenario>Multiple assignments in same module</scenario>
+      <handling>Unlock only when ALL assignments submitted (50% assignment score = 100% of assignments)</handling>
+    </edge-case>
+
+    <edge-case>
+      <scenario>Instructor publishes new content after module completion</scenario>
+      <handling>Progress recalculates to &lt;100%, module becomes incomplete, next module remains unlocked (don't re-lock)</handling>
+    </edge-case>
+
+    <edge-case>
+      <scenario>Network error during unlock check</scenario>
+      <handling>Server error doesn't prevent submission success - unlock check is additive. Student can refresh to trigger re-check</handling>
+    </edge-case>
+
+    <edge-case>
+      <scenario>Student has multiple tabs open</scenario>
+      <handling>Only active tab where action occurred shows toast. Other tabs update on next data fetch</handling>
+    </edge-case>
+
+    <edge-case>
+      <scenario>Instructor unpublishes module after student unlocked it</scenario>
+      <handling>Out of scope - module visibility logic handles this separately</handling>
+    </edge-case>
+  </edge-cases>
+
+  <implementation-notes>
+    <note priority="high">
+      <title>Server-Side Unlock Logic</title>
+      <description>Per ADR-001, unlock logic MUST be server-side. Never check unlock status on client except to display server-provided data.</description>
+    </note>
+
+    <note priority="high">
+      <title>Atomic Progress Check</title>
+      <description>After ANY progress-changing action (content view, assignment submission), immediately check for completion and unlock. Don't defer to separate cron job or background process.</description>
+    </note>
+
+    <note priority="medium">
+      <title>Toast Timing</title>
+      <description>Show toast before animation to give user immediate feedback. Animation timing: 500ms for unlock, 300ms for icon transitions.</description>
+    </note>
+
+    <note priority="medium">
+      <title>State Management</title>
+      <description>Use local state update for immediate feedback. Don't wait for full data refetch. Update specific module in array rather than refetching all modules.</description>
+    </note>
+
+    <note priority="low">
+      <title>Accessibility</title>
+      <description>Toast should be announced to screen readers. Use aria-live region for module status changes.</description>
+    </note>
+
+    <note priority="low">
+      <title>Analytics</title>
+      <description>Consider logging unlock events for analytics (not in MVP but easy to add)</description>
+    </note>
+  </implementation-notes>
+
+  <potential-issues>
+    <issue severity="medium">
+      <problem>Race condition if student submits assignment while viewing content</problem>
+      <solution>Each API call independently checks progress. Last one to complete will have correct state. Idempotent unlock check prevents duplicates.</solution>
+    </issue>
+
+    <issue severity="low">
+      <problem>Toast might be missed if student navigates away quickly</problem>
+      <solution>Acceptable for MVP. Could add persistent notification badge in future.</solution>
+    </issue>
+
+    <issue severity="low">
+      <problem>Animation might not play if student is scrolled down page</problem>
+      <solution>Consider scroll-into-view for unlocked module (enhancement). For MVP, toast is primary notification.</solution>
+    </issue>
+  </potential-issues>
+
+  <dev-checklist>
+    <item>[ ] Create /src/lib/modules.ts with unlock logic functions</item>
+    <item>[ ] Verify /src/lib/module-progress.ts exists with progress calculation (from Story 3-5)</item>
+    <item>[ ] Update assignment submission API to check unlock after submission</item>
+    <item>[ ] Update content complete API to check unlock after marking viewed</item>
+    <item>[ ] Add unlock data to API response types</item>
+    <item>[ ] Update StudentModuleCard component with animation classes</item>
+    <item>[ ] Add toast notification on unlock in parent component</item>
+    <item>[ ] Add state update logic to set next module as unlocked</item>
+    <item>[ ] Test unlock flow with content completion</item>
+    <item>[ ] Test unlock flow with assignment submission</item>
+    <item>[ ] Test no unlock when module incomplete</item>
+    <item>[ ] Test no unlock when no next module exists</item>
+    <item>[ ] Test no unlock when next module doesn't require previous</item>
+    <item>[ ] Verify animation plays smoothly</item>
+    <item>[ ] Verify toast shows correct module name</item>
+    <item>[ ] Test real-time update without page refresh</item>
+    <item>[ ] Verify idempotent unlock (no duplicate toasts)</item>
+    <item>[ ] Manual test: Complete full module flow end-to-end</item>
+  </dev-checklist>
+
+  <references>
+    <reference>
+      <title>Story File</title>
+      <path>/docs/stories/3-6-automatic-module-unlock.md</path>
+    </reference>
+    <reference>
+      <title>PRD</title>
+      <path>/docs/PRD-course-modules.md</path>
+      <sections>FR021, User Journey 2 (Step 10)</sections>
+    </reference>
+    <reference>
+      <title>Architecture</title>
+      <path>/docs/architecture-course-modules.md</path>
+      <sections>ADR-001, Module Unlock Logic, Progress Calculation</sections>
+    </reference>
+    <reference>
+      <title>Epic Breakdown</title>
+      <path>/docs/epics-course-modules.md</path>
+      <sections>Story 3.6, Epic 3</sections>
+    </reference>
+    <reference>
+      <title>Prisma Schema</title>
+      <path>/prisma/schema.prisma</path>
+      <sections>Module model, ModuleProgress model</sections>
+    </reference>
+    <reference>
+      <title>Existing Assignment Submission API</title>
+      <path>/src/app/api/student/assignments/[id]/submission/route.ts</path>
+    </reference>
+    <reference>
+      <title>Toast Library Documentation</title>
+      <url>https://react-hot-toast.com/docs</url>
+    </reference>
+  </references>
+</story-context>

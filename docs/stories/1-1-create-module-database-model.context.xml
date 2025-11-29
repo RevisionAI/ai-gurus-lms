@@ -1,0 +1,271 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context id="1-1" v="1.0">
+  <metadata>
+    <epicId>1</epicId>
+    <storyId>1</storyId>
+    <title>Create Module Database Model</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-11-28</generatedAt>
+  </metadata>
+
+  <story>
+    <asA>developer</asA>
+    <iWant>add a Module model to the Prisma schema</iWant>
+    <soThat>courses can contain organized groups of content</soThat>
+
+    <tasks>
+      <task id="1" ac="1,2">
+        <description>Add Module model to Prisma schema</description>
+        <subtasks>
+          <subtask id="1.1">Define Module model with all required fields in prisma/schema.prisma</subtask>
+          <subtask id="1.2">Add requiresPrevious boolean field for sequential unlock support (default: true)</subtask>
+          <subtask id="1.3">Add modules relation array to Course model</subtask>
+          <subtask id="1.4">Configure @@map("modules") for table naming convention</subtask>
+        </subtasks>
+      </task>
+
+      <task id="2" ac="5">
+        <description>Add database indexes</description>
+        <subtasks>
+          <subtask id="2.1">Add @@index([courseId]) for efficient course-based queries</subtask>
+          <subtask id="2.2">Add @@index([deletedAt]) for soft-delete filtering</subtask>
+        </subtasks>
+      </task>
+
+      <task id="3" ac="4">
+        <description>Generate and run migration</description>
+        <subtasks>
+          <subtask id="3.1">Run npx prisma migrate dev --name add_module_model</subtask>
+          <subtask id="3.2">Verify migration SQL creates correct table structure</subtask>
+          <subtask id="3.3">Run npx prisma generate to update Prisma client</subtask>
+        </subtasks>
+      </task>
+
+      <task id="4" ac="1-5">
+        <description>Verify implementation</description>
+        <subtasks>
+          <subtask id="4.1">Confirm Module model appears in Prisma client types</subtask>
+          <subtask id="4.2">Write simple test query to create/read a Module (can be manual verification in Prisma Studio or script)</subtask>
+        </subtasks>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="1">Module model created with fields: id, title, description, orderIndex, isPublished, courseId, createdAt, updatedAt, deletedAt</criterion>
+    <criterion id="2">Module has many-to-one relationship with Course (cascade delete)</criterion>
+    <criterion id="3">Module has one-to-many relationships with CourseContent, Assignment, Discussion (to be added in Story 1.2)</criterion>
+    <criterion id="4">Prisma migration runs successfully without errors</criterion>
+    <criterion id="5">Database indexes created for courseId and deletedAt</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/PRD-course-modules.md">
+        <relevance>Defines functional requirements FR001, FR002 for module CRUD and fields</relevance>
+        <sections>
+          <section>Functional Requirements - Module Management (Instructor)</section>
+          <section>Data Migration Requirements</section>
+        </sections>
+      </doc>
+
+      <doc path="docs/architecture-course-modules.md">
+        <relevance>Contains exact Module model specification with all fields and relationships</relevance>
+        <sections>
+          <section>Data Architecture - Module Model</section>
+          <section>Modified Models - Course (add modules relation)</section>
+          <section>Migration Strategy - Phase 1: Add New Models</section>
+          <section>Performance Considerations - Database Indexes</section>
+        </sections>
+      </doc>
+
+      <doc path="docs/epics-course-modules.md">
+        <relevance>Original story specification with acceptance criteria</relevance>
+        <sections>
+          <section>Epic 1: Database Schema &amp; Data Migration - Story 1.1</section>
+        </sections>
+      </doc>
+    </docs>
+
+    <code>
+      <file path="prisma/schema.prisma">
+        <relevance>Target file for adding Module model; contains existing models showing patterns</relevance>
+        <patterns>
+          <pattern>Soft delete using deletedAt DateTime? field</pattern>
+          <pattern>ID generation using @default(cuid())</pattern>
+          <pattern>Table naming using @@map() for snake_case convention</pattern>
+          <pattern>Index creation using @@index([field])</pattern>
+          <pattern>Cascade delete using onDelete: Cascade</pattern>
+          <pattern>Existing Course model structure</pattern>
+        </patterns>
+      </file>
+
+      <file path="prisma/migrations/20251125104830_add_soft_delete_fields/migration.sql">
+        <relevance>Example migration showing soft delete pattern and index creation</relevance>
+        <patterns>
+          <pattern>ALTER TABLE syntax for PostgreSQL</pattern>
+          <pattern>CREATE INDEX syntax with naming convention (table_field_idx)</pattern>
+          <pattern>Soft delete deletedAt TIMESTAMP(3) field</pattern>
+        </patterns>
+      </file>
+    </code>
+
+    <dependencies>
+      <dependency name="@prisma/client" version="^6.9.0">Prisma ORM client</dependency>
+      <dependency name="prisma" version="^6.9.0">Prisma CLI for migrations</dependency>
+      <dependency name="postgresql">Database (via DATABASE_URL env var)</dependency>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="schema">
+      <description>Module model must NOT include relations to CourseContent, Assignment, Discussion in this story</description>
+      <rationale>Those foreign keys are added in Story 1.2 to maintain sequential migration safety</rationale>
+    </constraint>
+
+    <constraint type="schema">
+      <description>Course model MUST include modules Module[] relation</description>
+      <rationale>Establishes Course → Module one-to-many relationship</rationale>
+    </constraint>
+
+    <constraint type="data">
+      <description>orderIndex is required (not optional)</description>
+      <rationale>Modules must have explicit ordering per PRD requirement</rationale>
+    </constraint>
+
+    <constraint type="data">
+      <description>isPublished defaults to false</description>
+      <rationale>New modules start as drafts per PRD FR002</rationale>
+    </constraint>
+
+    <constraint type="naming">
+      <description>Use @@map("modules") for PostgreSQL table name</description>
+      <rationale>Follows existing snake_case table naming convention</rationale>
+    </constraint>
+
+    <constraint type="pattern">
+      <description>Follow existing soft-delete pattern using deletedAt timestamp</description>
+      <rationale>Consistent with User, Course, Assignment models</rationale>
+    </constraint>
+  </constraints>
+
+  <interfaces>
+    <existing>
+      <model name="Course">
+        <location>prisma/schema.prisma</location>
+        <modification>Add modules Module[] relation array</modification>
+      </model>
+    </existing>
+
+    <creating>
+      <model name="Module">
+        <location>prisma/schema.prisma</location>
+        <fields>
+          <field name="id" type="String" decorator="@id @default(cuid())"/>
+          <field name="title" type="String"/>
+          <field name="description" type="String?" optional="true"/>
+          <field name="orderIndex" type="Int"/>
+          <field name="isPublished" type="Boolean" decorator="@default(false)"/>
+          <field name="requiresPrevious" type="Boolean" decorator="@default(true)"/>
+          <field name="createdAt" type="DateTime" decorator="@default(now())"/>
+          <field name="updatedAt" type="DateTime" decorator="@updatedAt"/>
+          <field name="deletedAt" type="DateTime?" optional="true"/>
+          <field name="courseId" type="String"/>
+          <field name="course" type="Course" decorator="@relation(fields: [courseId], references: [id], onDelete: Cascade)"/>
+        </fields>
+        <indexes>
+          <index>@@index([courseId])</index>
+          <index>@@index([deletedAt])</index>
+        </indexes>
+        <table>@@map("modules")</table>
+      </model>
+    </creating>
+  </interfaces>
+
+  <tests>
+    <standards>
+      <standard>Jest for unit tests with jest-mock-extended for Prisma mocking</standard>
+      <standard>Playwright for E2E tests</standard>
+      <standard>Test files in __tests__/ directory with .test.ts extension</standard>
+      <standard>Prisma mock available via __tests__/helpers/prismaMock.ts</standard>
+    </standards>
+
+    <locations>
+      <unit>__tests__/unit/</unit>
+      <integration>__tests__/integration/</integration>
+      <e2e>__tests__/e2e/</e2e>
+      <fixtures>__tests__/fixtures/</fixtures>
+      <helpers>__tests__/helpers/</helpers>
+    </locations>
+
+    <ideas>
+      <idea ac="1,2">
+        <type>manual</type>
+        <description>Use Prisma Studio to verify Module table exists with correct fields and Course relation</description>
+      </idea>
+
+      <idea ac="3">
+        <type>manual</type>
+        <description>Note: Story 1.2 will add the CourseContent, Assignment, Discussion relations - verify they are NOT present yet</description>
+      </idea>
+
+      <idea ac="4">
+        <type>manual</type>
+        <description>Verify migration file created in prisma/migrations/ with correct CREATE TABLE SQL</description>
+      </idea>
+
+      <idea ac="5">
+        <type>manual</type>
+        <description>Check migration SQL contains CREATE INDEX statements for courseId and deletedAt</description>
+      </idea>
+
+      <idea ac="1-5">
+        <type>script</type>
+        <description>Write simple TypeScript verification script to create and query a Module using Prisma client</description>
+        <example>
+          const module = await prisma.module.create({
+            data: {
+              title: "Test Module",
+              orderIndex: 0,
+              courseId: "existing-course-id"
+            }
+          });
+          console.log("Module created:", module);
+        </example>
+      </idea>
+    </ideas>
+  </tests>
+
+  <devNotes>
+    <note priority="high">
+      DO NOT add relations to CourseContent/Assignment/Discussion in this story - those come in Story 1.2 with foreign key additions
+    </note>
+
+    <note priority="high">
+      The Course model needs the modules Module[] relation added - this establishes the Course → Module one-to-many relationship
+    </note>
+
+    <note priority="medium">
+      orderIndex is required (not optional) - modules must have explicit ordering
+    </note>
+
+    <note priority="medium">
+      isPublished defaults to false - new modules start as drafts per PRD requirement
+    </note>
+
+    <note priority="low">
+      Migration naming convention: add_module_model (snake_case, descriptive)
+    </note>
+
+    <note priority="low">
+      After migration, run npx prisma generate to ensure TypeScript types are updated
+    </note>
+  </devNotes>
+
+  <references>
+    <reference type="architecture">docs/architecture-course-modules.md#Data-Architecture</reference>
+    <reference type="prd">docs/PRD-course-modules.md#Functional-Requirements (FR001, FR002)</reference>
+    <reference type="epic">docs/epics-course-modules.md#Story-1.1</reference>
+    <reference type="schema">prisma/schema.prisma (existing patterns)</reference>
+  </references>
+</story-context>

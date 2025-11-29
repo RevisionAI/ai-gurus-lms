@@ -1,0 +1,444 @@
+<story-context id="2-5-move-content-between-modules" v="1.0">
+  <metadata>
+    <epicId>epic-2</epicId>
+    <storyId>2-5-move-content-between-modules</storyId>
+    <title>Move Content Between Modules</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-11-28</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/2-5-move-content-between-modules.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>an instructor</asA>
+    <iWant>to move content items between modules</iWant>
+    <soThat>I can reorganize my course structure</soThat>
+    <tasks>
+      <task id="1" status="pending">
+        <description>Add "Move to Module" menu option (AC: 1)</description>
+        <subtasks>
+          <subtask id="1.1">Locate content item action menu (in ModuleContentList)</subtask>
+          <subtask id="1.2">Add "Move to Module" option to menu</subtask>
+          <subtask id="1.3">Option triggers modal open with content context</subtask>
+        </subtasks>
+      </task>
+      <task id="2" status="pending">
+        <description>Create MoveToModuleModal component (AC: 2)</description>
+        <subtasks>
+          <subtask id="2.1">Create src/components/modules/MoveToModuleModal.tsx</subtask>
+          <subtask id="2.2">Fetch list of modules for the course</subtask>
+          <subtask id="2.3">Display modules as selectable list (exclude current module)</subtask>
+          <subtask id="2.4">Highlight currently selected destination</subtask>
+          <subtask id="2.5">Add "Move" and "Cancel" buttons</subtask>
+        </subtasks>
+      </task>
+      <task id="3" status="pending">
+        <description>Implement move API endpoint (AC: 3)</description>
+        <subtasks>
+          <subtask id="3.1">Create PUT /api/instructor/courses/[id]/modules/[moduleId]/move-content</subtask>
+          <subtask id="3.2">Accept { contentIds: string[], targetModuleId: string }</subtask>
+          <subtask id="3.3">Update moduleId for specified content items</subtask>
+          <subtask id="3.4">Set orderIndex to max+1 in target module</subtask>
+          <subtask id="3.5">Return success response</subtask>
+        </subtasks>
+      </task>
+      <task id="4" status="pending">
+        <description>Wire modal to move action (AC: 3, 4)</description>
+        <subtasks>
+          <subtask id="4.1">On "Move" click, call move API</subtask>
+          <subtask id="4.2">Show loading state during API call</subtask>
+          <subtask id="4.3">On success: close modal, show success toast</subtask>
+          <subtask id="4.4">On error: show error toast, keep modal open</subtask>
+        </subtasks>
+      </task>
+      <task id="5" status="pending">
+        <description>Refresh both modules (AC: 5)</description>
+        <subtasks>
+          <subtask id="5.1">After successful move, refetch modules list</subtask>
+          <subtask id="5.2">Both source and destination counts should update</subtask>
+          <subtask id="5.3">If source module is expanded, content list refreshes</subtask>
+        </subtasks>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC1">
+      <description>"Move to Module" option in content item menu</description>
+      <verification>Content item action menu includes "Move to Module" option that opens modal</verification>
+    </criterion>
+    <criterion id="AC2">
+      <description>Modal shows list of available modules</description>
+      <verification>MoveToModuleModal displays all modules except the current one</verification>
+    </criterion>
+    <criterion id="AC3">
+      <description>Moving updates moduleId and adjusts orderIndex</description>
+      <verification>API updates content moduleId and sets orderIndex to max+1 in target module</verification>
+    </criterion>
+    <criterion id="AC4">
+      <description>Success toast confirms move</description>
+      <verification>After successful move, toast message displays "Content moved to [Module Name]"</verification>
+    </criterion>
+    <criterion id="AC5">
+      <description>Source and destination modules refresh</description>
+      <verification>Both source and destination module content counts update after move</verification>
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/PRD-course-modules.md">
+        <section>Functional Requirements - FR007</section>
+        <relevance>Defines requirement for instructors to move content items between modules</relevance>
+        <keyPoints>
+          - Content items must maintain order index within their module
+          - Move operation should be intuitive and reversible
+        </keyPoints>
+      </doc>
+      <doc path="docs/architecture-course-modules.md">
+        <section>API Contracts - PUT /api/instructor/courses/[id]/modules/[moduleId]/move-content</section>
+        <relevance>Defines exact API contract for move-content endpoint</relevance>
+        <keyPoints>
+          - Request: { contentIds: string[], targetModuleId: string }
+          - Updates moduleId for content items
+          - Sets orderIndex to max+1 in target module
+          - Supports batch operations (multiple contentIds for future multi-select)
+        </keyPoints>
+      </doc>
+      <doc path="docs/architecture-course-modules.md">
+        <section>Project Structure</section>
+        <relevance>Defines component organization for module features</relevance>
+        <keyPoints>
+          - Components go in src/components/modules/
+          - API routes follow pattern: /api/instructor/courses/[id]/modules/
+          - MoveToModuleModal.tsx is a new component to be created
+        </keyPoints>
+      </doc>
+      <doc path="docs/epics-course-modules.md">
+        <section>Story 2.5: Move Content Between Modules</section>
+        <relevance>Full story specification from epic breakdown</relevance>
+        <keyPoints>
+          - Prerequisites: Story 2.4 (Module Content Management)
+          - Part of Epic 2: Instructor Module Management
+          - Same pattern will be used for assignments and discussions
+        </keyPoints>
+      </doc>
+    </docs>
+
+    <code>
+      <artifact path="src/app/api/instructor/courses/[id]/modules/route.ts">
+        <type>API Route - Existing</type>
+        <relevance>Pattern for module API endpoints and authorization</relevance>
+        <keyPoints>
+          - Uses getServerSession for auth
+          - Validates instructor owns course (or is admin)
+          - Uses notDeleted filter for soft delete support
+          - Returns modules with counts using _count select
+        </keyPoints>
+      </artifact>
+
+      <artifact path="src/app/api/instructor/courses/[id]/modules/[moduleId]/route.ts">
+        <type>API Route - Existing</type>
+        <relevance>Pattern for individual module operations</relevance>
+        <keyPoints>
+          - GET, PUT, DELETE operations on single module
+          - Validates module belongs to course
+          - Uses Zod schemas for input validation
+          - Proper error handling and status codes
+        </keyPoints>
+      </artifact>
+
+      <artifact path="src/app/api/instructor/courses/[id]/content/route.ts">
+        <type>API Route - Existing</type>
+        <relevance>Pattern for content operations and orderIndex calculation</relevance>
+        <keyPoints>
+          - GET fetches all content ordered by orderIndex
+          - POST calculates next orderIndex as max+1
+          - Validates instructor authorization
+          - Uses courseContent Prisma model
+        </keyPoints>
+      </artifact>
+
+      <artifact path="src/components/gradebook/FeedbackTemplateSelector.tsx">
+        <type>Component - Reference Pattern</type>
+        <relevance>Example of Radix UI Dialog/Dropdown pattern with API integration</relevance>
+        <keyPoints>
+          - Uses @radix-ui/react-dialog for modal
+          - Uses @radix-ui/react-dropdown-menu for menu
+          - Implements loading states with Loader2 icon
+          - Uses react-hot-toast for success/error messages
+          - Fetches data on mount with useState/useEffect
+          - Preview and apply pattern for user confirmation
+        </keyPoints>
+      </artifact>
+
+      <artifact path="src/lib/validations/module.ts">
+        <type>Validation Schema - Existing</type>
+        <relevance>Pattern for creating Zod validation schemas</relevance>
+        <keyPoints>
+          - Zod schemas for createModuleSchema and updateModuleSchema
+          - TypeScript types exported via z.infer
+          - Validation includes string length, optional fields, defaults
+        </keyPoints>
+      </artifact>
+
+      <artifact path="src/lib/soft-delete.ts">
+        <type>Utility - Existing</type>
+        <relevance>Soft delete utilities for filtering queries</relevance>
+        <keyPoints>
+          - notDeleted constant: { deletedAt: null }
+          - Used in all queries to exclude soft-deleted records
+          - CourseContent supports soft delete
+        </keyPoints>
+      </artifact>
+
+      <artifact path="prisma/schema.prisma">
+        <type>Database Schema</type>
+        <relevance>CourseContent and Module model definitions</relevance>
+        <keyPoints>
+          - CourseContent has moduleId (nullable, SetNull on delete)
+          - CourseContent has orderIndex Int field
+          - Module has one-to-many with CourseContent
+          - Index on moduleId for performance
+        </keyPoints>
+      </artifact>
+    </code>
+
+    <dependencies>
+      <dependency name="next" version="15.3.3">
+        <usage>NextRequest, NextResponse for API routes</usage>
+      </dependency>
+      <dependency name="next-auth" version="^4.24.11">
+        <usage>getServerSession for authentication</usage>
+      </dependency>
+      <dependency name="@prisma/client" version="^6.9.0">
+        <usage>Database operations with CourseContent and Module models</usage>
+      </dependency>
+      <dependency name="zod" version="^4.1.13">
+        <usage>Input validation for API endpoint</usage>
+      </dependency>
+      <dependency name="react-hot-toast" version="^2.5.2">
+        <usage>Toast notifications for success/error feedback</usage>
+      </dependency>
+      <dependency name="@radix-ui/react-dialog" version="^1.1.14">
+        <usage>MoveToModuleModal implementation</usage>
+      </dependency>
+      <dependency name="@radix-ui/react-dropdown-menu" version="^2.1.15">
+        <usage>Content item action menu</usage>
+      </dependency>
+      <dependency name="lucide-react" version="^0.514.0">
+        <usage>Icons (Move, Loader2, X, etc.)</usage>
+      </dependency>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="architecture">
+      <description>API endpoint must follow existing route pattern</description>
+      <details>
+        - Path: /api/instructor/courses/[id]/modules/[moduleId]/move-content
+        - Method: PUT (not POST, as it's updating existing content)
+        - Create new directory if needed: src/app/api/instructor/courses/[id]/modules/[moduleId]/move-content/
+      </details>
+    </constraint>
+
+    <constraint type="authorization">
+      <description>Instructor authorization required</description>
+      <details>
+        - Verify session exists and user is INSTRUCTOR or ADMIN
+        - Verify course belongs to instructor (or user is admin)
+        - Verify source module and target module belong to course
+        - Verify content items belong to source module
+      </details>
+    </constraint>
+
+    <constraint type="data-integrity">
+      <description>Maintain content order and module consistency</description>
+      <details>
+        - Calculate max orderIndex in target module before move
+        - Set moved content orderIndex to max+1
+        - Update moduleId atomically in transaction
+        - Exclude soft-deleted content from orderIndex calculation
+      </details>
+    </constraint>
+
+    <constraint type="ui-ux">
+      <description>Follow existing modal and menu patterns</description>
+      <details>
+        - Use Radix UI Dialog for modal (consistent with FeedbackTemplateSelector)
+        - Use Radix UI DropdownMenu for content item menu
+        - Show loading states during API calls
+        - Display toast notifications for feedback
+        - Close modal on successful move
+        - Keep modal open on error for retry
+      </details>
+    </constraint>
+
+    <constraint type="performance">
+      <description>Efficient data fetching and updates</description>
+      <details>
+        - Fetch only necessary module data (id, title) for modal list
+        - Use Prisma updateMany for batch content updates if multiple items
+        - Refetch modules list after move to update counts
+        - Consider optimistic UI updates for better UX
+      </details>
+    </constraint>
+
+    <constraint type="future-extensibility">
+      <description>Support future multi-select operations</description>
+      <details>
+        - API accepts contentIds array (not single contentId)
+        - Modal and UI should be extensible for multi-select
+        - Current implementation: single content item, array with one element
+      </details>
+    </constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="MoveContentRequest">
+      <type>API Request Body</type>
+      <definition>
+        {
+          contentIds: string[];      // Array of content IDs to move (supports future multi-select)
+          targetModuleId: string;    // Destination module ID
+        }
+      </definition>
+    </interface>
+
+    <interface name="MoveContentResponse">
+      <type>API Response</type>
+      <definition>
+        {
+          success: boolean;
+          movedCount: number;        // Number of content items moved
+          targetModule: {
+            id: string;
+            title: string;
+          };
+        }
+      </definition>
+    </interface>
+
+    <interface name="MoveToModuleModalProps">
+      <type>React Component Props</type>
+      <definition>
+        {
+          isOpen: boolean;
+          onClose: () => void;
+          contentId: string;         // Content item to move
+          contentTitle: string;      // For display in modal
+          currentModuleId: string;   // Source module (to exclude from list)
+          courseId: string;          // For fetching modules
+          onSuccess: () => void;     // Callback to refresh parent
+        }
+      </definition>
+    </interface>
+
+    <interface name="ModuleSummary">
+      <type>Data Transfer Object</type>
+      <definition>
+        {
+          id: string;
+          title: string;
+          orderIndex: number;
+          contentCount: number;
+          isPublished: boolean;
+        }
+      </definition>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      <standard>API endpoint tests using Jest and Prisma mock</standard>
+      <standard>Component tests using React Testing Library</standard>
+      <standard>E2E tests using Playwright for user workflow</standard>
+      <standard>Authorization tests for role-based access</standard>
+      <standard>Error handling tests for edge cases</standard>
+    </standards>
+
+    <locations>
+      <location>__tests__/api/instructor/courses/[id]/modules/[moduleId]/move-content.test.ts</location>
+      <location>__tests__/components/modules/MoveToModuleModal.test.tsx</location>
+      <location>__tests__/e2e/instructor-module-management.spec.ts</location>
+    </locations>
+
+    <ideas>
+      <idea priority="high">
+        <description>Test API move-content endpoint authorization</description>
+        <scenarios>
+          - Unauthorized user cannot move content
+          - Instructor can only move content in their own courses
+          - Admin can move content in any course
+          - Cannot move content to module in different course
+        </scenarios>
+      </idea>
+
+      <idea priority="high">
+        <description>Test orderIndex calculation in move operation</description>
+        <scenarios>
+          - Moving to empty module sets orderIndex to 0
+          - Moving to module with content sets orderIndex to max+1
+          - Multiple moves maintain correct ordering
+          - Soft-deleted content excluded from orderIndex calculation
+        </scenarios>
+      </idea>
+
+      <idea priority="high">
+        <description>Test MoveToModuleModal component behavior</description>
+        <scenarios>
+          - Modal displays all modules except current module
+          - Cancel button closes modal without API call
+          - Move button calls API with correct parameters
+          - Loading state displayed during API call
+          - Success toast shown on successful move
+          - Error toast shown on API failure, modal remains open
+        </scenarios>
+      </idea>
+
+      <idea priority="medium">
+        <description>Test module list refresh after move</description>
+        <scenarios>
+          - Source module content count decreases by 1
+          - Target module content count increases by 1
+          - Content no longer appears in source module list
+          - Content appears in target module list
+        </scenarios>
+      </idea>
+
+      <idea priority="medium">
+        <description>Test edge cases and error handling</description>
+        <scenarios>
+          - Moving non-existent content returns 404
+          - Moving to non-existent module returns 404
+          - Moving content that's already in target module (idempotent)
+          - Network error during move shows appropriate error message
+          - Concurrent moves handled correctly
+        </scenarios>
+      </idea>
+
+      <idea priority="low">
+        <description>Test future multi-select support</description>
+        <scenarios>
+          - API accepts array of multiple contentIds
+          - All content items moved in single transaction
+          - orderIndex assigned sequentially to moved items
+          - Partial failure scenarios handled gracefully
+        </scenarios>
+      </idea>
+
+      <idea priority="low">
+        <description>E2E test for complete move workflow</description>
+        <scenarios>
+          - Instructor creates two modules
+          - Instructor adds content to Module 1
+          - Instructor opens content menu, selects "Move to Module"
+          - Instructor selects Module 2 in modal
+          - Instructor clicks Move button
+          - Content disappears from Module 1, appears in Module 2
+          - Toast notification confirms move
+        </scenarios>
+      </idea>
+    </ideas>
+  </tests>
+</story-context>

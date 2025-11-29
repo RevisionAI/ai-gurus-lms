@@ -1,0 +1,572 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>3-7-module-progress-api</story-id>
+    <story-title>Module Progress API</story-title>
+    <epic>Epic 3: Student Module Experience</epic>
+    <generated-date>2025-11-28</generated-date>
+    <status>ready-for-dev</status>
+  </metadata>
+
+  <story-summary>
+    <description>
+      Create and verify API endpoints for student module progress tracking. This story consolidates
+      API work from previous stories (3.1, 3.2, 3.4, 3.6) and ensures all progress-related endpoints
+      work cohesively together. It includes server-side progress calculation, unlock status computation,
+      and a React hook for frontend integration.
+    </description>
+
+    <acceptance-criteria>
+      <criterion id="1">GET /api/student/courses/[id]/modules - List modules with progress</criterion>
+      <criterion id="2">GET /api/student/courses/[id]/modules/[moduleId]/progress - Get detailed progress</criterion>
+      <criterion id="3">POST /api/student/courses/[id]/modules/[moduleId]/content/[contentId]/complete - Mark content complete</criterion>
+      <criterion id="4">Progress calculation done server-side</criterion>
+      <criterion id="5">Unlock status computed based on prerequisites</criterion>
+    </acceptance-criteria>
+
+    <user-story>
+      As a developer,
+      I want API endpoints for student module progress,
+      so that the frontend can display and update progress.
+    </user-story>
+  </story-summary>
+
+  <architecture-context>
+    <database-models>
+      <model name="Module">
+        <location>prisma/schema.prisma (lines 247-269)</location>
+        <description>Module model with course relationship, progress tracking, and soft delete support</description>
+        <code><![CDATA[
+model Module {
+  id               String    @id @default(cuid())
+  title            String
+  description      String?
+  orderIndex       Int
+  isPublished      Boolean   @default(false)
+  requiresPrevious Boolean   @default(true)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  deletedAt        DateTime?
+
+  // Relations
+  courseId    String
+  course      Course          @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  content     CourseContent[]
+  assignments Assignment[]
+  discussions Discussion[]
+  progress    ModuleProgress[]
+
+  @@index([courseId])
+  @@index([deletedAt])
+  @@map("modules")
+}
+        ]]></code>
+      </model>
+
+      <model name="ModuleProgress">
+        <location>prisma/schema.prisma (lines 271-290)</location>
+        <description>Tracks individual student progress per module including content viewed and completion timestamp</description>
+        <code><![CDATA[
+model ModuleProgress {
+  id            String    @id @default(cuid())
+  completedAt   DateTime?
+  contentViewed String[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime? // Soft delete support
+
+  // Relations
+  moduleId String
+  userId   String
+  module   Module @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([moduleId, userId])
+  @@index([userId])
+  @@index([moduleId])
+  @@index([deletedAt])
+  @@map("module_progress")
+}
+        ]]></code>
+      </model>
+    </database-models>
+
+    <api-contracts>
+      <endpoint method="GET" path="/api/student/courses/[id]/modules">
+        <description>List all published modules with progress and unlock status</description>
+        <authorization>Student must be enrolled in course</authorization>
+        <response><![CDATA[
+{
+  "modules": [
+    {
+      "id": "clxxx...",
+      "title": "AI Fundamentals",
+      "description": "Introduction to AI concepts",
+      "orderIndex": 0,
+      "status": "completed",        // available | in_progress | completed | locked
+      "progress": 100,
+      "contentCount": 5,
+      "assignmentCount": 2,
+      "isUnlocked": true,
+      "completedAt": "2025-11-27T15:30:00Z"
+    },
+    {
+      "id": "clyyy...",
+      "title": "Decision Framework",
+      "orderIndex": 1,
+      "status": "locked",
+      "progress": 0,
+      "isUnlocked": false,
+      "unlockMessage": "Complete 'AI Fundamentals' to unlock"
+    }
+  ],
+  "courseProgress": 53
+}
+        ]]></response>
+      </endpoint>
+
+      <endpoint method="GET" path="/api/student/courses/[id]/modules/[moduleId]/progress">
+        <description>Get detailed progress breakdown for a specific module</description>
+        <authorization>Student must be enrolled and module must be unlocked</authorization>
+        <response><![CDATA[
+{
+  "progress": {
+    "percentage": 80,
+    "isComplete": false,
+    "contentViewed": 4,
+    "contentTotal": 5,
+    "assignmentsSubmitted": 1,
+    "assignmentsTotal": 2,
+    "completedAt": null
+  }
+}
+        ]]></response>
+      </endpoint>
+
+      <endpoint method="POST" path="/api/student/courses/[id]/modules/[moduleId]/content/[contentId]/complete">
+        <description>Mark a content item as viewed/complete and return updated progress</description>
+        <authorization>Student must be enrolled and module must be unlocked</authorization>
+        <response><![CDATA[
+{
+  "success": true,
+  "moduleProgress": 80,
+  "isModuleComplete": false,
+  "unlockedModule": null  // or { id: "...", title: "..." } if this completion unlocks next module
+}
+        ]]></response>
+      </endpoint>
+    </api-contracts>
+
+    <progress-calculation>
+      <formula>
+        Total Progress = (ContentViewed/TotalContent * 50%) + (AssignmentsSubmitted/TotalAssignments * 50%)
+      </formula>
+      <edge-cases>
+        <case>No content items: Content portion = 50% (auto-complete)</case>
+        <case>No assignments: Assignment portion = 50% (auto-complete)</case>
+        <case>Module reaches 100%: Set completedAt timestamp</case>
+      </edge-cases>
+      <architecture-reference>
+        Per ADR-002 in architecture-course-modules.md - 50/50 split between content and assignments
+        provides fair weighting and simple, understandable progress tracking.
+      </architecture-reference>
+    </progress-calculation>
+
+    <unlock-logic>
+      <rules>
+        <rule>First module (orderIndex = 0) is always unlocked</rule>
+        <rule>If module.requiresPrevious = false, module is always unlocked</rule>
+        <rule>If module.requiresPrevious = true, previous module must be 100% complete to unlock</rule>
+        <rule>Unlock status computed server-side (ADR-001) to prevent client-side bypass</rule>
+      </rules>
+    </unlock-logic>
+  </architecture-context>
+
+  <existing-code-patterns>
+    <pattern name="Student API Authorization">
+      <description>Standard pattern for student API endpoints requiring enrollment check</description>
+      <example-file>src/app/api/student/courses/[id]/route.ts</example-file>
+      <code><![CDATA[
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getServerSession(authOptions)
+
+    if (!session || session.user.role !== 'STUDENT') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { id } = await params
+
+    // Check if student is enrolled in the course
+    const enrollment = await prisma.enrollment.findUnique({
+      where: {
+        userId_courseId: {
+          userId: session.user.id,
+          courseId: id
+        }
+      }
+    })
+
+    if (!enrollment) {
+      return NextResponse.json({ error: 'Not enrolled in this course' }, { status: 403 })
+    }
+
+    // ... endpoint logic ...
+  } catch (error) {
+    console.error('Error fetching course:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+      ]]></code>
+    </pattern>
+
+    <pattern name="Validation with Zod">
+      <description>Input validation pattern using Zod schemas</description>
+      <example-file>src/lib/validations/module.ts</example-file>
+      <code><![CDATA[
+import { z } from 'zod';
+
+export const createModuleSchema = z.object({
+  title: z.string().min(1, 'Title is required').max(200, 'Title must be 200 characters or less'),
+  description: z.string().max(2000, 'Description must be 2000 characters or less').optional(),
+  requiresPrevious: z.boolean().default(true),
+});
+
+export type CreateModuleInput = z.infer<typeof createModuleSchema>;
+      ]]></code>
+    </pattern>
+
+    <pattern name="Soft Delete Filtering">
+      <description>Pattern for excluding soft-deleted records in queries</description>
+      <example-file>src/lib/soft-delete.ts</example-file>
+      <code><![CDATA[
+// Use in all queries to exclude soft-deleted records
+export const notDeleted = { deletedAt: null } as const
+
+// Example usage:
+const modules = await prisma.module.findMany({
+  where: {
+    courseId,
+    isPublished: true,
+    ...notDeleted
+  },
+  orderBy: { orderIndex: 'asc' }
+})
+      ]]></code>
+    </pattern>
+
+    <pattern name="React Hook Pattern">
+      <description>Custom React hook pattern for API data fetching</description>
+      <example-file>src/components/modules/hooks/useModules.ts</example-file>
+      <code><![CDATA[
+'use client'
+
+import { useState, useEffect, useCallback } from 'react'
+
+export interface Module {
+  id: string
+  title: string
+  // ... other fields
+}
+
+interface UseModulesReturn {
+  modules: Module[]
+  loading: boolean
+  error: string | null
+  refetch: () => Promise<void>
+}
+
+export function useModules(courseId: string): UseModulesReturn {
+  const [modules, setModules] = useState<Module[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const fetchModules = useCallback(async () => {
+    if (!courseId) return
+
+    setLoading(true)
+    setError(null)
+
+    try {
+      const response = await fetch(`/api/instructor/courses/${courseId}/modules`)
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to fetch modules')
+      }
+
+      const data = await response.json()
+      setModules(data.modules || [])
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'An error occurred'
+      setError(message)
+      console.error('Error fetching modules:', err)
+    } finally {
+      setLoading(false)
+    }
+  }, [courseId])
+
+  useEffect(() => {
+    fetchModules()
+  }, [fetchModules])
+
+  return {
+    modules,
+    loading,
+    error,
+    refetch: fetchModules,
+  }
+}
+      ]]></code>
+    </pattern>
+  </existing-code-patterns>
+
+  <implementation-requirements>
+    <files-to-create>
+      <file path="src/app/api/student/courses/[id]/modules/route.ts">
+        <description>GET endpoint to list modules with progress and unlock status</description>
+        <requirements>
+          <requirement>Verify student enrollment</requirement>
+          <requirement>Fetch all published modules for course (exclude soft-deleted)</requirement>
+          <requirement>For each module, calculate progress using server-side logic</requirement>
+          <requirement>Compute unlock status based on prerequisites</requirement>
+          <requirement>Return modules array with courseProgress percentage</requirement>
+        </requirements>
+      </file>
+
+      <file path="src/app/api/student/courses/[id]/modules/[moduleId]/progress/route.ts">
+        <description>GET endpoint for detailed module progress breakdown</description>
+        <requirements>
+          <requirement>Verify student enrollment</requirement>
+          <requirement>Verify module is unlocked for student</requirement>
+          <requirement>Return detailed progress: contentViewed, contentTotal, assignmentsSubmitted, assignmentsTotal</requirement>
+          <requirement>Include percentage, isComplete flag, and completedAt timestamp</requirement>
+        </requirements>
+      </file>
+
+      <file path="src/app/api/student/courses/[id]/modules/[moduleId]/content/[contentId]/complete/route.ts">
+        <description>POST endpoint to mark content as viewed and return updated progress</description>
+        <requirements>
+          <requirement>Verify student enrollment</requirement>
+          <requirement>Verify module is unlocked</requirement>
+          <requirement>Verify content belongs to module</requirement>
+          <requirement>Call markContentViewed function (idempotent)</requirement>
+          <requirement>Check if module completion triggers next module unlock</requirement>
+          <requirement>Return updated progress with optional unlockedModule data</requirement>
+        </requirements>
+      </file>
+
+      <file path="src/lib/module-progress.ts">
+        <description>Server-side progress calculation and tracking utilities</description>
+        <requirements>
+          <requirement>calculateModuleProgress function - implements 50/50 formula</requirement>
+          <requirement>markContentViewed function - upserts progress record</requirement>
+          <requirement>Handle edge cases (no content, no assignments)</requirement>
+          <requirement>Set completedAt when progress reaches 100%</requirement>
+        </requirements>
+        <reference>See architecture-course-modules.md lines 413-535 for full implementation spec</reference>
+      </file>
+
+      <file path="src/lib/modules.ts">
+        <description>Module unlock logic utilities</description>
+        <requirements>
+          <requirement>isModuleUnlocked function - determines if module is accessible to student</requirement>
+          <requirement>isModuleCompleted function - checks if previous module is complete</requirement>
+          <requirement>getNextModule function - finds next module in sequence</requirement>
+        </requirements>
+        <reference>See architecture-course-modules.md lines 356-409 for full implementation spec</reference>
+      </file>
+
+      <file path="src/components/modules/hooks/useModuleProgress.ts">
+        <description>React hook for fetching and updating module progress</description>
+        <requirements>
+          <requirement>Fetch progress for single module</requirement>
+          <requirement>Provide markContentComplete function</requirement>
+          <requirement>Handle loading and error states</requirement>
+          <requirement>Support refetch after mutations</requirement>
+        </requirements>
+        <interface><![CDATA[
+export function useModuleProgress(courseId: string, moduleId: string) {
+  const { data: progress, isLoading, error, refetch } = useQuery(...);
+
+  const markContentComplete = async (contentId: string) => {
+    const result = await fetch(
+      `/api/student/courses/${courseId}/modules/${moduleId}/content/${contentId}/complete`,
+      { method: 'POST' }
+    );
+    refetch();
+    return result;
+  };
+
+  return { progress, isLoading, error, markContentComplete };
+}
+        ]]></interface>
+      </file>
+    </files-to-create>
+
+    <files-to-modify>
+      <file path="src/lib/validations/module.ts">
+        <modification>Add validation schema for progress query parameters if needed</modification>
+      </file>
+    </files-to-modify>
+  </implementation-requirements>
+
+  <technical-specifications>
+    <route-structure><![CDATA[
+src/app/api/student/courses/[id]/modules/
+├── route.ts                    # GET (list with progress)
+└── [moduleId]/
+    ├── progress/
+    │   └── route.ts            # GET (detailed progress)
+    └── content/
+        └── [contentId]/
+            └── complete/
+                └── route.ts    # POST (mark complete)
+    ]]></route-structure>
+
+    <typescript-interfaces><![CDATA[
+// Progress calculation result
+export interface ModuleProgressResult {
+  percentage: number;
+  isComplete: boolean;
+  contentViewed: number;
+  contentTotal: number;
+  assignmentsSubmitted: number;
+  assignmentsTotal: number;
+  completedAt?: Date | null;
+}
+
+// Module with student context
+export interface StudentModuleWithProgress {
+  id: string;
+  title: string;
+  description: string | null;
+  orderIndex: number;
+  status: 'available' | 'in_progress' | 'completed' | 'locked';
+  progress: number;
+  contentCount: number;
+  assignmentCount: number;
+  isUnlocked: boolean;
+  completedAt?: Date | null;
+  unlockMessage?: string;
+}
+
+// Completion response
+export interface ContentCompleteResponse {
+  success: boolean;
+  moduleProgress: number;
+  isModuleComplete: boolean;
+  unlockedModule?: {
+    id: string;
+    title: string;
+  } | null;
+}
+    ]]></typescript-interfaces>
+
+    <key-implementation-details>
+      <detail>Server-side calculation - All progress math happens in API, not client</detail>
+      <detail>Consistent response format - Follow architecture spec exactly</detail>
+      <detail>Authorization - All endpoints verify enrollment and unlock status</detail>
+      <detail>Idempotent operations - Safe to call markContentViewed multiple times</detail>
+      <detail>Soft delete filtering - Use notDeleted constant in all queries</detail>
+      <detail>Error handling - Return appropriate HTTP status codes (401, 403, 404, 500)</detail>
+    </key-implementation-details>
+
+    <testing-requirements>
+      <requirement>Test enrollment check - non-enrolled students get 403</requirement>
+      <requirement>Test unlock verification - locked modules return appropriate error</requirement>
+      <requirement>Test progress calculation - verify 50/50 formula</requirement>
+      <requirement>Test edge cases - no content, no assignments</requirement>
+      <requirement>Test completion triggers - verify unlock logic</requirement>
+      <requirement>Test idempotency - marking same content twice doesn't duplicate</requirement>
+    </testing-requirements>
+  </technical-specifications>
+
+  <integration-notes>
+    <consolidation-note>
+      This story consolidates and verifies API work from:
+      - Story 3.1 (modules list API)
+      - Story 3.2 (unlock status in API)
+      - Story 3.4 (content complete endpoint)
+      - Story 3.6 (unlock response)
+
+      Ensures all pieces work together cohesively.
+    </consolidation-note>
+
+    <dependencies>
+      <dependency>Story 1.4 - ModuleProgress model must exist</dependency>
+      <dependency>Story 1.5 - Basic module API endpoints established</dependency>
+      <dependency>Prisma schema includes Module and ModuleProgress models</dependency>
+      <dependency>Enrollment system functional for authorization</dependency>
+    </dependencies>
+
+    <future-stories>
+      <story>Story 3.1-3.6 will consume these APIs</story>
+      <story>Story 4.x will extend APIs for instructor/admin views</story>
+    </future-stories>
+  </integration-notes>
+
+  <references>
+    <reference type="architecture">
+      <file>docs/architecture-course-modules.md</file>
+      <sections>
+        <section>Student Module Endpoints (lines 244-352)</section>
+        <section>Module Unlock Logic (lines 356-409)</section>
+        <section>Progress Calculation (lines 413-535)</section>
+        <section>ADR-001: Server-Side Unlock Logic (lines 788-797)</section>
+        <section>ADR-002: Progress Formula (lines 799-808)</section>
+      </sections>
+    </reference>
+
+    <reference type="prd">
+      <file>docs/PRD-course-modules.md</file>
+      <sections>
+        <section>FR019: Module completion tracking</section>
+        <section>FR020: Student progress visibility</section>
+        <section>FR021: Automatic module unlock</section>
+        <section>Journey 2: Student Progresses Through Modules</section>
+      </sections>
+    </reference>
+
+    <reference type="epic">
+      <file>docs/epics-course-modules.md</file>
+      <sections>
+        <section>Story 3.7: Module Progress API (lines 390-404)</section>
+      </sections>
+    </reference>
+
+    <reference type="related-stories">
+      <story file="docs/stories/3-4-content-completion-tracking.md">
+        Defines markContentViewed implementation and completion triggers
+      </story>
+      <story file="docs/stories/3-6-automatic-module-unlock.md">
+        Defines unlock response format and unlock notification flow
+      </story>
+    </reference>
+  </references>
+
+  <development-notes>
+    <note priority="high">
+      All API endpoints MUST use server-side authorization and validation. Never trust client-side state.
+    </note>
+
+    <note priority="high">
+      Progress calculation is the single source of truth. Frontend displays what API returns.
+    </note>
+
+    <note priority="medium">
+      Use consistent error responses across all endpoints for better frontend error handling.
+    </note>
+
+    <note priority="medium">
+      Consider caching progress calculations for performance if needed, but ensure cache invalidation on mutations.
+    </note>
+
+    <note priority="low">
+      Future enhancement: WebSocket/SSE for real-time progress updates in collaborative scenarios.
+    </note>
+  </development-notes>
+</story-context>

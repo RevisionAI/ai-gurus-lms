@@ -1,0 +1,347 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>epic-2</epicId>
+    <storyId>2-3-drag-and-drop-module-reordering</storyId>
+    <title>Drag-and-Drop Module Reordering</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-11-28</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/2-3-drag-and-drop-module-reordering.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>an instructor</asA>
+    <iWant>to reorder modules by dragging them</iWant>
+    <soThat>I can control the learning sequence</soThat>
+    <tasks>
+      <task id="1" status="pending">
+        <description>Install and configure @dnd-kit</description>
+        <acceptanceCriteria>AC: 2</acceptanceCriteria>
+        <subtasks>
+          <subtask id="1.1">Check if @dnd-kit is already installed, install if needed</subtask>
+          <subtask id="1.2">Import DndContext, SortableContext from @dnd-kit/sortable</subtask>
+          <subtask id="1.3">Import useSortable hook for individual items</subtask>
+        </subtasks>
+      </task>
+      <task id="2" status="pending">
+        <description>Create ModuleReorderContainer component</description>
+        <acceptanceCriteria>AC: 1, 2, 3</acceptanceCriteria>
+        <subtasks>
+          <subtask id="2.1">Create src/components/modules/ModuleReorderContainer.tsx</subtask>
+          <subtask id="2.2">Wrap ModuleList content with DndContext and SortableContext</subtask>
+          <subtask id="2.3">Configure collision detection and sorting strategy</subtask>
+          <subtask id="2.4">Implement drag overlay for ghost element during drag</subtask>
+        </subtasks>
+      </task>
+      <task id="3" status="pending">
+        <description>Add drag handle to ModuleCard</description>
+        <acceptanceCriteria>AC: 1</acceptanceCriteria>
+        <subtasks>
+          <subtask id="3.1">Add useSortable hook to ModuleCard</subtask>
+          <subtask id="3.2">Add drag handle icon (grip/hamburger icon) to card</subtask>
+          <subtask id="3.3">Apply sortable attributes and listeners to handle</subtask>
+          <subtask id="3.4">Style handle with hover state</subtask>
+        </subtasks>
+      </task>
+      <task id="4" status="pending">
+        <description>Implement reorder API endpoint</description>
+        <acceptanceCriteria>AC: 4</acceptanceCriteria>
+        <subtasks>
+          <subtask id="4.1">Create PUT /api/instructor/courses/[id]/modules/reorder endpoint</subtask>
+          <subtask id="4.2">Accept { moduleIds: string[] } in request body</subtask>
+          <subtask id="4.3">Update orderIndex for each module based on array position</subtask>
+          <subtask id="4.4">Return success response</subtask>
+        </subtasks>
+      </task>
+      <task id="5" status="pending">
+        <description>Add "Save Order" button</description>
+        <acceptanceCriteria>AC: 5</acceptanceCriteria>
+        <subtasks>
+          <subtask id="5.1">Track if order has changed from original</subtask>
+          <subtask id="5.2">Show "Save Order" button only when order changed</subtask>
+          <subtask id="5.3">Button calls reorder API with new module IDs order</subtask>
+          <subtask id="5.4">Hide button after successful save</subtask>
+        </subtasks>
+      </task>
+      <task id="6" status="pending">
+        <description>Implement optimistic update</description>
+        <acceptanceCriteria>AC: 6</acceptanceCriteria>
+        <subtasks>
+          <subtask id="6.1">Update local state immediately on drag end</subtask>
+          <subtask id="6.2">Send API request in background</subtask>
+          <subtask id="6.3">On API error: rollback to original order</subtask>
+          <subtask id="6.4">Show error toast on rollback</subtask>
+        </subtasks>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC1">Drag handle visible on each module card</criterion>
+    <criterion id="AC2">Drag-and-drop using @dnd-kit library</criterion>
+    <criterion id="AC3">Visual feedback during drag (ghost element)</criterion>
+    <criterion id="AC4">Order persisted to database on drop</criterion>
+    <criterion id="AC5">"Save Order" button appears after reorder</criterion>
+    <criterion id="AC6">Optimistic UI update with rollback on error</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/PRD-course-modules.md">
+        <section>Design Constraints</section>
+        <relevance>Specifies requirement to use @dnd-kit for drag-and-drop functionality</relevance>
+        <keyPoints>
+          <point>Leverage existing @dnd-kit for drag-and-drop</point>
+          <point>Must integrate with existing Tailwind CSS design system</point>
+          <point>Reuse existing Radix UI components where possible</point>
+        </keyPoints>
+      </doc>
+      <doc path="docs/architecture-course-modules.md">
+        <section>API Contracts - Instructor Module Endpoints</section>
+        <relevance>Defines PUT /modules/reorder API endpoint structure</relevance>
+        <keyPoints>
+          <point>Endpoint: PUT /api/instructor/courses/[id]/modules/reorder</point>
+          <point>Request body: { "moduleIds": ["id1", "id2", "id3"] }</point>
+          <point>Updates each module's orderIndex to match array position</point>
+        </keyPoints>
+      </doc>
+      <doc path="docs/architecture-course-modules.md">
+        <section>Project Structure</section>
+        <relevance>Defines component organization for module feature</relevance>
+        <keyPoints>
+          <point>Component location: src/components/modules/ModuleReorderContainer.tsx</point>
+          <point>API location: src/app/api/instructor/courses/[id]/modules/reorder/route.ts</point>
+        </keyPoints>
+      </doc>
+      <doc path="docs/epics-course-modules.md">
+        <section>Epic 2 - Story 2.3</section>
+        <relevance>Original story specification with acceptance criteria</relevance>
+        <keyPoints>
+          <point>Drag handle visible on each module card</point>
+          <point>Drag-and-drop using @dnd-kit library</point>
+          <point>Visual feedback during drag (ghost element)</point>
+          <point>Order persisted to database on drop</point>
+          <point>"Save Order" button appears after reorder</point>
+          <point>Optimistic UI update with rollback on error</point>
+        </keyPoints>
+      </doc>
+    </docs>
+    <code>
+      <artifact path="src/app/instructor/courses/[id]/content/page.tsx">
+        <type>reference</type>
+        <relevance>Existing implementation of drag-and-drop for course content using @dnd-kit</relevance>
+        <keyPatterns>
+          <pattern>DndContext with closestCenter collision detection</pattern>
+          <pattern>SortableContext with verticalListSortingStrategy</pattern>
+          <pattern>useSortable hook in SortableItem component</pattern>
+          <pattern>GripVertical icon as drag handle</pattern>
+          <pattern>State tracking with hasOrderChanged flag</pattern>
+          <pattern>Save Order button shown conditionally</pattern>
+          <pattern>Optimistic update pattern with arrayMove</pattern>
+        </keyPatterns>
+        <codeSnippets>
+          <snippet label="Sensor Configuration">
+            const sensors = useSensors(
+              useSensor(PointerSensor),
+              useSensor(KeyboardSensor, {
+                coordinateGetter: sortableKeyboardCoordinates
+              })
+            )
+          </snippet>
+          <snippet label="DndContext Setup">
+            &lt;DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={(event: DragEndEvent) => {
+                const { active, over } = event;
+                if (!over) return;
+                if (active.id !== over.id) {
+                  setContent((items) => {
+                    const oldIndex = items.findIndex(item => item.id === active.id);
+                    const newIndex = items.findIndex(item => item.id === over.id);
+                    const newItems = arrayMove(items, oldIndex, newIndex);
+                    setHasOrderChanged(true);
+                    return newItems;
+                  });
+                }
+              }}
+            &gt;
+          </snippet>
+          <snippet label="Sortable Item with Drag Handle">
+            const {
+              attributes,
+              listeners,
+              setNodeRef,
+              transform,
+              transition,
+              isDragging
+            } = useSortable({ id });
+
+            const style = {
+              transform: CSS.Transform.toString(transform),
+              transition,
+              zIndex: isDragging ? 100 : 1
+            };
+
+            return (
+              &lt;div ref={setNodeRef} style={style} className={`${isDragging ? 'bg-blue-50' : 'bg-white'}`}&gt;
+                &lt;div {...attributes} {...listeners} className="cursor-grab"&gt;
+                  &lt;GripVertical className="h-5 w-5 text-gray-400" /&gt;
+                &lt;/div&gt;
+              &lt;/div&gt;
+            );
+          </snippet>
+        </codeSnippets>
+      </artifact>
+      <artifact path="src/app/api/instructor/courses/[id]/content/reorder/route.ts">
+        <type>reference</type>
+        <relevance>Existing reorder API endpoint pattern for course content</relevance>
+        <keyPatterns>
+          <pattern>PUT endpoint accepting array of IDs</pattern>
+          <pattern>Validation of contentOrder array</pattern>
+          <pattern>Promise.all to update orderIndex in parallel</pattern>
+          <pattern>Returns updated items ordered by orderIndex</pattern>
+        </keyPatterns>
+        <codeSnippets>
+          <snippet label="Reorder API Pattern">
+            const { contentOrder } = await request.json()
+
+            if (!Array.isArray(contentOrder)) {
+              return NextResponse.json(
+                { error: 'Content order must be an array of content IDs' },
+                { status: 400 }
+              )
+            }
+
+            await Promise.all(
+              contentOrder.map(async (contentId, index) =&gt; {
+                await prisma.courseContent.update({
+                  where: { id: contentId, courseId: id },
+                  data: { orderIndex: index + 1 }
+                })
+              })
+            )
+
+            const updatedContent = await prisma.courseContent.findMany({
+              where: { courseId: id },
+              orderBy: { orderIndex: 'asc' }
+            })
+
+            return NextResponse.json(updatedContent)
+          </snippet>
+        </codeSnippets>
+      </artifact>
+      <artifact path="src/app/api/instructor/courses/[id]/modules/route.ts">
+        <type>existing</type>
+        <relevance>Existing module list API endpoint - modules are ordered by orderIndex</relevance>
+        <keyPatterns>
+          <pattern>GET endpoint returns modules ordered by orderIndex ASC</pattern>
+          <pattern>Authorization check for INSTRUCTOR/ADMIN role</pattern>
+          <pattern>Course ownership verification</pattern>
+        </keyPatterns>
+      </artifact>
+      <artifact path="src/app/api/instructor/courses/[id]/modules/[moduleId]/route.ts">
+        <type>existing</type>
+        <relevance>Existing module update endpoint - supports orderIndex updates</relevance>
+        <keyPatterns>
+          <pattern>PUT endpoint with updateModuleSchema validation</pattern>
+          <pattern>Accepts orderIndex as optional field</pattern>
+        </keyPatterns>
+      </artifact>
+      <artifact path="src/lib/validations/module.ts">
+        <type>existing</type>
+        <relevance>Module validation schemas - orderIndex already supported in updateModuleSchema</relevance>
+        <keyPatterns>
+          <pattern>updateModuleSchema includes orderIndex: z.number().int().min(0).optional()</pattern>
+        </keyPatterns>
+      </artifact>
+      <artifact path="src/lib/soft-delete.ts">
+        <type>utility</type>
+        <relevance>Soft delete helpers for filtering out deleted modules</relevance>
+        <keyPatterns>
+          <pattern>notDeleted constant for where clauses</pattern>
+        </keyPatterns>
+      </artifact>
+    </code>
+    <dependencies>
+      <package name="@dnd-kit/core" version="^6.3.1" usage="Core drag-and-drop functionality" />
+      <package name="@dnd-kit/sortable" version="^10.0.0" usage="Sortable list components and hooks" />
+      <package name="@dnd-kit/utilities" version="^3.2.2" usage="CSS transform utilities" />
+      <package name="lucide-react" version="^0.514.0" usage="GripVertical and Save icons" />
+      <package name="react-hot-toast" version="^2.5.2" usage="Toast notifications for errors and success" />
+      <package name="zod" version="^4.1.13" usage="API request validation" />
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="library">Must use @dnd-kit (already installed) for drag-and-drop functionality</constraint>
+    <constraint type="ui">Follow existing content reordering pattern from src/app/instructor/courses/[id]/content/page.tsx</constraint>
+    <constraint type="api">Use existing module validation schemas from src/lib/validations/module.ts</constraint>
+    <constraint type="security">Only instructors who own the course can reorder modules</constraint>
+    <constraint type="data-integrity">Use soft-delete filter (notDeleted) when querying modules</constraint>
+    <constraint type="ux">Show visual feedback during drag (opacity change, highlighted drop zone)</constraint>
+    <constraint type="ux">Provide toast notifications for success and error states</constraint>
+    <constraint type="performance">Use optimistic UI updates - update local state immediately, sync with server in background</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="Module">
+      <source>Prisma Schema</source>
+      <properties>
+        <property name="id" type="string" required="true" />
+        <property name="title" type="string" required="true" />
+        <property name="description" type="string | null" required="false" />
+        <property name="orderIndex" type="number" required="true" description="0-based index for module order" />
+        <property name="isPublished" type="boolean" required="true" />
+        <property name="requiresPrevious" type="boolean" required="true" />
+        <property name="courseId" type="string" required="true" />
+        <property name="createdAt" type="DateTime" required="true" />
+        <property name="updatedAt" type="DateTime" required="true" />
+        <property name="deletedAt" type="DateTime | null" required="false" />
+      </properties>
+    </interface>
+    <interface name="ModuleReorderRequest">
+      <source>API Contract</source>
+      <properties>
+        <property name="moduleIds" type="string[]" required="true" description="Array of module IDs in desired order" />
+      </properties>
+    </interface>
+    <interface name="ModuleListResponse">
+      <source>GET /api/instructor/courses/[id]/modules</source>
+      <properties>
+        <property name="modules" type="Module[]" required="true" description="Array of modules with counts, ordered by orderIndex" />
+      </properties>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      <standard>Write unit tests for reorder logic</standard>
+      <standard>Test drag-and-drop interaction with Playwright (if E2E tests exist)</standard>
+      <standard>Verify API endpoint validates input correctly</standard>
+      <standard>Test rollback behavior on API failure</standard>
+      <standard>Verify authorization - only course instructor can reorder</standard>
+    </standards>
+    <locations>
+      <location>__tests__/api/instructor/courses/[id]/modules/reorder.test.ts - API endpoint tests</location>
+      <location>__tests__/e2e/instructor-modules.spec.ts - E2E drag-and-drop tests</location>
+    </locations>
+    <ideas>
+      <idea>Test drag-and-drop updates local state immediately</idea>
+      <idea>Test "Save Order" button appears after drag</idea>
+      <idea>Test API call persists order to database</idea>
+      <idea>Test rollback on API error restores original order</idea>
+      <idea>Test error toast shown on API failure</idea>
+      <idea>Test success toast shown on successful save</idea>
+      <idea>Test keyboard navigation (KeyboardSensor)</idea>
+      <idea>Test drag handle is only draggable element (not entire card)</idea>
+      <idea>Test visual feedback (opacity) during drag</idea>
+      <idea>Test API validates moduleIds array</idea>
+      <idea>Test API returns 400 if moduleIds is not an array</idea>
+      <idea>Test API returns 401 if user is not instructor</idea>
+      <idea>Test API returns 404 if course not found</idea>
+      <idea>Test orderIndex updates correctly (0-based vs 1-based)</idea>
+      <idea>Test deleted modules are excluded from reorder</idea>
+    </ideas>
+  </tests>
+</story-context>

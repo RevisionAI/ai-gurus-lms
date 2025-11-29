@@ -1,0 +1,516 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context id="1-3" version="1.0">
+
+  <!-- ============================================================ -->
+  <!-- METADATA -->
+  <!-- ============================================================ -->
+  <metadata>
+    <epic-id>1</epic-id>
+    <story-id>3</story-id>
+    <title>Create Data Migration Script</title>
+    <status>ready-for-dev</status>
+    <generated-at>2025-11-28</generated-at>
+    <context-version>1.0</context-version>
+  </metadata>
+
+  <!-- ============================================================ -->
+  <!-- STORY DEFINITION -->
+  <!-- ============================================================ -->
+  <story>
+    <user-story>
+      <as-a>developer</as-a>
+      <i-want>create a migration script that creates default modules for existing courses</i-want>
+      <so-that>all existing content is organized into modules</so-that>
+    </user-story>
+
+    <acceptance-criteria>
+      <criterion id="AC1">Script creates one "Module 1" for each existing course</criterion>
+      <criterion id="AC2">All existing CourseContent items assigned to their course's Module 1</criterion>
+      <criterion id="AC3">All existing Assignments assigned to their course's Module 1</criterion>
+      <criterion id="AC4">All existing Discussions assigned to their course's Module 1</criterion>
+      <criterion id="AC5">Order indices preserved within modules</criterion>
+      <criterion id="AC6">Script is idempotent (safe to run multiple times)</criterion>
+      <criterion id="AC7">Script logs progress and any errors</criterion>
+      <criterion id="AC8">Rollback procedure documented</criterion>
+    </acceptance-criteria>
+
+    <tasks>
+      <task id="T1" status="pending">
+        <title>Create migration script file</title>
+        <related-ac>AC1, AC2, AC3, AC4, AC5, AC7</related-ac>
+        <subtasks>
+          <subtask id="T1.1">Create prisma/scripts/migrate-to-modules.ts file</subtask>
+          <subtask id="T1.2">Implement course fetching with includes for content, assignments, discussions</subtask>
+          <subtask id="T1.3">For each course without modules: create default "Module 1"</subtask>
+          <subtask id="T1.4">Update all CourseContent records with moduleId</subtask>
+          <subtask id="T1.5">Update all Assignment records with moduleId</subtask>
+          <subtask id="T1.6">Update all Discussion records with moduleId</subtask>
+          <subtask id="T1.7">Add console logging for progress tracking</subtask>
+        </subtasks>
+      </task>
+
+      <task id="T2" status="pending">
+        <title>Implement idempotency check</title>
+        <related-ac>AC6</related-ac>
+        <subtasks>
+          <subtask id="T2.1">Check if course already has modules before creating</subtask>
+          <subtask id="T2.2">Skip courses that already have modules assigned</subtask>
+          <subtask id="T2.3">Log skipped courses clearly</subtask>
+        </subtasks>
+      </task>
+
+      <task id="T3" status="pending">
+        <title>Implement error handling</title>
+        <related-ac>AC7</related-ac>
+        <subtasks>
+          <subtask id="T3.1">Wrap operations in try-catch blocks</subtask>
+          <subtask id="T3.2">Log errors with course context</subtask>
+          <subtask id="T3.3">Continue processing other courses on individual failures</subtask>
+          <subtask id="T3.4">Report summary at end (success/skipped/failed counts)</subtask>
+        </subtasks>
+      </task>
+
+      <task id="T4" status="pending">
+        <title>Document rollback procedure</title>
+        <related-ac>AC8</related-ac>
+        <subtasks>
+          <subtask id="T4.1">Add rollback instructions as comments in script</subtask>
+          <subtask id="T4.2">Rollback = set all moduleId to NULL, delete Module records</subtask>
+          <subtask id="T4.3">Include SQL queries for manual rollback if needed</subtask>
+        </subtasks>
+      </task>
+
+      <task id="T5" status="pending">
+        <title>Add npm script for execution</title>
+        <related-ac>-</related-ac>
+        <subtasks>
+          <subtask id="T5.1">Add "db:migrate-modules": "npx tsx prisma/scripts/migrate-to-modules.ts" to package.json</subtask>
+          <subtask id="T5.2">Test script execution in development environment</subtask>
+        </subtasks>
+      </task>
+    </tasks>
+  </story>
+
+  <!-- ============================================================ -->
+  <!-- ARTIFACTS -->
+  <!-- ============================================================ -->
+  <artifacts>
+
+    <!-- Documentation -->
+    <documentation>
+      <doc type="architecture" critical="true">
+        <path>docs/architecture-course-modules.md</path>
+        <sections>
+          <section>Migration Strategy - Phase 3: Data Migration Script</section>
+          <section>ADR-003: Two-Phase Migration</section>
+        </sections>
+        <key-points>
+          <point>Migration script template provided at lines 644-713</point>
+          <point>Script must be idempotent - check for existing modules before creating</point>
+          <point>Default module: title="Module 1", orderIndex=0, isPublished=true, requiresPrevious=false</point>
+          <point>Use updateMany for bulk updates (CourseContent, Assignment, Discussion)</point>
+          <point>Rollback procedure: set moduleId to NULL, delete Module records</point>
+        </key-points>
+      </doc>
+
+      <doc type="schema" critical="true">
+        <path>prisma/schema.prisma</path>
+        <sections>
+          <section>Course model (lines 42-68) - courses relation</section>
+          <section>CourseContent model (lines 199-219) - needs moduleId</section>
+          <section>Assignment model (lines 84-105) - needs moduleId</section>
+          <section>Discussion model (lines 144-162) - needs moduleId</section>
+        </sections>
+        <key-points>
+          <point>CourseContent has courseId FK to Course</point>
+          <point>Assignment has courseId FK to Course</point>
+          <point>Discussion has courseId FK to Course</point>
+          <point>All have soft delete (deletedAt) - must filter WHERE deletedAt IS NULL</point>
+          <point>Note: Module model will be added in Story 1-1, moduleId FKs in Story 1-2</point>
+        </key-points>
+      </doc>
+
+      <doc type="reference" critical="false">
+        <path>docs/stories/1-2-add-module-foreign-keys-to-existing-models.md</path>
+        <key-points>
+          <point>moduleId fields are nullable (String?) during migration phase</point>
+          <point>OnDelete behavior is SetNull (content survives module deletion)</point>
+          <point>Indexes added on moduleId for query performance</point>
+        </key-points>
+      </doc>
+    </documentation>
+
+    <!-- Existing Code -->
+    <code>
+      <file type="database-client" critical="true">
+        <path>src/lib/prisma.ts</path>
+        <purpose>Prisma client singleton for database operations</purpose>
+        <usage>
+          <import>import { prisma } from '@/lib/prisma';</import>
+          <note>Use this client in migration script for all database operations</note>
+          <note>Client configured with connection pooling and error logging</note>
+        </usage>
+      </file>
+
+      <file type="reference" critical="false">
+        <path>src/lib/soft-delete.ts</path>
+        <purpose>Soft delete utility patterns (if needed for reference)</purpose>
+        <note>Migration must filter deletedAt IS NULL when fetching records</note>
+      </file>
+    </code>
+
+    <!-- Migration Patterns -->
+    <migration-patterns>
+      <existing-migrations>
+        <migration>0_init_postgresql - Initial schema</migration>
+        <migration>20251125075849_add_s3_key_fields - Add S3 storage fields</migration>
+        <migration>20251125104830_add_soft_delete_fields - Add soft delete timestamps</migration>
+        <migration>20251127040024_add_feedback_templates - Add FeedbackTemplate model</migration>
+        <migration>20251127043352_add_course_prerequisites - Add course prerequisites</migration>
+      </existing-migrations>
+
+      <pattern-notes>
+        <note>Migrations use Prisma CLI: npx prisma migrate dev</note>
+        <note>Migration scripts go in prisma/scripts/ directory</note>
+        <note>Scripts executed manually via npx tsx</note>
+        <note>No existing data migration scripts found - this is the first</note>
+      </pattern-notes>
+    </migration-patterns>
+
+    <!-- Dependencies -->
+    <dependencies>
+      <package name="@prisma/client" version="^6.9.0" usage="Database ORM client" />
+      <package name="tsx" version="installed" usage="TypeScript execution for scripts (npx tsx)" />
+      <package name="prisma" version="^6.9.0" usage="Prisma CLI for migrations" />
+    </dependencies>
+
+  </artifacts>
+
+  <!-- ============================================================ -->
+  <!-- CONSTRAINTS & REQUIREMENTS -->
+  <!-- ============================================================ -->
+  <constraints>
+    <constraint type="idempotency" priority="critical">
+      <description>Script must be safe to run multiple times without creating duplicate modules or duplicate assignments</description>
+      <implementation>Check if course already has modules (count > 0) before creating Module 1</implementation>
+      <validation>Run script twice on same database - second run should skip all courses</validation>
+    </constraint>
+
+    <constraint type="data-integrity" priority="critical">
+      <description>All existing content must be assigned to modules - no orphaned records</description>
+      <implementation>Use updateMany to assign all content/assignments/discussions for a course</implementation>
+      <validation>After migration: verify no records have NULL moduleId</validation>
+    </constraint>
+
+    <constraint type="error-handling" priority="high">
+      <description>Individual course failures should not stop entire migration</description>
+      <implementation>Wrap each course migration in try-catch, log error, continue to next</implementation>
+      <validation>Test with intentionally malformed data to verify recovery</validation>
+    </constraint>
+
+    <constraint type="soft-delete" priority="high">
+      <description>Only migrate active (non-deleted) records</description>
+      <implementation>WHERE deletedAt IS NULL in all queries</implementation>
+      <validation>Verify deleted records are ignored during migration</validation>
+    </constraint>
+
+    <constraint type="rollback" priority="high">
+      <description>Must provide clear rollback procedure if migration needs to be reversed</description>
+      <implementation>Document SQL commands to set moduleId NULL and delete Module records</implementation>
+      <validation>Test rollback procedure on development database</validation>
+    </constraint>
+
+    <constraint type="logging" priority="medium">
+      <description>Clear progress and error logging for debugging and monitoring</description>
+      <implementation>Log: course title, skipped/migrated status, counts, errors with context</implementation>
+      <validation>Review logs to ensure actionable information provided</validation>
+    </constraint>
+  </constraints>
+
+  <!-- ============================================================ -->
+  <!-- INTERFACES & CONTRACTS -->
+  <!-- ============================================================ -->
+  <interfaces>
+    <database-models>
+      <model name="Course">
+        <fields>
+          <field name="id" type="String" />
+          <field name="title" type="String" />
+          <field name="deletedAt" type="DateTime?" />
+        </fields>
+        <relations>
+          <relation name="content" type="CourseContent[]" />
+          <relation name="assignments" type="Assignment[]" />
+          <relation name="discussions" type="Discussion[]" />
+        </relations>
+      </model>
+
+      <model name="Module" status="to-be-created">
+        <fields>
+          <field name="id" type="String" />
+          <field name="title" type="String" />
+          <field name="description" type="String?" />
+          <field name="orderIndex" type="Int" />
+          <field name="isPublished" type="Boolean" default="false" />
+          <field name="requiresPrevious" type="Boolean" default="true" />
+          <field name="courseId" type="String" />
+        </fields>
+        <note>Default module: orderIndex=0, isPublished=true, requiresPrevious=false</note>
+      </model>
+
+      <model name="CourseContent">
+        <fields>
+          <field name="id" type="String" />
+          <field name="courseId" type="String" />
+          <field name="moduleId" type="String?" status="nullable during migration" />
+          <field name="orderIndex" type="Int" note="preserve existing order" />
+          <field name="deletedAt" type="DateTime?" />
+        </fields>
+      </model>
+
+      <model name="Assignment">
+        <fields>
+          <field name="id" type="String" />
+          <field name="courseId" type="String" />
+          <field name="moduleId" type="String?" status="nullable during migration" />
+          <field name="deletedAt" type="DateTime?" />
+        </fields>
+      </model>
+
+      <model name="Discussion">
+        <fields>
+          <field name="id" type="String" />
+          <field name="courseId" type="String" />
+          <field name="moduleId" type="String?" status="nullable during migration" />
+          <field name="deletedAt" type="DateTime?" />
+        </fields>
+      </model>
+    </database-models>
+
+    <prisma-client>
+      <import>import { prisma } from '@/lib/prisma';</import>
+      <methods>
+        <method name="findMany" usage="Fetch courses with related content" />
+        <method name="count" usage="Check if course has existing modules" />
+        <method name="create" usage="Create default Module 1" />
+        <method name="updateMany" usage="Bulk assign moduleId to content/assignments/discussions" />
+      </methods>
+    </prisma-client>
+
+    <script-execution>
+      <npm-script>
+        <name>db:migrate-modules</name>
+        <command>npx tsx prisma/scripts/migrate-to-modules.ts</command>
+        <execution>npm run db:migrate-modules</execution>
+      </npm-script>
+    </script-execution>
+  </interfaces>
+
+  <!-- ============================================================ -->
+  <!-- TESTING -->
+  <!-- ============================================================ -->
+  <testing>
+    <standards>
+      <standard>Manual testing required for data migration scripts</standard>
+      <standard>Test on development database before production</standard>
+      <standard>Verify idempotency by running script multiple times</standard>
+      <standard>Verify rollback procedure on test data</standard>
+    </standards>
+
+    <locations>
+      <location>No automated tests required for one-time migration script</location>
+      <location>Manual verification via database queries</location>
+    </locations>
+
+    <test-ideas>
+      <test-case priority="critical">
+        <name>Test idempotency</name>
+        <setup>Run migration script on test database</setup>
+        <execution>Run script again on same database</execution>
+        <verification>Verify no duplicate modules created, all courses skipped on second run</verification>
+      </test-case>
+
+      <test-case priority="critical">
+        <name>Test data integrity</name>
+        <setup>Create test courses with content, assignments, discussions</setup>
+        <execution>Run migration script</execution>
+        <verification>Query: SELECT COUNT(*) FROM course_content WHERE module_id IS NULL (should be 0)</verification>
+      </test-case>
+
+      <test-case priority="high">
+        <name>Test soft delete filtering</name>
+        <setup>Create courses with deleted content (deletedAt NOT NULL)</setup>
+        <execution>Run migration script</execution>
+        <verification>Verify deleted records are NOT assigned to modules</verification>
+      </test-case>
+
+      <test-case priority="high">
+        <name>Test error recovery</name>
+        <setup>Create courses, corrupt one course's data</setup>
+        <execution>Run migration script</execution>
+        <verification>Verify other courses migrated successfully despite one failure</verification>
+      </test-case>
+
+      <test-case priority="high">
+        <name>Test rollback procedure</name>
+        <setup>Run migration script successfully</setup>
+        <execution>Execute documented rollback SQL commands</execution>
+        <verification>Verify all moduleId fields set to NULL, all Module records deleted</verification>
+      </test-case>
+
+      <test-case priority="medium">
+        <name>Test logging output</name>
+        <setup>Create diverse test data (courses with/without content)</setup>
+        <execution>Run migration script, capture console output</execution>
+        <verification>Verify logs show: course titles, skip/migrate status, counts, summary</verification>
+      </test-case>
+    </test-ideas>
+  </testing>
+
+  <!-- ============================================================ -->
+  <!-- IMPLEMENTATION GUIDANCE -->
+  <!-- ============================================================ -->
+  <implementation-guidance>
+    <architecture-alignment>
+      <reference>Architecture document Section: Migration Strategy - Phase 3</reference>
+      <phase>This is Phase 3 of the two-phase migration strategy</phase>
+      <prerequisites>
+        <prerequisite>Story 1-1: Module model created in schema</prerequisite>
+        <prerequisite>Story 1-2: moduleId foreign keys added to CourseContent, Assignment, Discussion</prerequisite>
+      </prerequisites>
+      <note>Module model and foreign keys must exist before this script can run</note>
+    </architecture-alignment>
+
+    <file-structure>
+      <new-file>
+        <path>prisma/scripts/migrate-to-modules.ts</path>
+        <purpose>Data migration script for assigning existing content to default modules</purpose>
+      </new-file>
+      <modified-file>
+        <path>package.json</path>
+        <change>Add npm script: "db:migrate-modules"</change>
+      </modified-file>
+    </file-structure>
+
+    <key-implementation-details>
+      <detail priority="critical">
+        <title>Default Module Configuration</title>
+        <description>
+          Default "Module 1" must be:
+          - title: "Module 1"
+          - description: "Default module (migrated from existing content)"
+          - orderIndex: 0 (first module)
+          - isPublished: true (immediately accessible)
+          - requiresPrevious: false (no prerequisites)
+          - courseId: course.id (linked to course)
+        </description>
+      </detail>
+
+      <detail priority="critical">
+        <title>Idempotency Check</title>
+        <description>
+          Before creating Module 1 for a course:
+          1. Count existing modules: await prisma.module.count({ where: { courseId: course.id } })
+          2. If count > 0, skip course (log "Skipping - already has modules")
+          3. This ensures script is safe to re-run
+        </description>
+      </detail>
+
+      <detail priority="high">
+        <title>Bulk Updates</title>
+        <description>
+          Use updateMany for efficiency:
+          - await prisma.courseContent.updateMany({ where: { courseId }, data: { moduleId } })
+          - await prisma.assignment.updateMany({ where: { courseId }, data: { moduleId } })
+          - await prisma.discussion.updateMany({ where: { courseId }, data: { moduleId } })
+        </description>
+      </detail>
+
+      <detail priority="high">
+        <title>Error Handling Pattern</title>
+        <description>
+          Wrap each course migration in try-catch:
+          - Log error with course context (course.id, course.title)
+          - Continue to next course (don't throw)
+          - Track counts: success, skipped, failed
+          - Report summary at end
+        </description>
+      </detail>
+
+      <detail priority="medium">
+        <title>Rollback Documentation</title>
+        <description>
+          Include in script comments:
+          ```sql
+          -- Rollback: Remove module assignments and delete modules
+          UPDATE course_content SET module_id = NULL;
+          UPDATE assignments SET module_id = NULL;
+          UPDATE discussions SET module_id = NULL;
+          DELETE FROM modules WHERE title = 'Module 1' AND description LIKE '%migrated%';
+          ```
+        </description>
+      </detail>
+    </key-implementation-details>
+
+    <code-template>
+      <file>prisma/scripts/migrate-to-modules.ts</file>
+      <template-source>docs/architecture-course-modules.md (lines 644-713)</template-source>
+      <modifications-needed>
+        <modification>Add error handling per course</modification>
+        <modification>Add summary reporting (counts)</modification>
+        <modification>Add rollback documentation in comments</modification>
+        <modification>Verify import path for prisma client</modification>
+      </modifications-needed>
+    </code-template>
+
+    <validation-queries>
+      <query purpose="Verify all content assigned">
+        <sql>SELECT COUNT(*) FROM course_content WHERE module_id IS NULL AND deleted_at IS NULL;</sql>
+        <expected>0</expected>
+      </query>
+
+      <query purpose="Verify all assignments assigned">
+        <sql>SELECT COUNT(*) FROM assignments WHERE module_id IS NULL AND deleted_at IS NULL;</sql>
+        <expected>0</expected>
+      </query>
+
+      <query purpose="Verify all discussions assigned">
+        <sql>SELECT COUNT(*) FROM discussions WHERE module_id IS NULL AND deleted_at IS NULL;</sql>
+        <expected>0</expected>
+      </query>
+
+      <query purpose="Verify Module 1 created per course">
+        <sql>SELECT COUNT(*) FROM modules WHERE order_index = 0 AND title = 'Module 1';</sql>
+        <expected>Equal to number of active courses</expected>
+      </query>
+    </validation-queries>
+  </implementation-guidance>
+
+  <!-- ============================================================ -->
+  <!-- TRACEABILITY -->
+  <!-- ============================================================ -->
+  <traceability>
+    <prd-requirements>
+      <requirement id="FR022">Migration strategy for existing courses</requirement>
+      <requirement id="FR023">Default module creation for existing content</requirement>
+      <requirement id="FR024">Backward compatibility during migration</requirement>
+      <requirement id="FR025">Rollback capability for migrations</requirement>
+    </prd-requirements>
+
+    <architecture-decisions>
+      <decision id="ADR-003">Two-Phase Migration Strategy</decision>
+      <decision ref="Migration Strategy">Phase 3: Data Migration Script</decision>
+    </architecture-decisions>
+
+    <epic-story-mapping>
+      <epic id="1" title="Database Schema & Data Migration" />
+      <story-order>
+        <predecessor id="1-1">Create Module database model</predecessor>
+        <predecessor id="1-2">Add module foreign keys to existing models</predecessor>
+        <current id="1-3">Create data migration script</current>
+        <successor id="1-4">Add module progress tracking model</successor>
+      </story-order>
+    </epic-story-mapping>
+  </traceability>
+
+</story-context>

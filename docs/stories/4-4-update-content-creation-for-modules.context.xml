@@ -1,0 +1,372 @@
+<story-context id="4-4-update-content-creation-for-modules" v="1.0">
+  <metadata>
+    <epicId>4</epicId>
+    <storyId>4.4</storyId>
+    <title>Update Content Creation for Modules</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-28</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/4-4-update-content-creation-for-modules.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>an instructor</asA>
+    <iWant>content creation to work within module context</iWant>
+    <soThat>new content is properly organized</soThat>
+    <tasks>
+      <task id="1" ac="2">
+        <description>Add module selector to content form</description>
+        <subtasks>
+          <subtask id="1.1">Locate content creation form</subtask>
+          <subtask id="1.2">Add module dropdown selector</subtask>
+          <subtask id="1.3">Populate with course modules ordered by orderIndex</subtask>
+          <subtask id="1.4">Make moduleId required for new content</subtask>
+        </subtasks>
+      </task>
+      <task id="2" ac="1">
+        <description>Implement context-aware pre-selection</description>
+        <subtasks>
+          <subtask id="2.1">Accept moduleId parameter in content creation route/component</subtask>
+          <subtask id="2.2">If moduleId provided, pre-select in form</subtask>
+          <subtask id="2.3">Wire "Add Content" button in module view to pass moduleId</subtask>
+        </subtasks>
+      </task>
+      <task id="3" ac="3">
+        <description>Update orderIndex handling</description>
+        <subtasks>
+          <subtask id="3.1">When creating content, query max orderIndex within target module</subtask>
+          <subtask id="3.2">Set new content orderIndex = maxOrderIndex + 1</subtask>
+          <subtask id="3.3">Ensure orderIndex is per-module, not per-course</subtask>
+        </subtasks>
+      </task>
+      <task id="4" ac="4">
+        <description>Show module in edit form</description>
+        <subtasks>
+          <subtask id="4.1">When editing content, show current module in selector</subtask>
+          <subtask id="4.2">Allow changing module via selector</subtask>
+          <subtask id="4.3">If module changed, update orderIndex for new module</subtask>
+        </subtasks>
+      </task>
+      <task id="5" ac="5">
+        <description>Verify move functionality</description>
+        <subtasks>
+          <subtask id="5.1">Confirm Story 2.5 move functionality works for content</subtask>
+          <subtask id="5.2">Moving updates moduleId and orderIndex</subtask>
+          <subtask id="5.3">Both source and target module refresh</subtask>
+        </subtasks>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="1">"Add Content" from module pre-selects that module</criterion>
+    <criterion id="2">Content form shows module selector dropdown</criterion>
+    <criterion id="3">New content gets next orderIndex within module</criterion>
+    <criterion id="4">Existing content edit form shows current module</criterion>
+    <criterion id="5">Content can be moved between modules</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/PRD-course-modules.md</path>
+        <title>Course Modules PRD</title>
+        <section>Content Organization (FR006-FR009)</section>
+        <snippet>Course content items belong to exactly one module (FR006). Instructors can move content items between modules (FR007). Content items maintain order index within their module (FR008). Drag-and-drop reordering works within module context (FR009).</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture-course-modules.md</path>
+        <title>Architecture - Modified Models</title>
+        <section>CourseContent moduleId</section>
+        <snippet>CourseContent model adds moduleId field as required foreign key to Module. orderIndex is per-module, not per-course. API endpoint POST /api/instructor/courses/[id]/content requires moduleId in request body and assigns orderIndex as maxOrderIndex + 1 within target module.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture-course-modules.md</path>
+        <title>Architecture - Implementation Patterns</title>
+        <section>Module-aware content creation</section>
+        <snippet>Query for next orderIndex: aggregate max orderIndex where moduleId matches, then add 1. Formula: const nextIndex = (maxOrder._max.orderIndex ?? -1) + 1</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <artifact>
+        <path>src/app/instructor/courses/[id]/content/page.tsx</path>
+        <kind>component</kind>
+        <symbol>CourseContentPage</symbol>
+        <lines>207-1189</lines>
+        <reason>Main content management page. Already implements module-aware content creation via moduleId query param (line 211). Form submission sends moduleId when creating content (lines 456). Needs module selector dropdown added to form (lines 746-1060).</reason>
+      </artifact>
+      <artifact>
+        <path>src/app/instructor/courses/[id]/content/page.tsx</path>
+        <kind>component</kind>
+        <symbol>formData state</symbol>
+        <lines>237-244</lines>
+        <reason>Form data state currently lacks moduleId field. Must add moduleId to enable module selection in form and module changes during edit.</reason>
+      </artifact>
+      <artifact>
+        <path>src/app/instructor/courses/[id]/content/page.tsx</path>
+        <kind>component</kind>
+        <symbol>modules state</symbol>
+        <lines>214</lines>
+        <reason>Already fetches modules list (lines 259, 278-280). Can be used to populate module selector dropdown.</reason>
+      </artifact>
+      <artifact>
+        <path>src/app/instructor/courses/[id]/content/page.tsx</path>
+        <kind>component</kind>
+        <symbol>handleSubmit</symbol>
+        <lines>413-494</lines>
+        <reason>Currently passes moduleId only when creating new content (line 456). Needs to support moduleId in formData for both create and edit, and recalculate orderIndex when module changes.</reason>
+      </artifact>
+      <artifact>
+        <path>src/app/instructor/courses/[id]/content/page.tsx</path>
+        <kind>component</kind>
+        <symbol>handleEdit</symbol>
+        <lines>496-536</lines>
+        <reason>Loads existing content into form. Must populate moduleId in formData from item.moduleId to show current module in edit mode.</reason>
+      </artifact>
+      <artifact>
+        <path>src/app/api/instructor/courses/[id]/content/route.ts</path>
+        <kind>api</kind>
+        <symbol>POST handler</symbol>
+        <lines>94-175</lines>
+        <reason>Content creation API. Already supports optional moduleId (line 118), validates module belongs to course (lines 128-143), and calculates next orderIndex within module (lines 146-154). Behavior matches AC3 requirements.</reason>
+      </artifact>
+      <artifact>
+        <path>src/app/api/instructor/courses/[id]/content/route.ts</path>
+        <kind>api</kind>
+        <symbol>orderIndex calculation</symbol>
+        <lines>146-154</lines>
+        <reason>Demonstrates correct per-module orderIndex calculation: queries max orderIndex filtered by moduleId, then adds 1. This pattern should be used when module changes during edit.</reason>
+      </artifact>
+      <artifact>
+        <path>src/app/api/instructor/courses/[id]/content/[contentId]/route.ts</path>
+        <kind>api</kind>
+        <symbol>PUT handler</symbol>
+        <lines>49-106</lines>
+        <reason>Content update API. Currently accepts orderIndex but not moduleId. Must be extended to support moduleId changes and recalculate orderIndex when module changes (AC4).</reason>
+      </artifact>
+      <artifact>
+        <path>src/app/api/instructor/courses/[id]/content/[contentId]/move/route.ts</path>
+        <kind>api</kind>
+        <symbol>PUT handler</symbol>
+        <lines>14-117</lines>
+        <reason>Move content API from Story 2.5. Already handles moving content between modules: validates target module (lines 52-65), calculates new orderIndex (lines 89-98), updates moduleId and orderIndex (lines 101-107). Satisfies AC5.</reason>
+      </artifact>
+      <artifact>
+        <path>src/validators/course.ts</path>
+        <kind>validator</kind>
+        <symbol>createContentSchema</symbol>
+        <lines>162-175</lines>
+        <reason>Zod schema for content creation. Currently has orderIndex as optional. Should add moduleId as required field for validation.</reason>
+      </artifact>
+      <artifact>
+        <path>src/validators/course.ts</path>
+        <kind>validator</kind>
+        <symbol>updateContentSchema</symbol>
+        <lines>180-198</lines>
+        <reason>Zod schema for content updates. Should add optional moduleId field to support changing module during edit.</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/modules/ModuleFormModal.tsx</path>
+        <kind>component</kind>
+        <symbol>ModuleFormModal</symbol>
+        <lines>35-364</lines>
+        <reason>Reference implementation for module form with dropdown pattern, validation, and submission handling. Can guide implementation of module selector in content form.</reason>
+      </artifact>
+      <artifact>
+        <path>src/app/api/instructor/courses/[id]/modules/route.ts</path>
+        <kind>api</kind>
+        <symbol>GET handler</symbol>
+        <lines>20-94</lines>
+        <reason>Fetches modules ordered by orderIndex. Shows pattern for ordering modules in dropdown selector (line 53: orderBy orderIndex asc).</reason>
+      </artifact>
+      <artifact>
+        <path>src/lib/validations/module.ts</path>
+        <kind>validator</kind>
+        <symbol>createModuleSchema</symbol>
+        <lines>13-17</lines>
+        <reason>Example Zod schema for module validation. Pattern can be referenced when adding moduleId validation to content schemas.</reason>
+      </artifact>
+      <artifact>
+        <path>prisma/schema.prisma</path>
+        <kind>schema</kind>
+        <symbol>course_content</symbol>
+        <lines>48-68</lines>
+        <reason>CourseContent model with moduleId field (line 62) and moduleId index (line 67). Shows that moduleId is nullable but should be required post-migration. Confirms moduleId foreign key relationship to modules table.</reason>
+      </artifact>
+    </code>
+
+    <dependencies>
+      <framework name="Next.js" version="15" />
+      <framework name="React" version="^19" />
+      <package name="@prisma/client" version="^6.9.0" />
+      <package name="@radix-ui/react-dialog" version="^1.1.14" note="Used in ModuleFormModal reference" />
+      <package name="zod" version="Latest" note="For validation schemas" />
+      <package name="react-hot-toast" version="Latest" note="For user feedback on form submission" />
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="pattern">Follow existing content form pattern in src/app/instructor/courses/[id]/content/page.tsx</constraint>
+    <constraint type="pattern">Use Zod schemas from src/validators/course.ts for request validation</constraint>
+    <constraint type="data">moduleId must be required for new content creation (post-migration)</constraint>
+    <constraint type="data">orderIndex must be calculated per-module, not per-course</constraint>
+    <constraint type="api">When module changes during edit, recalculate orderIndex for new module using max + 1 pattern</constraint>
+    <constraint type="ui">Module selector should show modules ordered by orderIndex ascending</constraint>
+    <constraint type="ui">Pre-select module when arriving from module context (moduleId query param)</constraint>
+    <constraint type="backward-compat">Existing move functionality (Story 2.5) must continue working unchanged</constraint>
+    <constraint type="testing">Verify that changing module via selector updates both moduleId and orderIndex</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>POST /api/instructor/courses/[id]/content</name>
+      <kind>REST endpoint</kind>
+      <signature>
+        Request Body:
+        {
+          "title": string (required),
+          "type": ContentType (required),
+          "moduleId": string (required),
+          "content": string (optional),
+          "fileUrl": string (optional),
+          "thumbnailUrl": string (optional),
+          "isPublished": boolean (optional)
+        }
+
+        Response:
+        {
+          "id": string,
+          "orderIndex": number, // auto-assigned as max within module + 1
+          "moduleId": string,
+          ...other fields
+        }
+      </signature>
+      <path>src/app/api/instructor/courses/[id]/content/route.ts</path>
+    </interface>
+
+    <interface>
+      <name>PUT /api/instructor/courses/[id]/content/[contentId]</name>
+      <kind>REST endpoint</kind>
+      <signature>
+        Request Body (all optional for partial update):
+        {
+          "title": string,
+          "type": ContentType,
+          "moduleId": string, // NEW: allows changing module
+          "content": string,
+          "fileUrl": string,
+          "thumbnailUrl": string,
+          "isPublished": boolean,
+          "orderIndex": number // auto-recalculated if moduleId changes
+        }
+
+        Response: Updated content object
+      </signature>
+      <path>src/app/api/instructor/courses/[id]/content/[contentId]/route.ts</path>
+    </interface>
+
+    <interface>
+      <name>GET /api/instructor/courses/[id]/modules</name>
+      <kind>REST endpoint</kind>
+      <signature>
+        Response:
+        {
+          "modules": [
+            {
+              "id": string,
+              "title": string,
+              "orderIndex": number,
+              "contentCount": number,
+              ...other fields
+            }
+          ]
+        }
+        // Used to populate module selector dropdown
+      </signature>
+      <path>src/app/api/instructor/courses/[id]/modules/route.ts</path>
+    </interface>
+
+    <interface>
+      <name>CourseContent with Module</name>
+      <kind>TypeScript interface</kind>
+      <signature>
+        interface CourseContent {
+          id: string
+          title: string
+          type: 'TEXT' | 'VIDEO' | 'DOCUMENT' | 'LINK' | 'SCORM' | 'YOUTUBE'
+          content: string | null
+          fileUrl: string | null
+          thumbnailUrl: string | null
+          orderIndex: number
+          isPublished: boolean
+          createdAt: string
+          moduleId: string // REQUIRED after migration
+          module?: {
+            id: string
+            title: string
+            orderIndex: number
+          }
+        }
+      </signature>
+      <path>src/app/instructor/courses/[id]/content/page.tsx (lines 45-55)</path>
+    </interface>
+
+    <interface>
+      <name>ModuleOption</name>
+      <kind>TypeScript interface</kind>
+      <signature>
+        interface ModuleOption {
+          id: string
+          title: string
+          orderIndex: number
+          contentCount: number
+        }
+        // Used for module selector dropdown options
+      </signature>
+      <path>src/app/instructor/courses/[id]/content/page.tsx (lines 68-73)</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      The project uses Jest for unit tests and Playwright for E2E tests. Test files colocate with source in __tests__ directories or use .test.ts/.spec.ts suffix. Follow existing patterns in src/app/api for API route tests and src/components for component tests. Use @testing-library/react for component testing.
+    </standards>
+
+    <locations>
+      - Unit tests: src/app/api/**/__tests__/*.test.ts
+      - Component tests: src/components/**/__tests__/*.test.tsx
+      - E2E tests: e2e/**/*.spec.ts
+    </locations>
+
+    <ideas>
+      <testIdea ac="1">
+        E2E test: Navigate to module page, click "Add Content", verify module selector is pre-selected with that module's ID
+      </testIdea>
+      <testIdea ac="2">
+        Component test: Render content form, verify module selector dropdown is present and populated with course modules ordered by orderIndex
+      </testIdea>
+      <testIdea ac="2">
+        Unit test: Verify createContentSchema requires moduleId field and validates it as a valid CUID
+      </testIdea>
+      <testIdea ac="3">
+        API test: POST content with moduleId, verify response includes orderIndex = 0 for first item, then POST another, verify orderIndex = 1
+      </testIdea>
+      <testIdea ac="3">
+        API test: Create content in Module A (gets orderIndex 0), create content in Module B (gets orderIndex 0), verify orderIndex is scoped per-module
+      </testIdea>
+      <testIdea ac="4">
+        Component test: Load edit form with existing content, verify module selector shows current module selected
+      </testIdea>
+      <testIdea ac="4">
+        API test: PUT content with new moduleId, verify response includes updated moduleId and recalculated orderIndex within new module
+      </testIdea>
+      <testIdea ac="5">
+        Integration test: Use move API endpoint to move content between modules, verify moduleId and orderIndex both update correctly
+      </testIdea>
+      <testIdea ac="all">
+        E2E test: Full workflow - create module, add content from module page, verify moduleId assigned, edit content to change module, verify content appears in new module
+      </testIdea>
+    </ideas>
+  </tests>
+</story-context>

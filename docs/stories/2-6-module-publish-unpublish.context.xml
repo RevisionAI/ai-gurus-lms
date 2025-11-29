@@ -1,0 +1,360 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context id="2-6" v="1.0">
+  <metadata>
+    <epicId>2</epicId>
+    <storyId>6</storyId>
+    <title>Module Publish/Unpublish</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-11-28</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/2-6-module-publish-unpublish.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>instructor</asA>
+    <iWant>publish or unpublish entire modules</iWant>
+    <soThat>I can control what students see</soThat>
+
+    <tasks>
+      <task id="1" name="Add publish toggle to ModuleCard" ac="1,2">
+        <subtask id="1.1">Add publish/unpublish button or toggle to card actions</subtask>
+        <subtask id="1.2">Show "Draft" badge when isPublished is false</subtask>
+        <subtask id="1.3">Show "Published" badge when isPublished is true</subtask>
+        <subtask id="1.4">Toggle button label reflects current state</subtask>
+      </task>
+
+      <task id="2" name="Implement publish API endpoint" ac="6">
+        <subtask id="2.1">Create PUT /api/instructor/courses/[id]/modules/[moduleId]/publish</subtask>
+        <subtask id="2.2">Accept { isPublished: boolean, cascadeToContent?: boolean }</subtask>
+        <subtask id="2.3">Update module.isPublished</subtask>
+        <subtask id="2.4">If cascadeToContent true, update all content/assignments in module</subtask>
+        <subtask id="2.5">Return updated module</subtask>
+      </task>
+
+      <task id="3" name="Create cascade publish option" ac="4">
+        <subtask id="3.1">When publishing, show modal asking about cascade</subtask>
+        <subtask id="3.2">Options: "Publish module only" or "Publish module and all content"</subtask>
+        <subtask id="3.3">If cascade selected, set cascadeToContent: true in API call</subtask>
+      </task>
+
+      <task id="4" name="Create unpublish confirmation dialog" ac="5">
+        <subtask id="4.1">On unpublish click, show confirmation modal</subtask>
+        <subtask id="4.2">Warning message: "Students will no longer be able to access this module"</subtask>
+        <subtask id="4.3">Show count of enrolled students affected</subtask>
+        <subtask id="4.4">"Unpublish" and "Cancel" buttons</subtask>
+      </task>
+
+      <task id="5" name="Wire UI to API" ac="1,3,6">
+        <subtask id="5.1">On toggle/button click, call appropriate API</subtask>
+        <subtask id="5.2">Show loading state during API call</subtask>
+        <subtask id="5.3">On success: update local state, show toast</subtask>
+        <subtask id="5.4">Refetch module list to sync state</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="1">Publish/Unpublish toggle on module card</criterion>
+    <criterion id="2">Unpublished modules show "Draft" badge</criterion>
+    <criterion id="3">Publishing module makes it visible to students</criterion>
+    <criterion id="4">Option to cascade publish to all content within module</criterion>
+    <criterion id="5">Confirmation dialog for unpublishing (warns about student access)</criterion>
+    <criterion id="6">API updates isPublished field</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/PRD-course-modules.md">
+        <section name="Functional Requirements">
+          <description>FR005: Instructors can bulk-publish or unpublish a module and all its contents</description>
+          <keyPoints>
+            <point>Publishing controls student visibility of modules</point>
+            <point>Cascade option allows bulk publish of all module content</point>
+            <point>Unpublishing requires confirmation to prevent accidental student access loss</point>
+          </keyPoints>
+        </section>
+        <section name="User Journeys">
+          <description>Journey 1: Instructor Creates and Organizes Modules - Step 9</description>
+          <keyPoints>
+            <point>Instructors publish Module 1, keep Modules 2-3 as drafts</point>
+            <point>Published modules are visible to students</point>
+            <point>Draft modules are hidden from students</point>
+          </keyPoints>
+        </section>
+      </doc>
+
+      <doc path="docs/architecture-course-modules.md">
+        <section name="Data Architecture">
+          <description>Module model with isPublished field</description>
+          <keyPoints>
+            <point>Module.isPublished: Boolean @default(false)</point>
+            <point>CourseContent.isPublished: Boolean @default(false)</point>
+            <point>Assignment.isPublished: Boolean @default(false)</point>
+            <point>Cascade publishing updates isPublished for all related entities</point>
+          </keyPoints>
+        </section>
+        <section name="Security Considerations">
+          <description>Module visibility rules and authorization</description>
+          <keyPoints>
+            <point>Only instructors can publish/unpublish modules</point>
+            <point>Students can only see published modules</point>
+            <point>Unpublished content within published modules also hidden from students</point>
+          </keyPoints>
+        </section>
+      </doc>
+
+      <doc path="docs/epics-course-modules.md">
+        <section name="Story 2.6: Module Publish/Unpublish">
+          <description>Full story specification from epic breakdown</description>
+          <keyPoints>
+            <point>Publish/Unpublish toggle on module card</point>
+            <point>Draft/Published badge indicators</point>
+            <point>Cascade option to publish all content within module</point>
+            <point>Confirmation dialog with student count warning</point>
+          </keyPoints>
+        </section>
+      </doc>
+    </docs>
+
+    <code>
+      <artifact path="src/app/api/instructor/courses/[id]/modules/[moduleId]/route.ts">
+        <description>Existing module API endpoint for GET, PUT, DELETE operations</description>
+        <relevance>Pattern for authorization, error handling, and response format</relevance>
+        <keyPatterns>
+          <pattern>Session validation with getServerSession(authOptions)</pattern>
+          <pattern>Role check: session.user.role !== 'INSTRUCTOR' && !== 'ADMIN'</pattern>
+          <pattern>Course ownership verification with prisma.course.findFirst</pattern>
+          <pattern>Module existence check with prisma.module.findFirst + notDeleted</pattern>
+          <pattern>Return 401 for unauthorized, 404 for not found, 500 for server errors</pattern>
+          <pattern>Use updateModuleSchema for validation</pattern>
+        </keyPatterns>
+      </artifact>
+
+      <artifact path="src/lib/validations/module.ts">
+        <description>Zod validation schemas for module operations</description>
+        <relevance>Need to extend or create new schema for publish endpoint</relevance>
+        <keyPatterns>
+          <pattern>updateModuleSchema already includes isPublished: z.boolean().optional()</pattern>
+          <pattern>All fields optional for partial updates</pattern>
+          <pattern>Title max 200 chars, description max 2000 chars</pattern>
+        </keyPatterns>
+      </artifact>
+
+      <artifact path="src/app/api/instructor/courses/[id]/modules/route.ts">
+        <description>Existing module list and create endpoints</description>
+        <relevance>Pattern for counting related entities and response format</relevance>
+        <keyPatterns>
+          <pattern>Include _count for content, assignments, discussions</pattern>
+          <pattern>Filter with notDeleted for soft-delete support</pattern>
+          <pattern>Transform response to flatten _count to top-level properties</pattern>
+        </keyPatterns>
+      </artifact>
+
+      <artifact path="src/lib/soft-delete.ts">
+        <description>Soft delete utilities</description>
+        <relevance>Use notDeleted constant for filtering queries</relevance>
+        <keyPatterns>
+          <pattern>notDeleted constant: { deletedAt: null }</pattern>
+          <pattern>softDelete function for setting deletedAt timestamp</pattern>
+        </keyPatterns>
+      </artifact>
+
+      <artifact path="prisma/schema.prisma">
+        <description>Database schema for Module, CourseContent, Assignment, Discussion</description>
+        <relevance>Understanding relations and fields for cascade publishing</relevance>
+        <keyPatterns>
+          <pattern>Module.isPublished Boolean @default(false)</pattern>
+          <pattern>Module.content CourseContent[] (one-to-many)</pattern>
+          <pattern>Module.assignments Assignment[] (one-to-many)</pattern>
+          <pattern>Module.discussions Discussion[] (one-to-many)</pattern>
+          <pattern>CourseContent.isPublished Boolean @default(false)</pattern>
+          <pattern>Assignment.isPublished Boolean @default(false)</pattern>
+          <pattern>CourseContent.moduleId String?</pattern>
+          <pattern>Assignment.moduleId String?</pattern>
+          <pattern>Discussion.moduleId String?</pattern>
+          <pattern>Course.enrollments Enrollment[] (for counting enrolled students)</pattern>
+        </keyPatterns>
+      </artifact>
+
+      <artifact path="src/components/gradebook/GradeUpdateConfirmDialog.tsx">
+        <description>Example confirmation dialog component using Radix UI</description>
+        <relevance>Pattern for building confirmation modals</relevance>
+        <keyPatterns>
+          <pattern>Dialog.Root with open state and onOpenChange</pattern>
+          <pattern>Dialog.Portal > Dialog.Overlay + Dialog.Content</pattern>
+          <pattern>Dialog.Title and Dialog.Description for accessibility</pattern>
+          <pattern>Dialog.Close for cancel actions</pattern>
+          <pattern>Tailwind classes for styling and animations</pattern>
+          <pattern>Focus management with useRef and useEffect</pattern>
+          <pattern>Keyboard handling (Enter, Escape)</pattern>
+        </keyPatterns>
+      </artifact>
+
+      <artifact path="src/app/instructor/courses/[id]/page.tsx">
+        <description>Instructor course detail page with publish/draft status badges</description>
+        <relevance>Pattern for displaying published/draft status</relevance>
+        <keyPatterns>
+          <pattern>Status badge: &lt;span className={`text-sm ${item.isPublished ? 'text-green-600' : 'text-yellow-600'}`}&gt;</pattern>
+          <pattern>Display: {item.isPublished ? 'Published' : 'Draft'}</pattern>
+          <pattern>Green for published, yellow for draft</pattern>
+        </keyPatterns>
+      </artifact>
+
+      <artifact path="src/hooks/useOptimisticGradeUpdate.ts">
+        <description>Example of toast notifications</description>
+        <relevance>Pattern for success/error toast messages</relevance>
+        <keyPatterns>
+          <pattern>import toast from 'react-hot-toast'</pattern>
+          <pattern>toast.success('Success message')</pattern>
+          <pattern>toast.error('Error message')</pattern>
+        </keyPatterns>
+      </artifact>
+    </code>
+
+    <dependencies>
+      <package name="next" version="15.3.3">
+        <usage>Next.js API routes, server components</usage>
+      </package>
+      <package name="next-auth" version="^4.24.11">
+        <usage>Session management and authentication (getServerSession, authOptions)</usage>
+      </package>
+      <package name="@prisma/client" version="^6.9.0">
+        <usage>Database queries and updates (prisma client)</usage>
+      </package>
+      <package name="zod" version="^4.1.13">
+        <usage>Input validation schemas</usage>
+      </package>
+      <package name="@radix-ui/react-dialog" version="^1.1.14">
+        <usage>Accessible confirmation dialog components</usage>
+      </package>
+      <package name="react-hot-toast" version="^2.5.2">
+        <usage>Toast notifications for success/error messages</usage>
+      </package>
+      <package name="lucide-react" version="^0.514.0">
+        <usage>Icons (X for close, etc.)</usage>
+      </package>
+      <package name="react" version="^19.0.0">
+        <usage>React hooks and components</usage>
+      </package>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="technical">
+      <name>Use existing API patterns</name>
+      <description>Follow the authorization, validation, and error handling patterns established in existing module endpoints</description>
+      <impact>Ensures consistency across the codebase</impact>
+    </constraint>
+
+    <constraint type="technical">
+      <name>Soft delete awareness</name>
+      <description>All queries must filter with notDeleted to exclude soft-deleted records</description>
+      <impact>Prevents cascade publishing to deleted content</impact>
+    </constraint>
+
+    <constraint type="business">
+      <name>Instructor-only access</name>
+      <description>Only instructors (or admins) can publish/unpublish modules</description>
+      <impact>Security requirement - students cannot modify module visibility</impact>
+    </constraint>
+
+    <constraint type="ux">
+      <name>Confirmation for unpublish</name>
+      <description>Must show confirmation dialog before unpublishing to prevent accidental student access loss</description>
+      <impact>User safety - prevents unintended disruption to student learning</impact>
+    </constraint>
+
+    <constraint type="technical">
+      <name>Cascade is optional</name>
+      <description>Cascade publishing to content is optional and must be explicitly chosen by instructor</description>
+      <impact>Allows granular control - publish module without publishing all content</impact>
+    </constraint>
+
+    <constraint type="technical">
+      <name>Discussions have no isPublished field</name>
+      <description>Based on schema, Discussion model does not have isPublished field - cascade should skip discussions</description>
+      <impact>Only cascade to CourseContent and Assignment tables</impact>
+    </constraint>
+  </constraints>
+
+  <interfaces>
+    <interface type="api">
+      <name>PUT /api/instructor/courses/[id]/modules/[moduleId]/publish</name>
+      <description>Publish or unpublish a module with optional cascade to content</description>
+      <request>
+        <field name="isPublished" type="boolean" required="true">New publish state (true = published, false = unpublished)</field>
+        <field name="cascadeToContent" type="boolean" required="false" default="false">Whether to also update isPublished for all content/assignments in module</field>
+      </request>
+      <response>
+        <field name="module" type="object">Updated module object with new isPublished state</field>
+        <field name="cascadedCount" type="number">Number of content items also published (if cascade was true)</field>
+      </response>
+      <errorCodes>
+        <code>401</code>
+        <description>Unauthorized - not logged in</description>
+        <code>403</code>
+        <description>Forbidden - not instructor of this course</description>
+        <code>404</code>
+        <description>Module or course not found</description>
+        <code>400</code>
+        <description>Validation error - invalid request body</description>
+        <code>500</code>
+        <description>Internal server error</description>
+      </errorCodes>
+    </interface>
+
+    <interface type="component">
+      <name>PublishModuleDialog</name>
+      <description>Modal dialog asking whether to cascade publish to content</description>
+      <props>
+        <prop name="isOpen" type="boolean">Whether dialog is open</prop>
+        <prop name="onClose" type="() => void">Close handler</prop>
+        <prop name="onConfirm" type="(cascadeToContent: boolean) => void">Confirm handler with cascade option</prop>
+      </props>
+    </interface>
+
+    <interface type="component">
+      <name>UnpublishModuleDialog</name>
+      <description>Confirmation dialog for unpublishing with student count warning</description>
+      <props>
+        <prop name="isOpen" type="boolean">Whether dialog is open</prop>
+        <prop name="enrolledCount" type="number">Number of enrolled students affected</prop>
+        <prop name="onClose" type="() => void">Close handler</prop>
+        <prop name="onConfirm" type="() => void">Confirm unpublish handler</prop>
+      </props>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      <standard>All API endpoints must have integration tests</standard>
+      <standard>Test authorization failures (unauthorized, wrong instructor)</standard>
+      <standard>Test validation failures (missing fields, invalid types)</standard>
+      <standard>Test cascade logic updates correct entities</standard>
+      <standard>Test soft-deleted content is not affected by cascade</standard>
+      <standard>Component tests for dialog interactions</standard>
+    </standards>
+
+    <locations>
+      <location>__tests__/integration/api/instructor/modules/publish.test.ts</location>
+      <location>__tests__/unit/components/modules/PublishModuleDialog.test.tsx</location>
+      <location>__tests__/unit/components/modules/UnpublishModuleDialog.test.tsx</location>
+    </locations>
+
+    <ideas>
+      <idea>Test cascade publishes all content and assignments in module</idea>
+      <idea>Test cascade skips soft-deleted content</idea>
+      <idea>Test cascade skips discussions (no isPublished field)</idea>
+      <idea>Test unpublish dialog shows correct enrolled student count</idea>
+      <idea>Test publish without cascade only updates module.isPublished</idea>
+      <idea>Test authorization: student cannot publish modules</idea>
+      <idea>Test authorization: instructor can only publish own course modules</idea>
+      <idea>Test 404 when module doesn't exist</idea>
+      <idea>Test 404 when module is soft-deleted</idea>
+      <idea>Test badge displays "Draft" for unpublished, "Published" for published</idea>
+      <idea>Test toast notifications appear on success/error</idea>
+      <idea>Test loading state during API call</idea>
+      <idea>Test module list refetch after publish state change</idea>
+    </ideas>
+  </tests>
+</story-context>

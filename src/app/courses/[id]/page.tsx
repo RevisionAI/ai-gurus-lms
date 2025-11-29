@@ -7,7 +7,8 @@ import Link from 'next/link'
 import Navbar from '@/components/Navbar'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import Breadcrumb, { generateBreadcrumbs } from '@/components/Breadcrumb'
-import { BookOpen, ClipboardList, MessageSquare, Clock, FileText, Video, File, Link as LinkIcon, ExternalLink, Calendar, ArrowLeft } from 'lucide-react'
+import StudentModuleList from '@/components/modules/StudentModuleList'
+import { BookOpen, ClipboardList, MessageSquare, Clock, FileText, Video, File, Link as LinkIcon, ExternalLink, Calendar, ArrowLeft, Layers } from 'lucide-react'
 
 interface Course {
   id: string
@@ -183,6 +184,7 @@ export default function StudentCourseDetailPage() {
 
   const tabs = [
     { id: 'overview', name: 'Overview', icon: BookOpen },
+    { id: 'modules', name: 'Modules', icon: Layers },
     { id: 'content', name: 'Content', icon: FileText },
     { id: 'assignments', name: 'Assignments', icon: ClipboardList },
     { id: 'discussions', name: 'Discussions', icon: MessageSquare },
@@ -394,6 +396,15 @@ export default function StudentCourseDetailPage() {
                     <div>
                       <h3 className="text-lg font-medium text-gray-900 mb-4">Quick Links</h3>
                       <div className="space-y-3">
+                        <button
+                          onClick={() => setActiveTab('modules')}
+                          className="block w-full text-left p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                        >
+                          <div className="flex items-center">
+                            <Layers className="h-5 w-5 text-indigo-600 mr-3" />
+                            <span className="font-medium">Browse Modules</span>
+                          </div>
+                        </button>
                         <Link
                           href={`/courses/${course.id}/discussions`}
                           className="block p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
@@ -437,6 +448,13 @@ export default function StudentCourseDetailPage() {
                       )}
                     </div>
                   </div>
+                </div>
+              )}
+
+              {activeTab === 'modules' && (
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">Course Modules</h3>
+                  <StudentModuleList courseId={course.id} />
                 </div>
               )}
 

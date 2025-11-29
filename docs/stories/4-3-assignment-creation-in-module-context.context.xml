@@ -1,0 +1,440 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>4-3</story-id>
+    <story-key>4-3-assignment-creation-in-module-context</story-key>
+    <epic-id>4</epic-id>
+    <title>Assignment Creation in Module Context</title>
+    <status>drafted</status>
+    <created>2025-11-28</created>
+  </metadata>
+
+  <user-story>
+    <as-a>instructor</as-a>
+    <i-want>to create assignments within a specific module</i-want>
+    <so-that>they're organized with related content</so-that>
+  </user-story>
+
+  <acceptance-criteria>
+    <criterion id="AC1">
+      <description>Assignment creation form includes module selector</description>
+    </criterion>
+    <criterion id="AC2">
+      <description>Default module is currently viewed module</description>
+    </criterion>
+    <criterion id="AC3">
+      <description>Assignment list shows module column</description>
+    </criterion>
+    <criterion id="AC4">
+      <description>Moving assignment between modules updates moduleId</description>
+    </criterion>
+    <criterion id="AC5">
+      <description>Deleting module prompts to reassign assignments</description>
+    </criterion>
+  </acceptance-criteria>
+
+  <tasks>
+    <task id="1" acceptance-criteria="AC1, AC2">
+      <description>Add module selector to assignment form</description>
+      <subtasks>
+        <subtask id="1.1">Locate assignment creation form</subtask>
+        <subtask id="1.2">Add module dropdown selector</subtask>
+        <subtask id="1.3">Populate with course modules</subtask>
+        <subtask id="1.4">Pre-select current module if creating from module context</subtask>
+      </subtasks>
+    </task>
+    <task id="2" acceptance-criteria="AC3">
+      <description>Update assignment list display</description>
+      <subtasks>
+        <subtask id="2.1">Locate instructor assignment list</subtask>
+        <subtask id="2.2">Add module column to list/table</subtask>
+        <subtask id="2.3">Show module name for each assignment</subtask>
+        <subtask id="2.4">Allow sorting by module</subtask>
+      </subtasks>
+    </task>
+    <task id="3" acceptance-criteria="AC1">
+      <description>Update assignment creation API</description>
+      <subtasks>
+        <subtask id="3.1">Ensure assignment creation accepts moduleId</subtask>
+        <subtask id="3.2">Validate moduleId belongs to course</subtask>
+        <subtask id="3.3">ModuleId is now required (not optional) for new assignments</subtask>
+      </subtasks>
+    </task>
+    <task id="4" acceptance-criteria="AC4">
+      <description>Implement move assignment</description>
+      <subtasks>
+        <subtask id="4.1">Add "Move to Module" option in assignment menu</subtask>
+        <subtask id="4.2">Reuse MoveToModuleModal pattern from Story 2.5</subtask>
+        <subtask id="4.3">Update moduleId on move</subtask>
+      </subtasks>
+    </task>
+    <task id="5" acceptance-criteria="AC5">
+      <description>Handle module deletion</description>
+      <subtasks>
+        <subtask id="5.1">Enhance DeleteModuleModal from Story 2.8</subtask>
+        <subtask id="5.2">Show assignment count in deletion warning</subtask>
+        <subtask id="5.3">Option to move assignments before delete</subtask>
+        <subtask id="5.4">If delete without move: assignments become orphaned (moduleId = null)</subtask>
+      </subtasks>
+    </task>
+  </tasks>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/PRD-course-modules.md</path>
+        <title>Course Modules Feature PRD</title>
+        <section>Functional Requirements - Assignments</section>
+        <snippet>FR010: Assignments belong to exactly one module. FR011: Instructors can create assignments within a specific module. FR012: Instructors can move assignments between modules. FR013: Gradebook displays module context for each assignment.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture-course-modules.md</path>
+        <title>Course Modules Architecture</title>
+        <section>Modified Models - Assignment</section>
+        <snippet>Assignment model includes moduleId field with relation to Module. On module delete, uses SetNull behavior per architecture decision ADR-004.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture-course-modules.md</path>
+        <title>Course Modules Architecture</title>
+        <section>API Contracts - Instructor Assignment Endpoints</section>
+        <snippet>Assignment creation requires moduleId in request body. Server validates moduleId belongs to course before creating assignment.</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <artifact>
+        <path>src/app/instructor/courses/[id]/assignments/new/page.tsx</path>
+        <kind>page component</kind>
+        <symbol>NewAssignmentPage</symbol>
+        <lines>1-310</lines>
+        <reason>Main assignment creation form component that needs module selector enhancement. Already has moduleId handling and validation (lines 78-83). Fetches modules on mount (lines 38-60). Pre-selects module from URL param (line 21, 46-48).</reason>
+      </artifact>
+      <artifact>
+        <path>src/app/instructor/courses/[id]/assignments/page.tsx</path>
+        <kind>page component</kind>
+        <symbol>CourseAssignmentsPage</symbol>
+        <lines>1-30</lines>
+        <reason>Placeholder assignment list page that needs implementation. This is where we'll add the assignment list with module column (Task 2).</reason>
+      </artifact>
+      <artifact>
+        <path>src/app/api/instructor/courses/[id]/assignments/route.ts</path>
+        <kind>API route</kind>
+        <symbol>POST handler</symbol>
+        <lines>90-166</lines>
+        <reason>Assignment creation API endpoint. Already validates and requires moduleId (lines 124-146). Validates module belongs to course. This endpoint is already complete per Task 3 requirements.</reason>
+      </artifact>
+      <artifact>
+        <path>src/app/api/instructor/courses/[id]/assignments/route.ts</path>
+        <kind>API route</kind>
+        <symbol>GET handler</symbol>
+        <lines>17-88</lines>
+        <reason>Assignment fetch API that includes module data in response (lines 69-75). Orders by module.orderIndex (lines 77-80). Supports optional moduleId filter (lines 31-32, 56-59).</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/modules/MoveToModuleModal.tsx</path>
+        <kind>modal component</kind>
+        <symbol>MoveToModuleModal</symbol>
+        <lines>1-191</lines>
+        <reason>Reusable modal for moving content between modules (Story 2.5). Pattern to be adapted for moving assignments (Task 4). Fetches modules, handles selection, makes PUT request to move endpoint.</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/modules/DeleteModuleModal.tsx</path>
+        <kind>modal component</kind>
+        <symbol>DeleteModuleModal</symbol>
+        <lines>1-320</lines>
+        <reason>Module deletion modal that already handles content counts (line 38-39) and move-before-delete pattern (lines 142-152). Needs enhancement to show assignment counts and move assignments (Task 5).</reason>
+      </artifact>
+      <artifact>
+        <path>src/app/instructor/courses/[id]/page.tsx</path>
+        <kind>page component</kind>
+        <symbol>CourseDetailPage</symbol>
+        <lines>1-551</lines>
+        <reason>Main course detail page showing stats and tabs. Assignment stats displayed (lines 288-302). Could be entry point for assignment creation in module context.</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/gradebook/types.ts</path>
+        <kind>type definitions</kind>
+        <symbol>GradebookAssignment</symbol>
+        <lines>40-46</lines>
+        <reason>Gradebook assignment type definition. May need to extend with module information for Task 2 (displaying module in assignment list).</reason>
+      </artifact>
+      <artifact>
+        <path>prisma/schema.prisma</path>
+        <kind>database schema</kind>
+        <symbol>assignments model</symbol>
+        <lines>25-46</lines>
+        <reason>Assignment model with moduleId field (line 37). Relation to modules with optional FK (line 40). Used for validation in assignment creation.</reason>
+      </artifact>
+      <artifact>
+        <path>prisma/schema.prisma</path>
+        <kind>database schema</kind>
+        <symbol>modules model</symbol>
+        <lines>192-211</lines>
+        <reason>Module model showing assignments relation (line 203). Cascade delete behavior defined for course deletion.</reason>
+      </artifact>
+    </code>
+
+    <interfaces>
+      <interface>
+        <name>POST /api/instructor/courses/[id]/assignments</name>
+        <kind>REST endpoint</kind>
+        <signature>{
+  "title": "string (required)",
+  "description": "string (optional)",
+  "dueDate": "ISO date string (optional)",
+  "maxPoints": "number (required)",
+  "isPublished": "boolean (optional)",
+  "moduleId": "string (required)"
+}</signature>
+        <path>src/app/api/instructor/courses/[id]/assignments/route.ts</path>
+        <notes>Already validates moduleId is required and belongs to course. Returns 400 if moduleId missing or invalid.</notes>
+      </interface>
+      <interface>
+        <name>GET /api/instructor/courses/[id]/assignments</name>
+        <kind>REST endpoint</kind>
+        <signature>Query params: ?moduleId=string (optional)
+Response includes: module: { id, title, orderIndex }</signature>
+        <path>src/app/api/instructor/courses/[id]/assignments/route.ts</path>
+        <notes>Already supports module filtering and includes module data in response.</notes>
+      </interface>
+      <interface>
+        <name>GET /api/instructor/courses/[id]/modules</name>
+        <kind>REST endpoint</kind>
+        <signature>Returns: { modules: Array&lt;{ id, title, orderIndex, contentCount, assignmentCount, ... }&gt; }</signature>
+        <path>src/app/api/instructor/courses/[id]/modules/route.ts</path>
+        <notes>Used to populate module dropdown in assignment form.</notes>
+      </interface>
+      <interface>
+        <name>PUT /api/instructor/courses/[id]/modules/[moduleId]</name>
+        <kind>REST endpoint</kind>
+        <signature>DELETE endpoint with body: { moveContentTo?: "moduleId" }</signature>
+        <path>src/app/api/instructor/courses/[id]/modules/[moduleId]/route.ts</path>
+        <notes>Existing DELETE module endpoint needs enhancement to handle assignments alongside content/discussions.</notes>
+      </interface>
+      <interface>
+        <name>ModuleOption</name>
+        <kind>TypeScript interface</kind>
+        <signature>interface ModuleOption {
+  id: string;
+  title: string;
+  orderIndex: number;
+}</signature>
+        <path>src/app/instructor/courses/[id]/assignments/new/page.tsx</path>
+        <notes>Already defined in assignment creation form for module dropdown.</notes>
+      </interface>
+      <interface>
+        <name>MoveToModuleModalProps</name>
+        <kind>TypeScript interface</kind>
+        <signature>interface MoveToModuleModalProps {
+  isOpen: boolean;
+  courseId: string;
+  currentModuleId: string;
+  content: ModuleContent | null;
+  onClose: () =&gt; void;
+  onSuccess: () =&gt; void;
+}</signature>
+        <path>src/components/modules/MoveToModuleModal.tsx</path>
+        <notes>Pattern to adapt for assignment move modal. Replace 'content' with 'assignment'.</notes>
+      </interface>
+    </interfaces>
+
+    <constraints>
+      <constraint type="required-pattern">
+        <description>ModuleId is required for all new assignments. Assignment form must validate moduleId before submission.</description>
+        <source>Story dev notes, API validation</source>
+      </constraint>
+      <constraint type="architecture-decision">
+        <description>When module is deleted, assignments can either be moved to another module or become orphaned (moduleId = null). Use SetNull cascade behavior per ADR-004.</description>
+        <source>docs/architecture-course-modules.md - ADR-004</source>
+      </constraint>
+      <constraint type="ui-pattern">
+        <description>Reuse MoveToModuleModal pattern from Story 2.5 for consistent move UX. Modal should fetch available modules, allow selection, and show confirmation.</description>
+        <source>Story 2.5 learnings, MoveToModuleModal.tsx</source>
+      </constraint>
+      <constraint type="ui-pattern">
+        <description>Enhance DeleteModuleModal to show assignment counts and provide move option before deletion, following existing pattern for content.</description>
+        <source>Story 2.8 learnings, DeleteModuleModal.tsx</source>
+      </constraint>
+      <constraint type="data-validation">
+        <description>Module selector dropdown must be populated from course modules API. Only show non-deleted modules ordered by orderIndex.</description>
+        <source>Existing module fetch pattern</source>
+      </constraint>
+      <constraint type="user-experience">
+        <description>If creating assignment from module context (via URL param ?module=id), pre-select that module in the form for better UX.</description>
+        <source>Story dev notes, existing implementation</source>
+      </constraint>
+      <constraint type="testing">
+        <description>No modules exist case: Assignment form should require creating a module first (already implemented with empty state message).</description>
+        <source>src/app/instructor/courses/[id]/assignments/new/page.tsx lines 126-164</source>
+      </constraint>
+    </constraints>
+
+    <dependencies>
+      <ecosystem name="node">
+        <package name="next" version="15.3.3">Next.js framework for App Router, API routes, and server components</package>
+        <package name="react" version="^19.0.0">React for UI components and hooks</package>
+        <package name="@prisma/client" version="^6.9.0">Prisma ORM for database queries and type-safe models</package>
+        <package name="zod" version="^4.1.13">Schema validation for API input validation</package>
+        <package name="@radix-ui/react-dialog" version="^1.1.14">Accessible modal/dialog components for move and delete modals</package>
+        <package name="lucide-react" version="^0.514.0">Icon library for UI icons</package>
+        <package name="react-hot-toast" version="^2.5.2">Toast notifications for user feedback</package>
+      </ecosystem>
+    </dependencies>
+  </artifacts>
+
+  <tests>
+    <standards>
+      <description>
+        The AI Gurus LMS uses Jest for unit testing and Playwright for E2E testing. Tests should follow existing patterns:
+        - Component tests: Use @testing-library/react for rendering and user interaction
+        - API tests: Mock Prisma client and NextAuth session for isolated testing
+        - E2E tests: Use Playwright for critical user flows
+        - Test files located in __tests__ directories or .test.ts/.spec.ts files
+      </description>
+    </standards>
+
+    <locations>
+      <location>**/__tests__/**</location>
+      <location>**/*.test.ts</location>
+      <location>**/*.test.tsx</location>
+      <location>**/*.spec.ts (Playwright E2E)</location>
+    </locations>
+
+    <ideas>
+      <test-idea criterion="AC1">
+        <description>Unit test: Assignment creation form renders module selector dropdown</description>
+        <approach>Test that module dropdown exists, populates with course modules, and shows "required" indicator</approach>
+      </test-idea>
+      <test-idea criterion="AC2">
+        <description>Unit test: Module selector pre-selects module from URL parameter</description>
+        <approach>Mock useSearchParams to return moduleId, verify dropdown value matches URL param</approach>
+      </test-idea>
+      <test-idea criterion="AC1">
+        <description>Integration test: POST assignment API validates moduleId requirement</description>
+        <approach>Test API returns 400 when moduleId missing, and validates module belongs to course</approach>
+      </test-idea>
+      <test-idea criterion="AC3">
+        <description>Unit test: Assignment list displays module column with correct module title</description>
+        <approach>Mock assignments data with module info, verify module title renders in list/table</approach>
+      </test-idea>
+      <test-idea criterion="AC4">
+        <description>E2E test: Instructor can move assignment between modules</description>
+        <approach>Create assignment in Module 1, open move modal, select Module 2, verify assignment appears in Module 2</approach>
+      </test-idea>
+      <test-idea criterion="AC5">
+        <description>E2E test: Module deletion shows assignment count and move option</description>
+        <approach>Create module with assignments, attempt delete, verify warning shows assignment count and move-before-delete option</approach>
+      </test-idea>
+      <test-idea criterion="AC1">
+        <description>Edge case test: Assignment form shows "create module first" when no modules exist</description>
+        <approach>Mock empty modules array, verify form shows helpful message and link to create module</approach>
+      </test-idea>
+    </ideas>
+  </tests>
+
+  <notes>
+    <dev-notes>
+      <note priority="high">
+        <title>API Already Complete</title>
+        <content>The POST /api/instructor/courses/[id]/assignments/route.ts already validates and requires moduleId (lines 124-146). Task 3 implementation is complete. Focus on UI updates for Tasks 1, 2, 4, and 5.</content>
+      </note>
+      <note priority="high">
+        <title>Assignment Form Already Has Module Selector</title>
+        <content>The assignment creation form (src/app/instructor/courses/[id]/assignments/new/page.tsx) already implements module dropdown (lines 183-206), fetches modules (lines 38-60), and pre-selects from URL param (lines 21, 46-48). Task 1 is essentially complete. May need minor refinements.</content>
+      </note>
+      <note priority="medium">
+        <title>Assignment List Placeholder</title>
+        <content>The assignment list page (src/app/instructor/courses/[id]/assignments/page.tsx) is a placeholder with no implementation. Task 2 requires building this list view from scratch, showing assignments with module column.</content>
+      </note>
+      <note priority="high">
+        <title>Reuse MoveToModuleModal Pattern</title>
+        <content>For Task 4 (move assignment), create a new MoveAssignmentToModuleModal component based on MoveToModuleModal.tsx. Key changes: (1) Accept assignment instead of content, (2) Use assignment move API endpoint (to be created), (3) Update success message.</content>
+      </note>
+      <note priority="high">
+        <title>Enhance DeleteModuleModal</title>
+        <content>For Task 5, DeleteModuleModal already handles content and discussions (line 38-39, 129-134). Add assignment count display and move logic following the same pattern. The modal already supports moveContentTo parameter.</content>
+      </note>
+      <note priority="medium">
+        <title>Create Assignment Move API Endpoint</title>
+        <content>Need to create PUT /api/instructor/courses/[id]/assignments/[assignmentId]/move endpoint for Task 4. Follow pattern from content move endpoint: validate assignment belongs to course, validate target module exists, update moduleId.</content>
+      </note>
+      <note priority="low">
+        <title>Module Column in Gradebook</title>
+        <content>Story references FR013 (gradebook displays module context), but this is covered by Story 4.1. This story focuses on assignment creation and management in module context.</content>
+      </note>
+    </dev-notes>
+
+    <implementation-guidance>
+      <guidance task="1">
+        <summary>Module selector in assignment form (mostly complete)</summary>
+        <steps>
+          <step>Review existing implementation in src/app/instructor/courses/[id]/assignments/new/page.tsx</step>
+          <step>Verify module dropdown is required (HTML required attribute on line 191)</step>
+          <step>Verify pre-selection from URL param works (lines 46-48)</step>
+          <step>Verify empty state message when no modules exist (lines 126-164)</step>
+          <step>Add any missing validation or UX improvements if needed</step>
+        </steps>
+      </guidance>
+      <guidance task="2">
+        <summary>Build assignment list with module column</summary>
+        <steps>
+          <step>Implement assignment list page at src/app/instructor/courses/[id]/assignments/page.tsx</step>
+          <step>Fetch assignments using existing GET /api/instructor/courses/[id]/assignments endpoint</step>
+          <step>Display table/list with columns: Title, Module, Due Date, Status, Submissions</step>
+          <step>Include module.title from API response (already included in GET response)</step>
+          <step>Add sorting capability by module (could use module.orderIndex)</step>
+          <step>Add filter to show assignments from specific module (use ?moduleId query param)</step>
+        </steps>
+      </guidance>
+      <guidance task="3">
+        <summary>Assignment creation API (complete)</summary>
+        <steps>
+          <step>Verify POST endpoint requires moduleId (lines 124-130 in route.ts)</step>
+          <step>Verify module validation (lines 132-146 in route.ts)</step>
+          <step>No additional work needed - implementation already meets AC requirements</step>
+        </steps>
+      </guidance>
+      <guidance task="4">
+        <summary>Implement move assignment between modules</summary>
+        <steps>
+          <step>Create PUT /api/instructor/courses/[id]/assignments/[assignmentId]/move endpoint</step>
+          <step>Endpoint should accept { targetModuleId: string } in body</step>
+          <step>Validate assignment exists and belongs to course</step>
+          <step>Validate target module exists and belongs to same course</step>
+          <step>Update assignment.moduleId to targetModuleId</step>
+          <step>Create MoveAssignmentToModuleModal component based on MoveToModuleModal.tsx</step>
+          <step>Add "Move to Module" action in assignment list/detail view</step>
+        </steps>
+      </guidance>
+      <guidance task="5">
+        <summary>Handle assignments in module deletion</summary>
+        <steps>
+          <step>Update DeleteModuleModal to query and display assignmentCount (already has property on Module type)</step>
+          <step>Update deletion warning to include assignment count (similar to content count lines 129-134)</step>
+          <step>In move mode, update the move logic to include assignments</step>
+          <step>Update DELETE /api/instructor/courses/[id]/modules/[moduleId] to handle assignment moves</step>
+          <step>If moveContentTo provided, update assignments.moduleId to target module</step>
+          <step>If no moveContentTo, assignments become orphaned (moduleId = null per SetNull cascade)</step>
+        </steps>
+      </guidance>
+    </implementation-guidance>
+  </notes>
+
+  <related-stories>
+    <story id="1-5" title="Create Module API Endpoints">
+      <relation>Provides the module fetch API used to populate assignment form dropdown</relation>
+    </story>
+    <story id="2-5" title="Move Content Between Modules">
+      <relation>Established MoveToModuleModal pattern to be reused for moving assignments</relation>
+    </story>
+    <story id="2-8" title="Delete Module">
+      <relation>DeleteModuleModal needs enhancement to handle assignments alongside content</relation>
+    </story>
+    <story id="4-1" title="Module Context in Gradebook">
+      <relation>Complementary story for showing module info in gradebook. This story focuses on assignment creation/management.</relation>
+    </story>
+    <story id="4-6" title="API Updates for Module Filtering">
+      <relation>Related work on module-aware API filtering for assignments and other resources</relation>
+    </story>
+  </related-stories>
+</story-context>

@@ -1,0 +1,585 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/2-1-module-list-view-for-instructors" v="1.0">
+  <metadata>
+    <epicId>epic-2</epicId>
+    <storyId>2-1-module-list-view-for-instructors</storyId>
+    <title>Module List View for Instructors</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-11-28</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/2-1-module-list-view-for-instructors.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>an instructor</asA>
+    <iWant>to see a list of modules in my course</iWant>
+    <soThat>I can manage the course structure</soThat>
+
+    <tasks>
+      <task id="1" status="pending">
+        <title>Create ModuleList component</title>
+        <acceptanceCriteria>AC: 2, 3, 4</acceptanceCriteria>
+        <subtasks>
+          <subtask id="1.1">Create `src/components/modules/ModuleList.tsx`</subtask>
+          <subtask id="1.2">Implement module card layout showing title, description preview (truncated)</subtask>
+          <subtask id="1.3">Display publish status badge ("Published" / "Draft")</subtask>
+          <subtask id="1.4">Show counts: X content items, Y assignments, Z discussions</subtask>
+          <subtask id="1.5">Order modules by orderIndex ascending</subtask>
+        </subtasks>
+      </task>
+
+      <task id="2" status="pending">
+        <title>Create ModuleCard component</title>
+        <acceptanceCriteria>AC: 3, 4</acceptanceCriteria>
+        <subtasks>
+          <subtask id="2.1">Create `src/components/modules/ModuleCard.tsx`</subtask>
+          <subtask id="2.2">Design card with title prominent, description below</subtask>
+          <subtask id="2.3">Add status badge (Published = green, Draft = gray)</subtask>
+          <subtask id="2.4">Add counts row with icons (content, assignment, discussion)</subtask>
+          <subtask id="2.5">Add action menu trigger (edit, publish, delete - for future stories)</subtask>
+        </subtasks>
+      </task>
+
+      <task id="3" status="pending">
+        <title>Add Modules tab to course view</title>
+        <acceptanceCriteria>AC: 1</acceptanceCriteria>
+        <subtasks>
+          <subtask id="3.1">Locate instructor course management page</subtask>
+          <subtask id="3.2">Add "Modules" tab to existing tab navigation</subtask>
+          <subtask id="3.3">Wire tab to render ModuleList component</subtask>
+          <subtask id="3.4">Pass courseId to ModuleList for data fetching</subtask>
+        </subtasks>
+      </task>
+
+      <task id="4" status="pending">
+        <title>Implement data fetching hook</title>
+        <acceptanceCriteria>AC: 2</acceptanceCriteria>
+        <subtasks>
+          <subtask id="4.1">Create `src/components/modules/hooks/useModules.ts`</subtask>
+          <subtask id="4.2">Fetch from GET /api/instructor/courses/[id]/modules</subtask>
+          <subtask id="4.3">Handle loading, error, and success states</subtask>
+          <subtask id="4.4">Return modules array and refetch function</subtask>
+        </subtasks>
+      </task>
+
+      <task id="5" status="pending">
+        <title>Add "Add Module" button</title>
+        <acceptanceCriteria>AC: 5</acceptanceCriteria>
+        <subtasks>
+          <subtask id="5.1">Add button in header area of ModuleList</subtask>
+          <subtask id="5.2">Style consistent with other "Add X" buttons in app</subtask>
+          <subtask id="5.3">Button opens modal (implemented in Story 2.2)</subtask>
+          <subtask id="5.4">For now, button can be disabled or show placeholder</subtask>
+        </subtasks>
+      </task>
+
+      <task id="6" status="pending">
+        <title>Implement empty state</title>
+        <acceptanceCriteria>AC: 6</acceptanceCriteria>
+        <subtasks>
+          <subtask id="6.1">Create EmptyModulesState component or inline</subtask>
+          <subtask id="6.2">Show message: "No modules yet. Create your first module to organize course content."</subtask>
+          <subtask id="6.3">Include prominent "Add Module" CTA button</subtask>
+          <subtask id="6.4">Use existing empty state patterns from other list views</subtask>
+        </subtasks>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="1">New "Modules" tab in instructor course view</criterion>
+    <criterion id="2">Displays all modules ordered by orderIndex</criterion>
+    <criterion id="3">Shows module title, description preview, publish status</criterion>
+    <criterion id="4">Shows count of content items, assignments, discussions per module</criterion>
+    <criterion id="5">"Add Module" button visible</criterion>
+    <criterion id="6">Empty state shown when no modules exist</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/PRD-course-modules.md" section="Instructor Module Manager UI">
+        <relevance>Contains UI mockup showing module list layout with counts and status badges</relevance>
+        <keyPoints>
+          - Module cards show title, content counts, and publish status
+          - "Add Module" button in header
+          - Drag handle icon (≡) for future reordering
+          - Action menu with Edit, Preview, More options
+        </keyPoints>
+      </doc>
+
+      <doc path="docs/architecture-course-modules.md" section="Project Structure">
+        <relevance>Defines component organization and file structure for module feature</relevance>
+        <keyPoints>
+          - Components in `src/components/modules/`
+          - ModuleList.tsx and ModuleCard.tsx components
+          - Hooks in `src/components/modules/hooks/`
+          - useModules.ts for data fetching
+        </keyPoints>
+      </doc>
+
+      <doc path="docs/architecture-course-modules.md" section="API Contracts">
+        <relevance>Defines GET /api/instructor/courses/[id]/modules response format</relevance>
+        <keyPoints>
+          - Returns `{ modules: [...] }` array
+          - Each module includes: id, title, description, orderIndex, isPublished, contentCount, assignmentCount, discussionCount
+          - Ordered by orderIndex ascending
+        </keyPoints>
+      </doc>
+
+      <doc path="docs/epics-course-modules.md" section="Story 2.1">
+        <relevance>Original story specification with acceptance criteria</relevance>
+        <keyPoints>
+          - First story in Epic 2 (Instructor Module Management)
+          - Prerequisite: Epic 1 complete
+          - Establishes foundation for module management UI
+        </keyPoints>
+      </doc>
+    </docs>
+
+    <code>
+      <existingFile path="src/app/instructor/courses/[id]/page.tsx">
+        <relevance>Main instructor course detail page with tab navigation pattern</relevance>
+        <keyPatterns>
+          - Uses custom tab state with `activeTab` useState hook
+          - Tab navigation with buttons (not Radix Tabs)
+          - Tabs array: overview, content, students, assignments, settings
+          - Each tab renders different content in conditional blocks
+          - Stats cards at top showing course metrics with icons
+        </keyPatterns>
+        <codeSnippet>
+          ```tsx
+          const tabs = [
+            { id: 'overview', name: 'Overview', icon: FileText },
+            { id: 'content', name: 'Content', icon: BookOpen },
+            { id: 'students', name: 'Students', icon: Users },
+            { id: 'assignments', name: 'Assignments', icon: ClipboardList },
+            { id: 'settings', name: 'Settings', icon: Settings }
+          ]
+
+          // Tab navigation
+          &lt;nav className="-mb-px flex space-x-8 px-6"&gt;
+            {tabs.map((tab) => {
+              const Icon = tab.icon
+              return (
+                &lt;button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`${
+                    activeTab === tab.id
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center`}
+                &gt;
+                  &lt;Icon className="h-4 w-4 mr-2" /&gt;
+                  {tab.name}
+                &lt;/button&gt;
+              )
+            })}
+          &lt;/nav&gt;
+          ```
+        </codeSnippet>
+      </existingFile>
+
+      <existingFile path="src/app/instructor/courses/[id]/content/page.tsx">
+        <relevance>Example of list view pattern with empty state and add button</relevance>
+        <keyPatterns>
+          - Empty state with icon, message, and CTA button
+          - "Add Content" button in header
+          - List of items in cards with status badges
+          - Loading skeleton pattern
+          - Data fetching with useEffect and Promise.all
+        </keyPatterns>
+        <codeSnippet>
+          ```tsx
+          // Empty state pattern
+          {content.length === 0 ? (
+            &lt;div className="text-center py-12"&gt;
+              &lt;FileText className="mx-auto h-12 w-12 text-gray-400" /&gt;
+              &lt;h3 className="mt-2 text-sm font-medium text-gray-900"&gt;No content yet&lt;/h3&gt;
+              &lt;p className="mt-1 text-sm text-gray-500"&gt;
+                Get started by adding your first piece of content.
+              &lt;/p&gt;
+              &lt;div className="mt-6"&gt;
+                &lt;button className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"&gt;
+                  &lt;Plus className="h-4 w-4 mr-1" /&gt;
+                  Add Content
+                &lt;/button&gt;
+              &lt;/div&gt;
+            &lt;/div&gt;
+          ) : (
+            &lt;div className="space-y-3"&gt;
+              {content.map((item) => (
+                &lt;div key={item.id} className="p-3 border border-gray-200 rounded-lg"&gt;
+                  {/* Item content */}
+                &lt;/div&gt;
+              ))}
+            &lt;/div&gt;
+          )}
+          ```
+        </codeSnippet>
+      </existingFile>
+
+      <existingFile path="src/app/api/instructor/courses/[id]/modules/route.ts">
+        <relevance>API endpoint that provides module data with counts</relevance>
+        <keyPatterns>
+          - GET endpoint returns `{ modules: [...] }` structure
+          - Includes _count transformation for contentCount, assignmentCount, discussionCount
+          - Ordered by orderIndex ascending
+          - Authorization check for instructor/admin role
+          - Soft delete filtering with notDeleted
+        </keyPatterns>
+        <codeSnippet>
+          ```tsx
+          const modules = await prisma.module.findMany({
+            where: {
+              courseId: id,
+              ...notDeleted,
+            },
+            orderBy: {
+              orderIndex: 'asc',
+            },
+            select: {
+              id: true,
+              title: true,
+              description: true,
+              orderIndex: true,
+              isPublished: true,
+              requiresPrevious: true,
+              createdAt: true,
+              updatedAt: true,
+              _count: {
+                select: {
+                  content: { where: notDeleted },
+                  assignments: { where: notDeleted },
+                  discussions: { where: notDeleted },
+                },
+              },
+            },
+          });
+
+          // Transform response to include counts at top level
+          const response = modules.map((module) => ({
+            ...module,
+            contentCount: module._count.content,
+            assignmentCount: module._count.assignments,
+            discussionCount: module._count.discussions,
+          }));
+
+          return NextResponse.json({ modules: response });
+          ```
+        </codeSnippet>
+      </existingFile>
+
+      <existingFile path="prisma/schema.prisma">
+        <relevance>Module model definition with all fields and relations</relevance>
+        <keyPatterns>
+          - Module has title, description, orderIndex, isPublished fields
+          - Relations to Course, CourseContent, Assignment, Discussion
+          - Soft delete support with deletedAt
+          - Indexes on courseId and deletedAt
+        </keyPatterns>
+        <codeSnippet>
+          ```prisma
+          model Module {
+            id               String    @id @default(cuid())
+            title            String
+            description      String?
+            orderIndex       Int
+            isPublished      Boolean   @default(false)
+            requiresPrevious Boolean   @default(true)
+            createdAt        DateTime  @default(now())
+            updatedAt        DateTime  @updatedAt
+            deletedAt        DateTime?
+
+            courseId    String
+            course      Course          @relation(fields: [courseId], references: [id], onDelete: Cascade)
+            content     CourseContent[]
+            assignments Assignment[]
+            discussions Discussion[]
+            progress    ModuleProgress[]
+
+            @@index([courseId])
+            @@index([deletedAt])
+            @@map("modules")
+          }
+          ```
+        </codeSnippet>
+      </existingFile>
+
+      <existingFile path="src/lib/validations/module.ts">
+        <relevance>Zod validation schemas for module operations</relevance>
+        <keyPatterns>
+          - createModuleSchema for POST requests
+          - updateModuleSchema for PUT requests
+          - Type exports: CreateModuleInput, UpdateModuleInput
+        </keyPatterns>
+      </existingFile>
+
+      <existingFile path="package.json">
+        <relevance>Project dependencies and available libraries</relevance>
+        <keyPatterns>
+          - React 19, Next.js 15.3.3
+          - Lucide React icons
+          - Tailwind CSS
+          - @radix-ui/react-dialog, react-dropdown-menu, react-tabs (available but tabs not used in course page)
+          - @dnd-kit for drag-and-drop (not needed in this story)
+          - Zod for validation
+        </keyPatterns>
+      </existingFile>
+    </code>
+
+    <dependencies>
+      <dependency name="react" version="19.0.0" usage="Component framework" />
+      <dependency name="next" version="15.3.3" usage="App framework, routing, API" />
+      <dependency name="lucide-react" version="0.514.0" usage="Icons for UI (BookOpen, FileText, ClipboardList, MessageSquare, Plus)" />
+      <dependency name="tailwindcss" version="4" usage="Styling framework" />
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="technical">
+      <title>Tab Navigation Pattern</title>
+      <description>Must follow existing custom tab pattern used in course detail page (not Radix Tabs), using button elements with activeTab state</description>
+    </constraint>
+
+    <constraint type="technical">
+      <title>Component Organization</title>
+      <description>Components must be placed in `src/components/modules/` directory per architecture</description>
+    </constraint>
+
+    <constraint type="technical">
+      <title>Data Fetching Pattern</title>
+      <description>Follow existing pattern: useEffect with fetch calls, handle loading/error states, store in useState</description>
+    </constraint>
+
+    <constraint type="design">
+      <title>Consistent Styling</title>
+      <description>Match existing UI patterns: blue-600 primary color, rounded-lg cards, border-gray-200 borders, consistent button styles</description>
+    </constraint>
+
+    <constraint type="design">
+      <title>Empty State Pattern</title>
+      <description>Follow existing empty state pattern from content page: centered icon, heading, description, CTA button</description>
+    </constraint>
+
+    <constraint type="functional">
+      <title>Status Badge Colors</title>
+      <description>Published = green (text-green-600), Draft = gray/yellow (text-gray-600 or text-yellow-600)</description>
+    </constraint>
+
+    <constraint type="functional">
+      <title>Icon Usage</title>
+      <description>Use BookOpen for modules tab icon, consistent with content. Use FileText, ClipboardList, MessageSquare for counts</description>
+    </constraint>
+
+    <constraint type="scope">
+      <title>Button Placeholder</title>
+      <description>"Add Module" button should be visible but can be disabled or show placeholder message (modal implementation in Story 2.2)</description>
+    </constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="Module API Response">
+      <description>Expected response from GET /api/instructor/courses/[id]/modules</description>
+      <definition>
+        ```typescript
+        interface ModuleListResponse {
+          modules: Module[]
+        }
+
+        interface Module {
+          id: string
+          title: string
+          description: string | null
+          orderIndex: number
+          isPublished: boolean
+          requiresPrevious: boolean
+          createdAt: string // ISO date string
+          updatedAt: string // ISO date string
+          contentCount: number
+          assignmentCount: number
+          discussionCount: number
+        }
+        ```
+      </definition>
+    </interface>
+
+    <interface name="ModuleList Props">
+      <description>Props for ModuleList component</description>
+      <definition>
+        ```typescript
+        interface ModuleListProps {
+          courseId: string
+        }
+        ```
+      </definition>
+    </interface>
+
+    <interface name="ModuleCard Props">
+      <description>Props for ModuleCard component</description>
+      <definition>
+        ```typescript
+        interface ModuleCardProps {
+          module: Module
+          onEdit?: (moduleId: string) => void // Future story
+          onDelete?: (moduleId: string) => void // Future story
+          onPublish?: (moduleId: string) => void // Future story
+        }
+        ```
+      </definition>
+    </interface>
+
+    <interface name="useModules Hook">
+      <description>Custom hook for fetching modules data</description>
+      <definition>
+        ```typescript
+        interface UseModulesReturn {
+          modules: Module[]
+          loading: boolean
+          error: string | null
+          refetch: () => Promise&lt;void&gt;
+        }
+
+        function useModules(courseId: string): UseModulesReturn
+        ```
+      </definition>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      <standard>Component renders without crashing when data is loading</standard>
+      <standard>Component renders empty state when modules array is empty</standard>
+      <standard>Component renders module list when data is available</standard>
+      <standard>API integration: fetches from correct endpoint with courseId</standard>
+      <standard>Module cards display all required information (title, description, status, counts)</standard>
+      <standard>Modules are ordered by orderIndex ascending</standard>
+      <standard>Status badges show correct color for published/draft states</standard>
+      <standard>Add Module button is visible and accessible</standard>
+      <standard>Tab navigation switches to Modules tab correctly</standard>
+      <standard>Loading state shows spinner or skeleton</standard>
+      <standard>Error state shows appropriate message</standard>
+    </standards>
+
+    <locations>
+      <location>Unit tests: src/components/modules/__tests__/ModuleList.test.tsx</location>
+      <location>Unit tests: src/components/modules/__tests__/ModuleCard.test.tsx</location>
+      <location>Unit tests: src/components/modules/hooks/__tests__/useModules.test.ts</location>
+      <location>Integration tests: e2e/instructor/modules/module-list.spec.ts</location>
+    </locations>
+
+    <ideas>
+      <idea priority="high">
+        Test that ModuleList fetches data on mount and displays loading state
+      </idea>
+      <idea priority="high">
+        Test empty state renders with correct message and CTA button
+      </idea>
+      <idea priority="high">
+        Test module cards render with correct data (title, description, counts, status)
+      </idea>
+      <idea priority="high">
+        Test modules are sorted by orderIndex
+      </idea>
+      <idea priority="medium">
+        Test Add Module button is present and visible (even if disabled)
+      </idea>
+      <idea priority="medium">
+        Test status badge colors: green for published, gray/yellow for draft
+      </idea>
+      <idea priority="medium">
+        Test description truncation if description is very long
+      </idea>
+      <idea priority="medium">
+        Test error handling when API returns error
+      </idea>
+      <idea priority="low">
+        Test accessibility: tab navigation keyboard support
+      </idea>
+      <idea priority="low">
+        Test responsive design: cards stack on mobile
+      </idea>
+      <idea priority="low">
+        Test loading skeleton displays during fetch
+      </idea>
+    </ideas>
+  </tests>
+
+  <learnings>
+    <learning source="Story 1-5 (Create Module API Endpoints)">
+      <title>API Response Format</title>
+      <description>GET /api/instructor/courses/[id]/modules returns modules with contentCount, assignmentCount, discussionCount already calculated server-side. No need to manually count in frontend.</description>
+    </learning>
+
+    <learning source="Story 1-5 (Create Module API Endpoints)">
+      <title>Authorization</title>
+      <description>API requires instructor role for the course or admin role. Frontend can assume user has access if they reach the page (ProtectedRoute handles auth).</description>
+    </learning>
+
+    <learning source="src/app/instructor/courses/[id]/page.tsx">
+      <title>Tab Pattern</title>
+      <description>Course detail page uses custom tab implementation with buttons, not Radix Tabs. New Modules tab should follow this pattern for consistency.</description>
+    </learning>
+
+    <learning source="src/app/instructor/courses/[id]/content/page.tsx">
+      <title>Data Fetching Pattern</title>
+      <description>Existing pages use simple fetch with useEffect, not React Query or SWR. Keep consistency by using same pattern.</description>
+    </learning>
+
+    <learning source="Architecture Document">
+      <title>Component Location</title>
+      <description>Module components belong in src/components/modules/ directory, not in app directory. This keeps them reusable across different pages.</description>
+    </learning>
+  </learnings>
+
+  <implementation-notes>
+    <note priority="high">
+      Start by adding the Modules tab to the existing tabs array in src/app/instructor/courses/[id]/page.tsx before creating new components
+    </note>
+
+    <note priority="high">
+      Create useModules hook first as it will be needed by ModuleList component
+    </note>
+
+    <note priority="high">
+      ModuleCard should be a presentational component - no data fetching, just display props
+    </note>
+
+    <note priority="medium">
+      Add Module button can be a simple disabled button with a title attribute explaining it will be enabled in the next story
+    </note>
+
+    <note priority="medium">
+      Use existing icon patterns: BookOpen for Modules tab, FileText for content count, ClipboardList for assignments, MessageSquare for discussions
+    </note>
+
+    <note priority="medium">
+      Description preview should truncate at ~100 characters with ellipsis if longer
+    </note>
+
+    <note priority="low">
+      Consider adding a loading skeleton that matches the card layout for better UX
+    </note>
+
+    <note priority="low">
+      Add key prop to module cards using module.id for React list rendering
+    </note>
+  </implementation-notes>
+
+  <related-stories>
+    <prerequisite storyId="1-5-create-module-api-endpoints" status="review">
+      API endpoint must be available and tested
+    </prerequisite>
+
+    <next storyId="2-2-create-and-edit-module-form" status="drafted">
+      Will implement the modal form that Add Module button triggers
+    </next>
+
+    <next storyId="2-3-drag-and-drop-module-reordering" status="drafted">
+      Will add drag-and-drop functionality to reorder modules
+    </next>
+
+    <related storyId="2-4-module-content-management" status="drafted">
+      Will expand module cards to show and manage content within modules
+    </related>
+  </related-stories>
+</story-context>

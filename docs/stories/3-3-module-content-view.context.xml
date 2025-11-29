@@ -1,0 +1,888 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>3-3-module-content-view</story-id>
+    <story-title>Module Content View</story-title>
+    <epic>Epic 3: Student Module Experience</epic>
+    <generated-date>2025-11-28</generated-date>
+    <status>ready-for-dev</status>
+  </metadata>
+
+  <story-summary>
+    <user-story>
+      As a student,
+      I want to view content within a module,
+      so that I can learn the material.
+    </user-story>
+
+    <description>
+      This story implements the module detail page for students, allowing them to view and navigate
+      content items within a specific module. Students can see content listed in order, with completion
+      status indicators, and click to open the content viewer. The page includes breadcrumb navigation
+      and a back button for easy navigation.
+    </description>
+
+    <acceptance-criteria>
+      <criterion id="AC1">Clicking module expands/navigates to module detail</criterion>
+      <criterion id="AC2">Content items listed in order within module</criterion>
+      <criterion id="AC3">Each content item shows: title, type, completion status</criterion>
+      <criterion id="AC4">Clicking content item opens content viewer</criterion>
+      <criterion id="AC5">Navigation breadcrumb: Course > Module > Content</criterion>
+      <criterion id="AC6">"Back to Module" button from content view</criterion>
+    </acceptance-criteria>
+  </story-summary>
+
+  <architecture-context>
+    <api-contracts>
+      <endpoint>
+        <method>GET</method>
+        <path>/api/student/courses/[id]/modules/[moduleId]</path>
+        <description>Fetch module detail with content list for student</description>
+        <authentication>Required - STUDENT role</authentication>
+        <authorization>Must be enrolled in course and module must be unlocked</authorization>
+        <request-params>
+          <param name="id" type="path">Course ID</param>
+          <param name="moduleId" type="path">Module ID</param>
+        </request-params>
+        <response-success status="200">
+          <![CDATA[{
+  "module": {
+    "id": "clxxx...",
+    "title": "AI Fundamentals",
+    "description": "Introduction to AI concepts",
+    "progress": 60,
+    "content": [
+      {
+        "id": "content1",
+        "title": "What is AI?",
+        "type": "VIDEO",
+        "isViewed": true,
+        "orderIndex": 0
+      },
+      {
+        "id": "content2",
+        "title": "Machine Learning Basics",
+        "type": "TEXT",
+        "isViewed": false,
+        "orderIndex": 1
+      }
+    ],
+    "assignments": [
+      {
+        "id": "assign1",
+        "title": "AI Concepts Quiz",
+        "dueDate": "2025-12-01T00:00:00Z",
+        "isSubmitted": true,
+        "isGraded": true,
+        "grade": 85
+      }
+    ],
+    "discussions": [
+      {
+        "id": "disc1",
+        "title": "Share your AI experience",
+        "postCount": 15
+      }
+    ]
+  }
+}]]>
+        </response-success>
+        <response-error status="403">
+          <![CDATA[{
+  "error": "MODULE_LOCKED",
+  "message": "Complete 'Decision Framework' to unlock this module",
+  "prerequisiteModuleId": "clyyy..."
+}]]>
+        </response-error>
+        <response-error status="404">
+          <![CDATA[{
+  "error": "Module not found"
+}]]>
+        </response-error>
+      </endpoint>
+    </api-contracts>
+
+    <data-models>
+      <model name="Module">
+        <description>Module model from Prisma schema</description>
+        <fields>
+          <field name="id" type="String">Unique identifier</field>
+          <field name="title" type="String">Module title</field>
+          <field name="description" type="String?">Optional description</field>
+          <field name="orderIndex" type="Int">Display order</field>
+          <field name="isPublished" type="Boolean">Visibility status</field>
+          <field name="requiresPrevious" type="Boolean">Sequential unlock requirement</field>
+          <field name="courseId" type="String">Parent course reference</field>
+        </fields>
+        <relations>
+          <relation name="content" type="CourseContent[]">Content items in module</relation>
+          <relation name="assignments" type="Assignment[]">Assignments in module</relation>
+          <relation name="discussions" type="Discussion[]">Discussions in module</relation>
+          <relation name="progress" type="ModuleProgress[]">Student progress records</relation>
+        </relations>
+      </model>
+
+      <model name="ModuleProgress">
+        <description>Tracks student progress within a module</description>
+        <fields>
+          <field name="id" type="String">Unique identifier</field>
+          <field name="moduleId" type="String">Module reference</field>
+          <field name="userId" type="String">Student reference</field>
+          <field name="contentViewed" type="String[]">Array of viewed content IDs</field>
+          <field name="completedAt" type="DateTime?">Module completion timestamp</field>
+        </fields>
+        <unique-constraint>moduleId + userId</unique-constraint>
+      </model>
+
+      <model name="CourseContent">
+        <description>Content item within a module</description>
+        <fields>
+          <field name="id" type="String">Unique identifier</field>
+          <field name="title" type="String">Content title</field>
+          <field name="type" type="ContentType">TEXT, VIDEO, DOCUMENT, LINK, SCORM, YOUTUBE</field>
+          <field name="content" type="String?">Text content or null</field>
+          <field name="fileUrl" type="String?">URL for file/video/link</field>
+          <field name="thumbnailUrl" type="String?">Optional thumbnail</field>
+          <field name="orderIndex" type="Int">Display order within module</field>
+          <field name="isPublished" type="Boolean">Visibility status</field>
+          <field name="moduleId" type="String?">Module reference</field>
+        </fields>
+      </model>
+    </data-models>
+
+    <technical-patterns>
+      <pattern name="Content Type Icons">
+        <description>Map content types to visual icons and colors</description>
+        <reference-file>/src/app/courses/[id]/page.tsx</reference-file>
+        <code-example>
+          <![CDATA[const getContentIcon = (type: CourseContent['type']) => {
+  switch (type) {
+    case 'TEXT': return FileText
+    case 'VIDEO': return Video
+    case 'YOUTUBE': return Video
+    case 'DOCUMENT': return File
+    case 'LINK': return LinkIcon
+    case 'SCORM': return BookOpen
+    default: return FileText
+  }
+}
+
+const getContentIconColor = (type: CourseContent['type']) => {
+  switch (type) {
+    case 'TEXT': return 'text-gray-600 bg-gray-50'
+    case 'VIDEO': return 'text-red-600 bg-red-50'
+    case 'YOUTUBE': return 'text-red-600 bg-red-50'
+    case 'DOCUMENT': return 'text-green-600 bg-green-50'
+    case 'LINK': return 'text-purple-600 bg-purple-50'
+    case 'SCORM': return 'text-blue-600 bg-blue-50'
+    default: return 'text-gray-600 bg-gray-50'
+  }
+}]]>
+        </code-example>
+      </pattern>
+
+      <pattern name="Breadcrumb Navigation">
+        <description>Use existing Breadcrumb component with generateBreadcrumbs utility</description>
+        <reference-file>/src/components/Breadcrumb.tsx</reference-file>
+        <code-example>
+          <![CDATA[import Breadcrumb, { generateBreadcrumbs } from '@/components/Breadcrumb'
+
+// Usage in component:
+<Breadcrumb
+  items={generateBreadcrumbs.studentCourseSection(
+    courseId,
+    courseTitle,
+    moduleName,
+    `/courses/${courseId}/modules/${moduleId}`
+  )}
+/>
+
+// Or create custom breadcrumb for module detail:
+<Breadcrumb
+  items={[
+    { label: 'Dashboard', href: '/dashboard' },
+    { label: courseTitle || 'Course', href: `/courses/${courseId}` },
+    { label: moduleName || 'Module' }
+  ]}
+/>]]>
+        </code-example>
+      </pattern>
+
+      <pattern name="Authorization Check">
+        <description>Verify student enrollment and module unlock status</description>
+        <reference-file>/src/app/api/student/courses/[id]/content/route.ts</reference-file>
+        <code-example>
+          <![CDATA[// 1. Check session and role
+const session = await getServerSession(authOptions)
+if (!session || session.user.role !== 'STUDENT') {
+  return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+}
+
+// 2. Check enrollment
+const enrollment = await prisma.enrollment.findUnique({
+  where: {
+    userId_courseId: {
+      userId: session.user.id,
+      courseId: id
+    }
+  }
+})
+
+if (!enrollment) {
+  return NextResponse.json({ error: 'Not enrolled in this course' }, { status: 403 })
+}
+
+// 3. Check module unlock status (new - will be implemented in story 3-2)
+// Use isModuleUnlocked() from /lib/modules.ts
+const isUnlocked = await isModuleUnlocked(moduleId, session.user.id)
+if (!isUnlocked) {
+  return NextResponse.json({
+    error: 'MODULE_LOCKED',
+    message: 'Complete previous module to unlock'
+  }, { status: 403 })
+}]]>
+        </code-example>
+      </pattern>
+
+      <pattern name="Content Display with Thumbnails">
+        <description>Display content with icon or thumbnail, consistent with existing pattern</description>
+        <reference-file>/src/app/courses/[id]/page.tsx</reference-file>
+        <code-example>
+          <![CDATA[{item.thumbnailUrl ? (
+  <img
+    src={item.thumbnailUrl}
+    alt={item.title}
+    className="h-16 w-16 object-cover rounded-md border border-gray-200 flex-shrink-0"
+  />
+) : (
+  <div className={`h-16 w-16 flex items-center justify-center rounded-md border border-gray-200 flex-shrink-0 ${getContentIconColor(item.type)}`}>
+    <Icon className="h-8 w-8" />
+  </div>
+)}]]>
+        </code-example>
+      </pattern>
+
+      <pattern name="Completion Status Indicator">
+        <description>Show checkmark for viewed content</description>
+        <code-example>
+          <![CDATA[<div className="flex items-center space-x-2">
+  {isViewed && (
+    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+      <Check className="h-3 w-3 mr-1" />
+      Viewed
+    </span>
+  )}
+  <span className="text-sm text-gray-500 capitalize">
+    {type.toLowerCase()}
+  </span>
+</div>]]>
+        </code-example>
+      </pattern>
+    </technical-patterns>
+
+    <route-structure>
+      <option-a>
+        <description>Separate page for module detail (RECOMMENDED)</description>
+        <file>/src/app/courses/[id]/modules/[moduleId]/page.tsx</file>
+        <benefits>
+          <benefit>Clean URL for sharing: /courses/xyz/modules/abc</benefit>
+          <benefit>Browser back button works naturally</benefit>
+          <benefit>Separate route for content viewer integration</benefit>
+        </benefits>
+      </option-a>
+      <option-b>
+        <description>Inline expansion within course page</description>
+        <file>/src/app/courses/[id]/page.tsx (modified)</file>
+        <benefits>
+          <benefit>No route change, faster perceived navigation</benefit>
+          <benefit>Less code duplication</benefit>
+        </benefits>
+        <drawbacks>
+          <drawback>No URL for sharing specific module</drawback>
+          <drawback>Back button goes to dashboard, not module</drawback>
+        </drawbacks>
+      </option-b>
+      <recommendation>Use Option A for better UX and maintainability</recommendation>
+    </route-structure>
+  </architecture-context>
+
+  <existing-code-references>
+    <file path="/src/app/courses/[id]/page.tsx">
+      <description>Student course detail page - reference for layout, tabs, and content display patterns</description>
+      <relevant-sections>
+        <section lines="143-165">getContentIcon and getContentIconColor functions</section>
+        <section lines="443-574">Content tab with content item display logic</section>
+        <section lines="198-203">Breadcrumb usage example</section>
+      </relevant-sections>
+    </file>
+
+    <file path="/src/components/Breadcrumb.tsx">
+      <description>Breadcrumb component with utility functions</description>
+      <relevant-sections>
+        <section lines="17-45">Breadcrumb component implementation</section>
+        <section lines="48-97">generateBreadcrumbs utility for common patterns</section>
+        <section lines="59-72">studentCourseSection function for adding sections</section>
+      </relevant-sections>
+    </file>
+
+    <file path="/src/app/api/student/courses/[id]/content/route.ts">
+      <description>Student content API - reference for authorization patterns</description>
+      <relevant-sections>
+        <section lines="6-31">Session check and enrollment verification</section>
+        <section lines="34-52">Fetching published content with proper filtering</section>
+      </relevant-sections>
+    </file>
+
+    <file path="/src/app/instructor/courses/[id]/page.tsx">
+      <description>Instructor course page - reference for tabbed interface and module integration</description>
+      <relevant-sections>
+        <section lines="258-265">Tab structure with modules tab</section>
+        <section lines="459-461">ModuleList component integration</section>
+      </relevant-sections>
+    </file>
+
+    <file path="/src/components/modules/ModuleCard.tsx">
+      <description>Module card component - reference for module display patterns</description>
+      <relevant-sections>
+        <section lines="44-86">Module card structure with counts and status badges</section>
+        <section lines="59-68">Status badge styling (published/draft)</section>
+        <section lines="71-84">Content, assignment, and discussion counts display</section>
+      </relevant-sections>
+    </file>
+
+    <file path="/prisma/schema.prisma">
+      <description>Database schema for Module, ModuleProgress, and CourseContent models</description>
+      <relevant-sections>
+        <section lines="247-269">Module model definition</section>
+        <section lines="271-290">ModuleProgress model definition</section>
+        <section lines="207-230">CourseContent model with moduleId foreign key</section>
+      </relevant-sections>
+    </file>
+  </existing-code-references>
+
+  <implementation-tasks>
+    <task id="1" dependencies="">
+      <title>Create module detail page route</title>
+      <description>Create /src/app/courses/[id]/modules/[moduleId]/page.tsx</description>
+      <acceptance-criteria>
+        <criterion>File created with proper Next.js 15 app router structure</criterion>
+        <criterion>Uses 'use client' directive for client-side interactivity</criterion>
+        <criterion>Implements ProtectedRoute with STUDENT role requirement</criterion>
+      </acceptance-criteria>
+      <implementation-notes>
+        <note>Follow pattern from /src/app/courses/[id]/page.tsx for structure</note>
+        <note>Use useParams() to extract courseId and moduleId</note>
+        <note>Include loading state while fetching data</note>
+      </implementation-notes>
+    </task>
+
+    <task id="2" dependencies="1">
+      <title>Create student module detail API endpoint</title>
+      <description>Create GET /api/student/courses/[id]/modules/[moduleId]/route.ts</description>
+      <acceptance-criteria>
+        <criterion>Verify student role and enrollment in course</criterion>
+        <criterion>Check module unlock status (if module locked, return 403)</criterion>
+        <criterion>Return module with content list, assignments, discussions</criterion>
+        <criterion>Include isViewed status for each content item based on ModuleProgress</criterion>
+        <criterion>Return 404 if module not found or not published</criterion>
+      </acceptance-criteria>
+      <implementation-notes>
+        <note>Use existing authorization pattern from /src/app/api/student/courses/[id]/content/route.ts</note>
+        <note>Query ModuleProgress to determine which content items are viewed</note>
+        <note>Filter to only published content items (isPublished: true, deletedAt: null)</note>
+        <note>Order content by orderIndex</note>
+        <note>Include assignment submission status and discussion post counts</note>
+      </implementation-notes>
+      <prisma-query>
+        <![CDATA[const module = await prisma.module.findUnique({
+  where: {
+    id: moduleId,
+    deletedAt: null,
+    isPublished: true
+  },
+  include: {
+    content: {
+      where: {
+        isPublished: true,
+        deletedAt: null
+      },
+      orderBy: { orderIndex: 'asc' }
+    },
+    assignments: {
+      where: {
+        isPublished: true,
+        deletedAt: null
+      },
+      include: {
+        submissions: {
+          where: { studentId: session.user.id }
+        }
+      }
+    },
+    discussions: {
+      where: { deletedAt: null },
+      include: {
+        _count: {
+          select: { posts: true }
+        }
+      }
+    }
+  }
+})
+
+// Get student's progress for this module
+const progress = await prisma.moduleProgress.findUnique({
+  where: {
+    moduleId_userId: {
+      moduleId: moduleId,
+      userId: session.user.id
+    }
+  }
+})
+
+// Map content with isViewed status
+const contentWithProgress = module.content.map(item => ({
+  ...item,
+  isViewed: progress?.contentViewed.includes(item.id) || false
+}))]]>
+      </prisma-query>
+    </task>
+
+    <task id="3" dependencies="2">
+      <title>Implement module detail page UI</title>
+      <description>Build the module detail view with content list</description>
+      <acceptance-criteria>
+        <criterion>Display module title and description</criterion>
+        <criterion>Show content items in orderIndex order</criterion>
+        <criterion>Each content item shows icon/thumbnail, title, type, and viewed status</criterion>
+        <criterion>Content items are clickable and navigate to content viewer</criterion>
+        <criterion>Include breadcrumb navigation at top</criterion>
+        <criterion>Show loading skeleton while fetching data</criterion>
+      </acceptance-criteria>
+      <ui-structure>
+        <![CDATA[<ProtectedRoute allowedRoles={['STUDENT']}>
+  <div className="min-h-screen bg-gray-50">
+    <Navbar />
+    <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+      {/* Breadcrumb */}
+      <Breadcrumb items={[...]} />
+
+      {/* Module Header */}
+      <div className="bg-white shadow rounded-lg mb-6 p-6">
+        <h1>{module.title}</h1>
+        <p>{module.description}</p>
+        <Link href={`/courses/${courseId}`}>
+          <ArrowLeft /> Back to Course
+        </Link>
+      </div>
+
+      {/* Content List */}
+      <div className="bg-white shadow rounded-lg p-6">
+        <h2>Module Content</h2>
+        <div className="space-y-3">
+          {content.map(item => (
+            <StudentContentItem
+              key={item.id}
+              item={item}
+              moduleId={moduleId}
+              courseId={courseId}
+            />
+          ))}
+        </div>
+      </div>
+    </main>
+  </div>
+</ProtectedRoute>]]>
+      </ui-structure>
+    </task>
+
+    <task id="4" dependencies="3">
+      <title>Create StudentContentItem component</title>
+      <description>Create /src/components/modules/StudentContentItem.tsx</description>
+      <acceptance-criteria>
+        <criterion>Shows content icon or thumbnail</criterion>
+        <criterion>Displays content title and type</criterion>
+        <criterion>Shows completion checkmark if viewed</criterion>
+        <criterion>Entire item is clickable</criterion>
+        <criterion>Navigates to content viewer on click</criterion>
+      </acceptance-criteria>
+      <component-structure>
+        <![CDATA['use client'
+
+import Link from 'next/link'
+import { FileText, Video, File, Link as LinkIcon, BookOpen, Check } from 'lucide-react'
+
+interface ContentItem {
+  id: string
+  title: string
+  type: 'TEXT' | 'VIDEO' | 'DOCUMENT' | 'LINK' | 'SCORM' | 'YOUTUBE'
+  thumbnailUrl?: string | null
+  isViewed: boolean
+}
+
+interface Props {
+  item: ContentItem
+  courseId: string
+  moduleId: string
+}
+
+export default function StudentContentItem({ item, courseId, moduleId }: Props) {
+  const Icon = getContentIcon(item.type)
+
+  return (
+    <Link
+      href={`/courses/${courseId}/modules/${moduleId}/content/${item.id}`}
+      className="flex items-center space-x-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+    >
+      {/* Icon or Thumbnail */}
+      {item.thumbnailUrl ? (
+        <img src={item.thumbnailUrl} alt={item.title} className="h-12 w-12 object-cover rounded" />
+      ) : (
+        <div className={`h-12 w-12 flex items-center justify-center rounded ${getContentIconColor(item.type)}`}>
+          <Icon className="h-6 w-6" />
+        </div>
+      )}
+
+      {/* Content Info */}
+      <div className="flex-1">
+        <h4 className="font-medium text-gray-900">{item.title}</h4>
+        <div className="flex items-center space-x-2 mt-1">
+          <span className="text-sm text-gray-500 capitalize">{item.type.toLowerCase()}</span>
+          {item.isViewed && (
+            <span className="inline-flex items-center text-xs text-green-600">
+              <Check className="h-3 w-3 mr-1" />
+              Viewed
+            </span>
+          )}
+        </div>
+      </div>
+    </Link>
+  )
+}]]>
+      </component-structure>
+    </task>
+
+    <task id="5" dependencies="4">
+      <title>Integrate content viewer with module context</title>
+      <description>Update content viewer to accept and preserve moduleId for back navigation</description>
+      <acceptance-criteria>
+        <criterion>Content viewer page receives moduleId as query parameter</criterion>
+        <criterion>Back button navigates to module detail (not course overview)</criterion>
+        <criterion>Breadcrumb shows Course > Module > Content name</criterion>
+      </acceptance-criteria>
+      <implementation-notes>
+        <note>Create or update /src/app/courses/[id]/modules/[moduleId]/content/[contentId]/page.tsx</note>
+        <note>Reuse existing content display logic from student course page</note>
+        <note>Add "Back to Module" button linking to /courses/[id]/modules/[moduleId]</note>
+        <note>Update breadcrumb to include module name in hierarchy</note>
+      </implementation-notes>
+    </task>
+
+    <task id="6" dependencies="5">
+      <title>Update breadcrumb utility for module sections</title>
+      <description>Add helper function to generateBreadcrumbs for module context</description>
+      <acceptance-criteria>
+        <criterion>New function handles Course > Module breadcrumb pattern</criterion>
+        <criterion>Supports optional content name as final segment</criterion>
+        <criterion>Works for both module detail and content viewer pages</criterion>
+      </acceptance-criteria>
+      <code-addition>
+        <![CDATA[// Add to /src/components/Breadcrumb.tsx generateBreadcrumbs object
+
+studentModule: (
+  courseId: string,
+  courseTitle: string | null | undefined,
+  moduleId: string,
+  moduleName: string | null | undefined
+): BreadcrumbItem[] => [
+  { label: 'Dashboard', href: '/dashboard' },
+  {
+    label: courseTitle || 'Course',
+    href: `/courses/${courseId}`,
+    isLoading: !courseTitle
+  },
+  {
+    label: moduleName || 'Module',
+    href: `/courses/${courseId}/modules/${moduleId}`,
+    isLoading: !moduleName
+  }
+],
+
+studentModuleContent: (
+  courseId: string,
+  courseTitle: string | null | undefined,
+  moduleId: string,
+  moduleName: string | null | undefined,
+  contentName?: string | null
+): BreadcrumbItem[] => {
+  const base = generateBreadcrumbs.studentModule(courseId, courseTitle, moduleId, moduleName)
+  if (contentName) {
+    base.push({ label: contentName })
+  }
+  return base
+}]]>
+      </code-addition>
+    </task>
+  </implementation-tasks>
+
+  <testing-requirements>
+    <manual-testing>
+      <test-case id="TC1">
+        <title>Module Detail Page Loads</title>
+        <preconditions>Student enrolled in course with published module</preconditions>
+        <steps>
+          <step>Navigate to /courses/[id]/modules/[moduleId]</step>
+          <step>Verify page loads without errors</step>
+          <step>Verify module title and description displayed</step>
+        </steps>
+        <expected-result>Module detail page renders with correct information</expected-result>
+      </test-case>
+
+      <test-case id="TC2">
+        <title>Content Items Display in Order</title>
+        <preconditions>Module has 3+ content items with different orderIndex values</preconditions>
+        <steps>
+          <step>Load module detail page</step>
+          <step>Note the order of content items displayed</step>
+          <step>Compare to orderIndex in database</step>
+        </steps>
+        <expected-result>Content items appear in ascending orderIndex order</expected-result>
+      </test-case>
+
+      <test-case id="TC3">
+        <title>Content Type Icons Display Correctly</title>
+        <preconditions>Module has content of different types (TEXT, VIDEO, YOUTUBE, etc.)</preconditions>
+        <steps>
+          <step>Load module detail page</step>
+          <step>Verify each content item shows appropriate icon</step>
+          <step>Verify icon colors match content type</step>
+        </steps>
+        <expected-result>Each content type has correct icon and color coding</expected-result>
+      </test-case>
+
+      <test-case id="TC4">
+        <title>Viewed Status Indicator</title>
+        <preconditions>
+          <condition>Student has viewed some content items in module</condition>
+          <condition>ModuleProgress record exists with contentViewed array</condition>
+        </preconditions>
+        <steps>
+          <step>Load module detail page</step>
+          <step>Verify viewed content shows checkmark or "Viewed" badge</step>
+          <step>Verify unviewed content does not show viewed indicator</step>
+        </steps>
+        <expected-result>Completion status accurately reflects ModuleProgress data</expected-result>
+      </test-case>
+
+      <test-case id="TC5">
+        <title>Content Item Click Navigation</title>
+        <preconditions>Module has at least one content item</preconditions>
+        <steps>
+          <step>Click on a content item</step>
+          <step>Verify navigation to content viewer page</step>
+          <step>Verify URL includes moduleId for context</step>
+        </steps>
+        <expected-result>Navigates to /courses/[id]/modules/[moduleId]/content/[contentId]</expected-result>
+      </test-case>
+
+      <test-case id="TC6">
+        <title>Breadcrumb Navigation</title>
+        <preconditions>None</preconditions>
+        <steps>
+          <step>Load module detail page</step>
+          <step>Verify breadcrumb shows: Dashboard > Course Name > Module Name</step>
+          <step>Click "Course Name" in breadcrumb</step>
+          <step>Verify navigation to course overview</step>
+        </steps>
+        <expected-result>Breadcrumb provides correct navigation hierarchy</expected-result>
+      </test-case>
+
+      <test-case id="TC7">
+        <title>Back to Course Button</title>
+        <preconditions>None</preconditions>
+        <steps>
+          <step>Load module detail page</step>
+          <step>Locate "Back to Course" button</step>
+          <step>Click button</step>
+          <step>Verify navigation to course overview page</step>
+        </steps>
+        <expected-result>Button navigates back to /courses/[id]</expected-result>
+      </test-case>
+
+      <test-case id="TC8">
+        <title>Locked Module Access Denied</title>
+        <preconditions>Module requires previous module completion (story 3-2)</preconditions>
+        <steps>
+          <step>Navigate directly to locked module URL</step>
+          <step>Verify 403 error or lock message displayed</step>
+          <step>Verify content is not exposed</step>
+        </steps>
+        <expected-result>Access denied with helpful message about prerequisite</expected-result>
+      </test-case>
+
+      <test-case id="TC9">
+        <title>Empty Module State</title>
+        <preconditions>Module exists but has no content items</preconditions>
+        <steps>
+          <step>Load module detail page</step>
+          <step>Verify empty state message displayed</step>
+          <step>Verify page does not error</step>
+        </steps>
+        <expected-result>Displays friendly "No content yet" message</expected-result>
+      </test-case>
+
+      <test-case id="TC10">
+        <title>Unpublished Content Not Visible</title>
+        <preconditions>Module has mix of published and unpublished content</preconditions>
+        <steps>
+          <step>Load module detail page as student</step>
+          <step>Count visible content items</step>
+          <step>Compare to published content count in database</step>
+        </steps>
+        <expected-result>Only published content items are visible to student</expected-result>
+      </test-case>
+    </manual-testing>
+
+    <edge-cases>
+      <case>Student not enrolled in course - should return 403</case>
+      <case>Module does not exist - should return 404</case>
+      <case>Module is unpublished - should not be accessible to students</case>
+      <case>Module has no content - show empty state</case>
+      <case>Content item has thumbnail vs. no thumbnail - handle both display cases</case>
+      <case>Very long module title/description - ensure proper text truncation</case>
+      <case>Student directly accesses content URL without moduleId - graceful fallback</case>
+    </edge-cases>
+  </testing-requirements>
+
+  <integration-points>
+    <integration name="Story 3-1: Student Module Overview">
+      <description>Module cards in overview should link to this detail page</description>
+      <implementation>Update module card onClick to navigate to /courses/[id]/modules/[moduleId]</implementation>
+    </integration>
+
+    <integration name="Story 3-2: Module Lock/Unlock States">
+      <description>API must check unlock status before serving module detail</description>
+      <implementation>Import and call isModuleUnlocked() from /lib/modules.ts (story 3-2)</implementation>
+    </integration>
+
+    <integration name="Story 3-4: Content Completion Tracking">
+      <description>Content viewer will mark items as viewed and update ModuleProgress</description>
+      <implementation>Content viewer calls POST /api/student/courses/[id]/modules/[moduleId]/content/[contentId]/complete</implementation>
+    </integration>
+
+    <integration name="Existing Content Display Logic">
+      <description>Reuse content rendering from /src/app/courses/[id]/page.tsx</description>
+      <implementation>Extract content display into shared component or copy logic to content viewer page</implementation>
+    </integration>
+  </integration-points>
+
+  <dependencies>
+    <dependency type="prerequisite" status="drafted">
+      <story-id>3-1-student-module-overview</story-id>
+      <reason>Need module list page to navigate from</reason>
+    </dependency>
+
+    <dependency type="prerequisite" status="drafted">
+      <story-id>3-2-module-lock-unlock-states</story-id>
+      <reason>Need isModuleUnlocked() function for API authorization</reason>
+    </dependency>
+
+    <dependency type="blocks" status="drafted">
+      <story-id>3-4-content-completion-tracking</story-id>
+      <reason>Content viewer needs module context to update progress</reason>
+    </dependency>
+
+    <dependency type="external" status="complete">
+      <name>Breadcrumb Component</name>
+      <location>/src/components/Breadcrumb.tsx</location>
+      <reason>Required for navigation hierarchy</reason>
+    </dependency>
+
+    <dependency type="external" status="complete">
+      <name>ProtectedRoute Component</name>
+      <location>/src/components/ProtectedRoute.tsx</location>
+      <reason>Required for role-based access control</reason>
+    </dependency>
+
+    <dependency type="external" status="complete">
+      <name>Prisma Schema</name>
+      <location>/prisma/schema.prisma</location>
+      <reason>Module, ModuleProgress, and CourseContent models must exist</reason>
+    </dependency>
+  </dependencies>
+
+  <dev-notes>
+    <note category="architecture">
+      <title>Route Structure Decision</title>
+      <content>
+        Using separate page route (/courses/[id]/modules/[moduleId]/page.tsx) rather than inline
+        expansion for better URL sharing, browser back button behavior, and separation of concerns.
+        This aligns with the architecture decision in the story file.
+      </content>
+    </note>
+
+    <note category="performance">
+      <title>Data Fetching Strategy</title>
+      <content>
+        Fetch module detail with single Prisma query including nested relations (content, assignments,
+        discussions). Use separate query for ModuleProgress to avoid N+1 problem. Map isViewed status
+        on server-side before returning to client.
+      </content>
+    </note>
+
+    <note category="ux">
+      <title>Content Viewer Integration</title>
+      <content>
+        Content viewer should display full content (text, embedded video, file download, etc.) similar
+        to existing /courses/[id]/page.tsx content tab. Pass moduleId via URL for context preservation.
+        "Back to Module" button provides clear return path.
+      </content>
+    </note>
+
+    <note category="security">
+      <title>Authorization Layers</title>
+      <content>
+        Three layers of authorization:
+        1. Session check (STUDENT role)
+        2. Enrollment check (student enrolled in course)
+        3. Module unlock check (prerequisite modules completed)
+        Return 403 with helpful message if locked, not exposing content structure.
+      </content>
+    </note>
+
+    <note category="testing">
+      <title>ModuleProgress Mock Data</title>
+      <content>
+        For testing viewed/unviewed states, manually create ModuleProgress records with contentViewed
+        arrays containing specific content IDs. Verify isViewed prop correctly maps to UI indicators.
+      </content>
+    </note>
+
+    <note category="future">
+      <title>Progress Calculation</title>
+      <content>
+        This story displays module progress percentage from API, but does not calculate it.
+        Calculation logic will be implemented in Story 3-7 (Module Progress API) using the
+        50% content + 50% assignments formula from architecture.
+      </content>
+    </note>
+  </dev-notes>
+
+  <files-to-create>
+    <file>/src/app/courses/[id]/modules/[moduleId]/page.tsx</file>
+    <file>/src/app/api/student/courses/[id]/modules/[moduleId]/route.ts</file>
+    <file>/src/components/modules/StudentContentItem.tsx</file>
+    <file>/src/app/courses/[id]/modules/[moduleId]/content/[contentId]/page.tsx</file>
+  </files-to-create>
+
+  <files-to-modify>
+    <file>/src/components/Breadcrumb.tsx</file>
+  </files-to-modify>
+
+  <related-documentation>
+    <doc path="/docs/PRD-course-modules.md" section="UX Design Principles">Navigation hierarchy and progressive disclosure</doc>
+    <doc path="/docs/architecture-course-modules.md" section="Student Module Endpoints">API contract for GET /api/student/courses/[id]/modules/[moduleId]</doc>
+    <doc path="/docs/epics-course-modules.md" section="Story 3.3">Original story specification</doc>
+    <doc path="/docs/stories/3-2-module-lock-unlock-states.md">Module unlock logic and isModuleUnlocked function</doc>
+  </related-documentation>
+</story-context>

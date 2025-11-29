@@ -1,0 +1,502 @@
+<story-context id="2-2-create-and-edit-module-form" v="1.0">
+  <metadata>
+    <epicId>epic-2</epicId>
+    <storyId>2-2-create-and-edit-module-form</storyId>
+    <title>Create and Edit Module Form</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-11-28</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/2-2-create-and-edit-module-form.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>an instructor</asA>
+    <iWant>to create and edit modules</iWant>
+    <soThat>I can organize my course content</soThat>
+
+    <tasks>
+      <task id="1" status="pending">
+        <description>Create ModuleForm component (AC: 2, 3)</description>
+        <subtasks>
+          <subtask id="1.1">Create `src/components/modules/ModuleForm.tsx`</subtask>
+          <subtask id="1.2">Add title input field (required, max 200 chars)</subtask>
+          <subtask id="1.3">Add description textarea (optional, max 2000 chars)</subtask>
+          <subtask id="1.4">Implement client-side validation with error messages</subtask>
+          <subtask id="1.5">Support both create and edit modes via props</subtask>
+        </subtasks>
+      </task>
+
+      <task id="2" status="pending">
+        <description>Create ModuleFormModal component (AC: 1, 7)</description>
+        <subtasks>
+          <subtask id="2.1">Create `src/components/modules/ModuleFormModal.tsx`</subtask>
+          <subtask id="2.2">Use Radix Dialog or existing modal pattern</subtask>
+          <subtask id="2.3">Modal header shows "Create Module" or "Edit Module" based on mode</subtask>
+          <subtask id="2.4">Add Cancel button that closes modal without action</subtask>
+          <subtask id="2.5">Handle click-outside and Escape key to close</subtask>
+        </subtasks>
+      </task>
+
+      <task id="3" status="pending">
+        <description>Implement create functionality (AC: 4, 5)</description>
+        <subtasks>
+          <subtask id="3.1">On submit, POST to /api/instructor/courses/[id]/modules</subtask>
+          <subtask id="3.2">Send { title, description, requiresPrevious: true }</subtask>
+          <subtask id="3.3">Show loading state on submit button</subtask>
+          <subtask id="3.4">On success: close modal, show toast, refetch module list</subtask>
+          <subtask id="3.5">On error: show error toast, keep modal open</subtask>
+        </subtasks>
+      </task>
+
+      <task id="4" status="pending">
+        <description>Implement edit functionality (AC: 6)</description>
+        <subtasks>
+          <subtask id="4.1">Accept `module` prop for edit mode</subtask>
+          <subtask id="4.2">Pre-fill form fields with existing module data</subtask>
+          <subtask id="4.3">On submit, PUT to /api/instructor/courses/[id]/modules/[moduleId]</subtask>
+          <subtask id="4.4">Only send changed fields in request</subtask>
+          <subtask id="4.5">On success: close modal, show toast, refetch module list</subtask>
+        </subtasks>
+      </task>
+
+      <task id="5" status="pending">
+        <description>Wire modal to ModuleList (AC: 1)</description>
+        <subtasks>
+          <subtask id="5.1">Add state for modal open/closed in ModuleList</subtask>
+          <subtask id="5.2">Connect "Add Module" button to open modal in create mode</subtask>
+          <subtask id="5.3">Connect module card edit action to open modal in edit mode</subtask>
+          <subtask id="5.4">Pass refetch function to modal for list refresh</subtask>
+        </subtasks>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="1">Modal form for creating new module</criterion>
+    <criterion id="2">Fields: title (required), description (optional)</criterion>
+    <criterion id="3">Form validation with error messages</criterion>
+    <criterion id="4">Success toast on save</criterion>
+    <criterion id="5">New modules default to unpublished</criterion>
+    <criterion id="6">Edit mode pre-fills existing values</criterion>
+    <criterion id="7">Cancel button closes without saving</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <!-- Project Documentation -->
+      <artifact type="prd" path="docs/PRD-course-modules.md">
+        <relevance>Defines overall module feature requirements and user journeys</relevance>
+        <keySection>FR001: Instructors can create, edit, and delete modules within a course</keySection>
+        <keySection>FR002: Modules have title, description, order index, and publish status</keySection>
+        <keySection>Journey 1: Instructor Creates and Organizes Modules - Steps 4-6</keySection>
+      </artifact>
+
+      <artifact type="architecture" path="docs/architecture-course-modules.md">
+        <relevance>Defines API contracts, validation rules, and component structure</relevance>
+        <keySection>API Contracts: POST /api/instructor/courses/[id]/modules - Create new module</keySection>
+        <keySection>API Contracts: PUT /api/instructor/courses/[id]/modules/[moduleId] - Update module</keySection>
+        <keySection>Validation Rules: createModuleSchema (title: 1-200 chars, description: max 2000 chars)</keySection>
+        <keySection>Project Structure: src/components/modules/ directory</keySection>
+      </artifact>
+
+      <artifact type="epic" path="docs/epics-course-modules.md">
+        <relevance>Epic 2 context and Story 2.2 original specification</relevance>
+        <keySection>Story 2.2: Create and Edit Module Form - Full specification</keySection>
+        <keySection>Epic 2 Goal: Enable instructors to create, edit, organize, and publish modules</keySection>
+      </artifact>
+    </docs>
+
+    <code>
+      <!-- Existing API Endpoints -->
+      <artifact type="api-route" path="src/app/api/instructor/courses/[id]/modules/route.ts">
+        <relevance>POST endpoint for creating modules - already implemented in Story 1.5</relevance>
+        <interface>
+          POST /api/instructor/courses/[id]/modules
+          Request: { title: string, description?: string, requiresPrevious?: boolean }
+          Response: Module object with { id, title, description, orderIndex, isPublished, requiresPrevious, createdAt, updatedAt }
+        </interface>
+      </artifact>
+
+      <artifact type="api-route" path="src/app/api/instructor/courses/[id]/modules/[moduleId]/route.ts">
+        <relevance>PUT endpoint for updating modules - already implemented in Story 1.5</relevance>
+        <interface>
+          PUT /api/instructor/courses/[id]/modules/[moduleId]
+          Request: { title?: string, description?: string, isPublished?: boolean, requiresPrevious?: boolean }
+          Response: Updated Module object
+        </interface>
+      </artifact>
+
+      <!-- Validation Schemas -->
+      <artifact type="validation" path="src/lib/validations/module.ts">
+        <relevance>Zod schemas for module validation - use for client-side validation</relevance>
+        <interface>
+          createModuleSchema: z.object({
+            title: z.string().min(1).max(200),
+            description: z.string().max(2000).optional(),
+            requiresPrevious: z.boolean().default(true)
+          })
+
+          updateModuleSchema: z.object({
+            title: z.string().min(1).max(200).optional(),
+            description: z.string().max(2000).nullable().optional(),
+            isPublished: z.boolean().optional(),
+            requiresPrevious: z.boolean().optional()
+          })
+        </interface>
+      </artifact>
+
+      <!-- Modal Pattern Examples -->
+      <artifact type="component" path="src/components/admin/UserCreateModal.tsx">
+        <relevance>Reference implementation for modal form with Radix Dialog</relevance>
+        <pattern>Uses @radix-ui/react-dialog for modal</pattern>
+        <pattern>Form validation with inline error messages</pattern>
+        <pattern>Loading state with Loader2 icon from lucide-react</pattern>
+        <pattern>Focus management with useRef on first input</pattern>
+        <pattern>Reset form state on modal open/close via useEffect</pattern>
+        <pattern>Cancel button and X close button</pattern>
+      </artifact>
+
+      <artifact type="component" path="src/components/admin/UserEditModal.tsx">
+        <relevance>Reference implementation for edit mode with pre-filled values</relevance>
+        <pattern>Pre-populate form fields from props (user object)</pattern>
+        <pattern>Track original values to detect changes</pattern>
+        <pattern>Only send changed fields in update request</pattern>
+        <pattern>Conditional modal title based on mode</pattern>
+      </artifact>
+
+      <!-- Related Story Components -->
+      <artifact type="story" path="docs/stories/2-1-module-list-view-for-instructors.md">
+        <relevance>ModuleList component will integrate with this modal</relevance>
+        <note>ModuleList has "Add Module" button that should open ModuleFormModal in create mode</note>
+        <note>ModuleCard has edit action that should open ModuleFormModal in edit mode with module data</note>
+        <note>useModules hook returns refetch function to refresh list after create/edit</note>
+      </artifact>
+    </code>
+
+    <dependencies>
+      <package name="@radix-ui/react-dialog" version="^1.1.14" usage="Modal dialog component" />
+      <package name="lucide-react" version="^0.514.0" usage="Icons (X for close, Loader2 for loading)" />
+      <package name="react-hot-toast" version="^2.5.2" usage="Toast notifications for success/error messages" />
+      <package name="zod" version="^4.1.13" usage="Client-side form validation using existing schemas" />
+      <package name="next" version="15.3.3" usage="API routes via fetch" />
+      <package name="react" version="^19.0.0" usage="useState, useCallback, useEffect, useRef hooks" />
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="validation">
+      <rule>Title is required (non-empty string)</rule>
+      <rule>Title must be max 200 characters</rule>
+      <rule>Description is optional</rule>
+      <rule>Description must be max 2000 characters if provided</rule>
+      <rule>Use Zod schemas from src/lib/validations/module.ts for validation</rule>
+    </constraint>
+
+    <constraint type="ui-patterns">
+      <rule>Use Radix Dialog (@radix-ui/react-dialog) for modal - consistent with existing codebase</rule>
+      <rule>Modal styling must match existing patterns (see UserCreateModal/UserEditModal)</rule>
+      <rule>Tailwind CSS classes: bg-white, rounded-lg, shadow-lg, p-6</rule>
+      <rule>Form inputs: border-gray-300, focus:ring-2, focus:ring-pink-500</rule>
+      <rule>Error states: border-red-300, text-red-600</rule>
+      <rule>Primary button: bg-pink-600, hover:bg-pink-700</rule>
+      <rule>Cancel button: bg-white, border-gray-300, hover:bg-gray-50</rule>
+    </constraint>
+
+    <constraint type="behavior">
+      <rule>New modules default to isPublished: false (handled by API)</rule>
+      <rule>New modules default to requiresPrevious: true</rule>
+      <rule>Modal closes on successful save</rule>
+      <rule>Modal stays open on error to allow user to fix issues</rule>
+      <rule>Modal closes on Cancel button, X button, Escape key, or click outside</rule>
+      <rule>Focus first input field when modal opens (accessibility)</rule>
+      <rule>Disable all form inputs and buttons while submitting</rule>
+    </constraint>
+
+    <constraint type="api-integration">
+      <rule>Create: POST to /api/instructor/courses/{courseId}/modules</rule>
+      <rule>Update: PUT to /api/instructor/courses/{courseId}/modules/{moduleId}</rule>
+      <rule>Include courseId in API calls (passed via props or context)</rule>
+      <rule>Handle 401 Unauthorized errors</rule>
+      <rule>Handle 404 Not Found errors</rule>
+      <rule>Handle 400 Validation errors</rule>
+      <rule>Handle 500 Server errors</rule>
+    </constraint>
+
+    <constraint type="state-management">
+      <rule>Modal open/closed state lives in parent (ModuleList)</rule>
+      <rule>Form data state lives in ModuleFormModal component</rule>
+      <rule>Reset form state when modal opens</rule>
+      <rule>Clear errors when user starts typing in a field</rule>
+    </constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="ModuleFormData">
+      <description>Client-side form state</description>
+      <code language="typescript">
+interface ModuleFormData {
+  title: string;        // required, 1-200 chars
+  description?: string; // optional, max 2000 chars
+}
+      </code>
+    </interface>
+
+    <interface name="ModuleFormErrors">
+      <description>Form validation errors</description>
+      <code language="typescript">
+interface ModuleFormErrors {
+  title?: string;
+  description?: string;
+}
+      </code>
+    </interface>
+
+    <interface name="ModuleFormModalProps">
+      <description>Props for ModuleFormModal component</description>
+      <code language="typescript">
+interface ModuleFormModalProps {
+  isOpen: boolean;
+  mode: 'create' | 'edit';
+  courseId: string;
+  module?: Module | null;  // Only provided in edit mode
+  onClose: () => void;
+  onSuccess: () => void;   // Callback to refetch module list
+}
+      </code>
+    </interface>
+
+    <interface name="Module">
+      <description>Module object structure (from API)</description>
+      <code language="typescript">
+interface Module {
+  id: string;
+  title: string;
+  description: string | null;
+  orderIndex: number;
+  isPublished: boolean;
+  requiresPrevious: boolean;
+  createdAt: string;
+  updatedAt: string;
+  contentCount?: number;
+  assignmentCount?: number;
+  discussionCount?: number;
+}
+      </code>
+    </interface>
+
+    <interface name="CreateModuleRequest">
+      <description>POST request body to create module</description>
+      <code language="typescript">
+interface CreateModuleRequest {
+  title: string;
+  description?: string;
+  requiresPrevious: boolean;  // default: true
+}
+      </code>
+    </interface>
+
+    <interface name="UpdateModuleRequest">
+      <description>PUT request body to update module (only changed fields)</description>
+      <code language="typescript">
+interface UpdateModuleRequest {
+  title?: string;
+  description?: string;
+  // Note: isPublished and requiresPrevious handled by other stories
+}
+      </code>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      <framework>Jest + React Testing Library</framework>
+      <location>src/components/modules/__tests__/ModuleFormModal.test.tsx</location>
+      <coverage>Aim for 80%+ coverage on component logic</coverage>
+      <accessibility>Test keyboard navigation, screen reader labels, focus management</accessibility>
+    </standards>
+
+    <locations>
+      <unit>src/components/modules/__tests__/ModuleForm.test.tsx</unit>
+      <unit>src/components/modules/__tests__/ModuleFormModal.test.tsx</unit>
+      <integration>Test modal integration with ModuleList component</integration>
+    </locations>
+
+    <ideas>
+      <testCase id="1">
+        <name>ModuleFormModal - Create Mode</name>
+        <scenario>Should open modal with empty form in create mode</scenario>
+        <assertions>
+          - Modal title is "Create Module"
+          - Title input is empty
+          - Description textarea is empty
+          - Submit button says "Create Module"
+        </assertions>
+      </testCase>
+
+      <testCase id="2">
+        <name>ModuleFormModal - Edit Mode</name>
+        <scenario>Should open modal with pre-filled form in edit mode</scenario>
+        <assertions>
+          - Modal title is "Edit Module"
+          - Title input contains module.title
+          - Description textarea contains module.description
+          - Submit button says "Save Changes"
+        </assertions>
+      </testCase>
+
+      <testCase id="3">
+        <name>Form Validation - Required Title</name>
+        <scenario>Should show error when submitting empty title</scenario>
+        <assertions>
+          - Error message "Title is required" displayed
+          - Title input has error styling (border-red-300)
+          - Form does not submit
+        </assertions>
+      </testCase>
+
+      <testCase id="4">
+        <name>Form Validation - Title Max Length</name>
+        <scenario>Should show error when title exceeds 200 characters</scenario>
+        <assertions>
+          - Error message "Title must be 200 characters or less"
+          - Title input has error styling
+          - Form does not submit
+        </assertions>
+      </testCase>
+
+      <testCase id="5">
+        <name>Form Validation - Description Max Length</name>
+        <scenario>Should show error when description exceeds 2000 characters</scenario>
+        <assertions>
+          - Error message "Description must be 2000 characters or less"
+          - Description textarea has error styling
+          - Form does not submit
+        </assertions>
+      </testCase>
+
+      <testCase id="6">
+        <name>Create Module - Success</name>
+        <scenario>Should create module and show success toast</scenario>
+        <actions>
+          - Fill in title "Module 1"
+          - Fill in description "This is module 1"
+          - Click submit
+          - Mock API returns 201 success
+        </actions>
+        <assertions>
+          - POST request sent to /api/instructor/courses/{courseId}/modules
+          - Request body contains { title, description, requiresPrevious: true }
+          - Success toast "Module created successfully" shown
+          - Modal closes
+          - onSuccess callback called (to refetch list)
+        </assertions>
+      </testCase>
+
+      <testCase id="7">
+        <name>Update Module - Success</name>
+        <scenario>Should update module with only changed fields</scenario>
+        <actions>
+          - Open modal in edit mode with existing module
+          - Change title from "Module 1" to "Updated Module 1"
+          - Keep description unchanged
+          - Click submit
+          - Mock API returns 200 success
+        </actions>
+        <assertions>
+          - PUT request sent to /api/instructor/courses/{courseId}/modules/{moduleId}
+          - Request body contains only { title: "Updated Module 1" }
+          - Success toast "Module updated successfully" shown
+          - Modal closes
+          - onSuccess callback called
+        </assertions>
+      </testCase>
+
+      <testCase id="8">
+        <name>Create Module - API Error</name>
+        <scenario>Should show error toast when API fails</scenario>
+        <actions>
+          - Fill in valid form data
+          - Click submit
+          - Mock API returns 500 error
+        </actions>
+        <assertions>
+          - Error toast shown with error message
+          - Modal stays open
+          - Form data preserved
+          - Submit button re-enabled
+        </assertions>
+      </testCase>
+
+      <testCase id="9">
+        <name>Cancel Button</name>
+        <scenario>Should close modal without saving when Cancel clicked</scenario>
+        <assertions>
+          - Modal closes
+          - No API request made
+          - onClose callback called
+        </assertions>
+      </testCase>
+
+      <testCase id="10">
+        <name>X Close Button</name>
+        <scenario>Should close modal when X button clicked</scenario>
+        <assertions>
+          - Modal closes
+          - No API request made
+          - onClose callback called
+        </assertions>
+      </testCase>
+
+      <testCase id="11">
+        <name>Escape Key</name>
+        <scenario>Should close modal when Escape key pressed</scenario>
+        <assertions>
+          - Modal closes
+          - Handled by Radix Dialog default behavior
+        </assertions>
+      </testCase>
+
+      <testCase id="12">
+        <name>Click Outside</name>
+        <scenario>Should close modal when clicking overlay</scenario>
+        <assertions>
+          - Modal closes
+          - Handled by Radix Dialog default behavior
+        </assertions>
+      </testCase>
+
+      <testCase id="13">
+        <name>Loading State</name>
+        <scenario>Should show loading state during submission</scenario>
+        <assertions>
+          - Submit button shows Loader2 spinning icon
+          - Submit button is disabled
+          - All form inputs are disabled
+          - Cancel button is disabled
+        </assertions>
+      </testCase>
+
+      <testCase id="14">
+        <name>Focus Management</name>
+        <scenario>Should focus title input when modal opens</scenario>
+        <assertions>
+          - Title input receives focus after modal opens
+          - Improves accessibility and UX
+        </assertions>
+      </testCase>
+
+      <testCase id="15">
+        <name>Clear Error on Input</name>
+        <scenario>Should clear field error when user starts typing</scenario>
+        <actions>
+          - Submit form with empty title (triggers error)
+          - Start typing in title field
+        </actions>
+        <assertions>
+          - Error message for title disappears
+          - Error styling removed from title input
+        </assertions>
+      </testCase>
+    </ideas>
+  </tests>
+</story-context>

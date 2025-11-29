@@ -1,0 +1,500 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context id="4-6" v="1.0">
+  <metadata>
+    <epicId>4</epicId>
+    <storyId>6</storyId>
+    <title>API Updates for Module Filtering</title>
+    <status>done</status>
+    <generatedAt>2025-11-28</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/4-6-api-updates-for-module-filtering.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>developer</asA>
+    <iWant>APIs to support module filtering</iWant>
+    <soThat>the frontend can request module-specific data</soThat>
+
+    <tasks>
+      <task id="1" name="Update content API" ac="1,4,5">
+        <subtask id="1.1">Add moduleId query parameter to GET /api/student/courses/[id]/content</subtask>
+        <subtask id="1.2">When moduleId provided, filter results</subtask>
+        <subtask id="1.3">Include moduleId in each content item response</subtask>
+        <subtask id="1.4">Ensure query uses moduleId index</subtask>
+      </task>
+
+      <task id="2" name="Update assignments API" ac="2,4,5">
+        <subtask id="2.1">Add moduleId filter to GET /api/instructor/courses/[id]/assignments</subtask>
+        <subtask id="2.2">Also add to student assignments endpoint if exists</subtask>
+        <subtask id="2.3">Include moduleId in response items</subtask>
+        <subtask id="2.4">Use moduleId index for filtering</subtask>
+      </task>
+
+      <task id="3" name="Update discussions API" ac="3,4,5">
+        <subtask id="3.1">Add moduleId filter to GET /api/student/courses/[id]/discussions</subtask>
+        <subtask id="3.2">Add to instructor discussions endpoint</subtask>
+        <subtask id="3.3">Include moduleId in response items</subtask>
+        <subtask id="3.4">Use moduleId index for filtering</subtask>
+      </task>
+
+      <task id="4" name="Verify index usage" ac="5">
+        <subtask id="4.1">Check that moduleId indexes exist (from Story 1.2)</subtask>
+        <subtask id="4.2">Verify query plans use indexes (EXPLAIN if needed)</subtask>
+        <subtask id="4.3">Add indexes if missing</subtask>
+      </task>
+
+      <task id="5" name="Document API changes">
+        <subtask id="5.1">Update API documentation/comments</subtask>
+        <subtask id="5.2">Note new query parameters</subtask>
+        <subtask id="5.3">Ensure TypeScript types reflect changes</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="1">GET /api/student/courses/[id]/content accepts moduleId query param</criterion>
+    <criterion id="2">GET /api/instructor/courses/[id]/assignments accepts moduleId filter</criterion>
+    <criterion id="3">GET /api/student/courses/[id]/discussions accepts moduleId filter</criterion>
+    <criterion id="4">Responses include moduleId in each item</criterion>
+    <criterion id="5">Performance: filtered queries use database indexes</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/architecture-course-modules.md">
+        <section name="API Contracts">
+          <description>API endpoint patterns and module-aware query specifications</description>
+          <keyPoints>
+            <point>Student endpoints return only published content filtered by enrollment</point>
+            <point>Instructor endpoints return all content (published and unpublished) for owned courses</point>
+            <point>Module filtering is optional - omitting moduleId returns all items</point>
+            <point>All responses include moduleId field for client-side grouping</point>
+            <point>Results ordered by module.orderIndex for proper sequencing</point>
+          </keyPoints>
+        </section>
+        <section name="Performance Considerations">
+          <description>Database index strategy for efficient module queries</description>
+          <keyPoints>
+            <point>Index on course_content.moduleId enables fast filtering</point>
+            <point>Index on assignments.moduleId for assignment queries</point>
+            <point>Index on discussions.moduleId for discussion queries</point>
+            <point>Compound ordering by module.orderIndex then item.orderIndex</point>
+            <point>Use Prisma include for module relation to avoid N+1 queries</point>
+          </keyPoints>
+        </section>
+      </doc>
+
+      <doc path="docs/PRD-course-modules.md">
+        <section name="Functional Requirements - Content Organization">
+          <description>Requirements FR006-FR009 for content module organization</description>
+          <keyPoints>
+            <point>FR006: Course content items belong to exactly one module</point>
+            <point>FR007: Instructors can move content items between modules</point>
+            <point>FR008: Content items maintain order index within their module</point>
+            <point>FR009: Drag-and-drop reordering works within module context</point>
+          </keyPoints>
+        </section>
+        <section name="Functional Requirements - Assignments">
+          <description>Requirements FR010-FR013 for assignment module organization</description>
+          <keyPoints>
+            <point>FR010: Assignments belong to exactly one module</point>
+            <point>FR011: Instructors can create assignments within a specific module</point>
+            <point>FR012: Instructors can move assignments between modules</point>
+            <point>FR013: Gradebook displays module context for each assignment</point>
+          </keyPoints>
+        </section>
+        <section name="Functional Requirements - Discussions">
+          <description>Requirements FR014-FR016 for discussion module organization</description>
+          <keyPoints>
+            <point>FR014: Discussions belong to exactly one module</point>
+            <point>FR015: Instructors can create discussions within a specific module</point>
+            <point>FR016: Students can only participate in discussions for unlocked modules</point>
+          </keyPoints>
+        </section>
+      </doc>
+
+      <doc path="docs/stories/4-6-api-updates-for-module-filtering.md">
+        <section name="API Enhancement Pattern">
+          <description>Code pattern for adding optional moduleId filtering to existing endpoints</description>
+          <keyPoints>
+            <point>Parse moduleId from searchParams.get('moduleId')</point>
+            <point>Use conditional spread: ...(moduleId and { moduleId }) for optional filter</point>
+            <point>Include module relation in select/include for response data</point>
+            <point>Order by module.orderIndex to maintain module sequence</point>
+          </keyPoints>
+        </section>
+        <section name="Endpoints to Update">
+          <description>Complete list of 6 API endpoints requiring module filtering</description>
+          <keyPoints>
+            <point>GET /api/student/courses/[id]/content - Student content access</point>
+            <point>GET /api/instructor/courses/[id]/content - Instructor content management</point>
+            <point>GET /api/student/courses/[id]/assignments - Student assignment view</point>
+            <point>GET /api/instructor/courses/[id]/assignments - Instructor assignment management</point>
+            <point>GET /api/student/courses/[id]/discussions - Student discussion access</point>
+            <point>GET /api/instructor/courses/[id]/discussions - Instructor discussion management</point>
+          </keyPoints>
+        </section>
+      </doc>
+    </docs>
+
+    <code>
+      <file path="src/app/api/student/courses/[id]/content/route.ts">
+        <purpose>Student content endpoint - implements moduleId filtering pattern</purpose>
+        <relevantSections>
+          <section lines="30-32">Parse optional moduleId query parameter</section>
+          <section lines="49-63">Build where clause with conditional moduleId filter</section>
+          <section lines="68-71">Order results by module.orderIndex then content.orderIndex</section>
+          <section lines="81-89">Include moduleId and module relation in response</section>
+        </relevantSections>
+        <implementation>
+          - Uses searchParams.get('moduleId') for query param extraction
+          - Conditional filter: if (moduleId) { whereClause.moduleId = moduleId }
+          - Prisma orderBy array: [{ module: { orderIndex: 'asc' } }, { orderIndex: 'asc' }]
+          - Response includes moduleId field and nested module object with id, title, orderIndex
+        </implementation>
+      </file>
+
+      <file path="src/app/api/instructor/courses/[id]/content/route.ts">
+        <purpose>Instructor content endpoint - same filtering pattern without isPublished restriction</purpose>
+        <relevantSections>
+          <section lines="30-32">Parse optional moduleId query parameter</section>
+          <section lines="46-58">Build where clause with conditional moduleId filter</section>
+          <section lines="62-65">Order results by module.orderIndex then content.orderIndex</section>
+          <section lines="76-83">Include moduleId and module relation in response</section>
+        </relevantSections>
+        <implementation>
+          - Same pattern as student endpoint but without isPublished: true filter
+          - Instructors see all content regardless of publish status
+          - Maintains module context in response for UI organization
+        </implementation>
+      </file>
+
+      <file path="src/app/api/student/courses/[id]/assignments/route.ts">
+        <purpose>Student assignments endpoint - moduleId filtering with submission status</purpose>
+        <relevantSections>
+          <section lines="30-32">Parse optional moduleId query parameter</section>
+          <section lines="49-63">Build where clause with conditional moduleId filter</section>
+          <section lines="67-70">Order by module.orderIndex then dueDate</section>
+          <section lines="79-86">Include moduleId and module relation in response</section>
+        </relevantSections>
+        <implementation>
+          - Filters for isPublished: true assignments only for students
+          - Orders by module sequence first, then by assignment dueDate
+          - Response includes module context for grouping in UI
+        </implementation>
+      </file>
+
+      <file path="src/app/api/instructor/courses/[id]/assignments/route.ts">
+        <purpose>Instructor assignments endpoint - moduleId filtering with submission counts</purpose>
+        <relevantSections>
+          <section lines="30-32">Parse optional moduleId query parameter</section>
+          <section lines="46-59">Build where clause with conditional moduleId filter</section>
+          <section lines="63-80">Include submission counts and module relation</section>
+          <section lines="77-80">Order by module.orderIndex then createdAt</section>
+        </relevantSections>
+        <implementation>
+          - Uses Prisma _count to include submission statistics
+          - No isPublished filter for instructors
+          - Orders by module sequence for logical organization
+          - Module context enables gradebook module grouping
+        </implementation>
+      </file>
+
+      <file path="src/app/api/student/courses/[id]/discussions/route.ts">
+        <purpose>Student discussions endpoint - moduleId filtering with post counts</purpose>
+        <relevantSections>
+          <section lines="30-32">Parse optional moduleId query parameter</section>
+          <section lines="49-61">Build where clause with conditional moduleId filter</section>
+          <section lines="73-84">Include post counts and module relation</section>
+          <section lines="86-90">Order by isPinned, module.orderIndex, createdAt</section>
+        </relevantSections>
+        <implementation>
+          - Filters for non-deleted discussions only
+          - Uses _count for post statistics
+          - Multi-level ordering: pinned discussions first, then by module, then by date
+          - Module context for discussion organization in student view
+        </implementation>
+      </file>
+
+      <file path="src/app/api/instructor/courses/[id]/discussions/route.ts">
+        <purpose>Instructor discussions endpoint - moduleId filtering with management features</purpose>
+        <relevantSections>
+          <section lines="30-32">Parse optional moduleId query parameter (GET handler)</section>
+          <section lines="46-58">Build where clause with conditional moduleId filter</section>
+          <section lines="75-83">Include post counts and module relation</section>
+          <section lines="85-88">Order by isPinned, module.orderIndex, createdAt</section>
+          <section lines="138-153">Module validation in POST handler for new discussions</section>
+        </relevantSections>
+        <implementation>
+          - Same filtering pattern as student endpoint but without enrollment check
+          - POST handler validates moduleId belongs to course before creating discussion
+          - Module context included in all responses for UI organization
+        </implementation>
+      </file>
+
+      <file path="prisma/schema.prisma">
+        <purpose>Database schema with module relations and indexes</purpose>
+        <relevantSections>
+          <section lines="48-68">course_content model with moduleId foreign key and index</section>
+          <section lines="25-46">assignments model with moduleId foreign key and index</section>
+          <section lines="110-128">discussions model with moduleId foreign key and index</section>
+          <section lines="192-211">modules model with relations to content, assignments, discussions</section>
+        </relevantSections>
+        <keyIndexes>
+          <index model="course_content" field="moduleId" line="67">@@index([moduleId]) - Fast content filtering by module</index>
+          <index model="assignments" field="moduleId" line="45">@@index([moduleId]) - Fast assignment filtering by module</index>
+          <index model="discussions" field="moduleId" line="127">@@index([moduleId]) - Fast discussion filtering by module</index>
+        </keyIndexes>
+      </file>
+    </code>
+
+    <dependencies>
+      <framework name="Next.js" version="15.3.3">
+        <features>
+          <feature>App Router with route handlers</feature>
+          <feature>Server-side session management with next-auth</feature>
+          <feature>Async params handling for route parameters</feature>
+        </features>
+      </framework>
+
+      <database name="Prisma" version="6.9.0">
+        <features>
+          <feature>PostgreSQL database client</feature>
+          <feature>Type-safe database queries</feature>
+          <feature>Relation loading with include/select</feature>
+          <feature>Compound orderBy for multi-level sorting</feature>
+          <feature>Index optimization for performance</feature>
+        </features>
+      </database>
+
+      <validation name="Zod" version="4.1.13">
+        <features>
+          <feature>TypeScript-first schema validation</feature>
+          <feature>Used for module validation in src/lib/validations/module.ts</feature>
+          <feature>Runtime type checking for API requests</feature>
+        </features>
+      </validation>
+
+      <auth name="NextAuth" version="4.24.11">
+        <features>
+          <feature>Session management via getServerSession</feature>
+          <feature>Role-based authorization (STUDENT, INSTRUCTOR, ADMIN)</feature>
+          <feature>authOptions configuration in src/lib/auth</feature>
+        </features>
+      </auth>
+    </dependencies>
+  </artifacts>
+
+  <interfaces>
+    <api name="GET /api/student/courses/[id]/content">
+      <method>GET</method>
+      <endpoint>/api/student/courses/[id]/content</endpoint>
+      <queryParams>
+        <param name="moduleId" type="string" required="false">Filter content by module ID</param>
+      </queryParams>
+      <authentication>Required - Student role with course enrollment</authentication>
+      <response>
+        <type>Array of CourseContent objects</type>
+        <fields>
+          <field name="id" type="string">Content item ID</field>
+          <field name="title" type="string">Content title</field>
+          <field name="type" type="ContentType">TEXT|VIDEO|DOCUMENT|LINK|SCORM|YOUTUBE</field>
+          <field name="content" type="string">Content body (for TEXT type)</field>
+          <field name="fileUrl" type="string">URL for file-based content</field>
+          <field name="thumbnailUrl" type="string">Thumbnail image URL</field>
+          <field name="orderIndex" type="number">Order within module</field>
+          <field name="moduleId" type="string">Parent module ID</field>
+          <field name="module" type="object">Module relation with id, title, orderIndex</field>
+        </fields>
+        <ordering>module.orderIndex ASC, orderIndex ASC</ordering>
+      </response>
+    </api>
+
+    <api name="GET /api/instructor/courses/[id]/assignments">
+      <method>GET</method>
+      <endpoint>/api/instructor/courses/[id]/assignments</endpoint>
+      <queryParams>
+        <param name="moduleId" type="string" required="false">Filter assignments by module ID</param>
+      </queryParams>
+      <authentication>Required - Instructor role, must own course</authentication>
+      <response>
+        <type>Array of Assignment objects with counts</type>
+        <fields>
+          <field name="id" type="string">Assignment ID</field>
+          <field name="title" type="string">Assignment title</field>
+          <field name="description" type="string">Assignment instructions</field>
+          <field name="dueDate" type="DateTime">Due date/time</field>
+          <field name="maxPoints" type="number">Maximum points possible</field>
+          <field name="isPublished" type="boolean">Publication status</field>
+          <field name="moduleId" type="string">Parent module ID</field>
+          <field name="module" type="object">Module relation with id, title, orderIndex</field>
+          <field name="_count.submissions" type="number">Number of student submissions</field>
+        </fields>
+        <ordering>module.orderIndex ASC, createdAt DESC</ordering>
+      </response>
+    </api>
+
+    <api name="GET /api/student/courses/[id]/discussions">
+      <method>GET</method>
+      <endpoint>/api/student/courses/[id]/discussions</endpoint>
+      <queryParams>
+        <param name="moduleId" type="string" required="false">Filter discussions by module ID</param>
+      </queryParams>
+      <authentication>Required - Student role with course enrollment</authentication>
+      <response>
+        <type>Array of Discussion objects with counts</type>
+        <fields>
+          <field name="id" type="string">Discussion ID</field>
+          <field name="title" type="string">Discussion title</field>
+          <field name="description" type="string">Discussion description</field>
+          <field name="isPinned" type="boolean">Pinned status</field>
+          <field name="moduleId" type="string">Parent module ID</field>
+          <field name="module" type="object">Module relation with id, title, orderIndex</field>
+          <field name="author" type="object">Author with id, name, email</field>
+          <field name="_count.posts" type="number">Number of discussion posts</field>
+        </fields>
+        <ordering>isPinned DESC, module.orderIndex ASC, createdAt DESC</ordering>
+      </response>
+    </api>
+
+    <prismaPattern name="Optional Filter Pattern">
+      <description>TypeScript pattern for conditionally adding filters to Prisma where clause</description>
+      <signature>
+        const whereClause: { courseId: string; moduleId?: string } = {
+          courseId: id,
+          deletedAt: null,
+        };
+        if (moduleId) {
+          whereClause.moduleId = moduleId;
+        }
+      </signature>
+      <usage>Enables optional moduleId filtering without complex conditional logic</usage>
+    </prismaPattern>
+
+    <prismaPattern name="Module Relation Include">
+      <description>Standard pattern for including module context in query results</description>
+      <signature>
+        module: {
+          select: {
+            id: true,
+            title: true,
+            orderIndex: true,
+          }
+        }
+      </signature>
+      <usage>Provides module context for UI grouping and display</usage>
+    </prismaPattern>
+  </interfaces>
+
+  <constraints>
+    <constraint type="authorization">
+      <rule>All student endpoints must verify course enrollment via prisma.enrollment.findUnique</rule>
+      <rule>All instructor endpoints must verify course ownership via instructorId check</rule>
+      <rule>Return 401 for unauthenticated requests, 403 for unauthorized access</rule>
+    </constraint>
+
+    <constraint type="filtering">
+      <rule>moduleId filter is always optional - omitting returns all items for the course</rule>
+      <rule>Student endpoints filter for isPublished: true, instructor endpoints show all</rule>
+      <rule>All queries filter for deletedAt: null (soft delete pattern)</rule>
+    </constraint>
+
+    <constraint type="performance">
+      <rule>Use Prisma indexes on moduleId for all filtered queries</rule>
+      <rule>Include module relation to avoid N+1 query problems</rule>
+      <rule>Order results by module.orderIndex for consistent sequencing</rule>
+    </constraint>
+
+    <constraint type="response-format">
+      <rule>All items must include moduleId field for client-side grouping</rule>
+      <rule>Include nested module object with id, title, orderIndex</rule>
+      <rule>Return empty array [] if no items match, never null</rule>
+      <rule>Use NextResponse.json() for all successful responses</rule>
+    </constraint>
+
+    <constraint type="error-handling">
+      <rule>Wrap all handlers in try-catch with 500 status for unexpected errors</rule>
+      <rule>Log errors with console.error for debugging</rule>
+      <rule>Return descriptive error messages in JSON format: { error: "message" }</rule>
+    </constraint>
+
+    <constraint type="next-js-15">
+      <rule>Always await params before accessing route parameters: const { id } = await params</rule>
+      <rule>Use Promise-based params type: { params: Promise&lt;{ id: string }&gt; }</rule>
+      <rule>Parse query params from request.url: new URL(request.url).searchParams</rule>
+    </constraint>
+  </constraints>
+
+  <tests>
+    <standards>
+      The project uses Jest for unit testing and Playwright for E2E testing. API endpoints should be tested with manual verification during development. The project follows these testing patterns:
+      - E2E tests in __tests__/e2e/ directory using Playwright
+      - Tests verify authentication, authorization, and business logic
+      - No explicit API unit tests found - focus on E2E integration testing
+      - Manual testing with curl or Postman recommended for API endpoints
+    </standards>
+
+    <locations>
+      <location>__tests__/e2e/*.spec.ts - E2E tests with Playwright</location>
+      <location>Manual API testing via development server on localhost:3000</location>
+    </locations>
+
+    <ideas>
+      <idea ac="1">
+        Test GET /api/student/courses/[id]/content with and without moduleId query param
+        - Verify enrolled student can access published content
+        - Verify moduleId filter returns only content from specified module
+        - Verify response includes moduleId and module relation
+        - Verify ordering by module.orderIndex then content.orderIndex
+      </idea>
+
+      <idea ac="2">
+        Test GET /api/instructor/courses/[id]/assignments with moduleId filter
+        - Verify instructor can see all assignments (published and unpublished)
+        - Verify moduleId filter returns only assignments from specified module
+        - Verify response includes moduleId, module relation, and submission counts
+        - Verify ordering by module.orderIndex then createdAt
+      </idea>
+
+      <idea ac="3">
+        Test GET /api/student/courses/[id]/discussions with moduleId filter
+        - Verify enrolled student can access discussions
+        - Verify moduleId filter returns only discussions from specified module
+        - Verify response includes moduleId, module relation, and post counts
+        - Verify ordering: pinned first, then by module, then by date
+      </idea>
+
+      <idea ac="4">
+        Verify moduleId inclusion in all response items
+        - Check content responses include moduleId field
+        - Check assignment responses include moduleId field
+        - Check discussion responses include moduleId field
+        - Verify module relation object includes id, title, orderIndex
+      </idea>
+
+      <idea ac="5">
+        Performance testing with database query analysis
+        - Use EXPLAIN to verify Prisma uses moduleId indexes
+        - Compare query performance with and without moduleId filter
+        - Verify no N+1 queries when including module relation
+        - Test with larger datasets (100+ items per course)
+      </idea>
+
+      <idea type="authorization">
+        Test authorization failures
+        - Verify 401 for unauthenticated requests
+        - Verify 403 for students accessing instructor endpoints
+        - Verify 403 for instructors accessing other instructor's courses
+        - Verify 403 for students not enrolled in course
+      </idea>
+
+      <idea type="edge-cases">
+        Test edge cases
+        - Empty moduleId parameter (should return all items)
+        - Invalid moduleId format (should return empty array or 400)
+        - Module from different course (should return empty array)
+        - Deleted module (moduleId exists but module.deletedAt is set)
+      </idea>
+    </ideas>
+  </tests>
+</story-context>

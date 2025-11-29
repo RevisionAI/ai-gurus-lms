@@ -1,0 +1,287 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context id="1-2" v="1.0">
+  <metadata>
+    <epicId>1</epicId>
+    <storyId>2</storyId>
+    <title>Add Module Foreign Keys to Existing Models</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-11-28</generatedAt>
+  </metadata>
+
+  <story>
+    <asA>developer</asA>
+    <iWant>add moduleId foreign keys to CourseContent, Assignment, and Discussion models</iWant>
+    <soThat>these entities can belong to modules</soThat>
+    <tasks>
+      <task id="1" ac="1">
+        <description>Add moduleId to CourseContent model</description>
+        <subtasks>
+          <subtask id="1.1">Add `moduleId String?` field to CourseContent model</subtask>
+          <subtask id="1.2">Add `module Module? @relation(fields: [moduleId], references: [id], onDelete: SetNull)` relation</subtask>
+          <subtask id="1.3">Add `@@index([moduleId])` for query performance</subtask>
+          <subtask id="1.4">Add `content CourseContent[]` relation array to Module model (from Story 1.1)</subtask>
+        </subtasks>
+      </task>
+      <task id="2" ac="2">
+        <description>Add moduleId to Assignment model</description>
+        <subtasks>
+          <subtask id="2.1">Add `moduleId String?` field to Assignment model</subtask>
+          <subtask id="2.2">Add `module Module? @relation(fields: [moduleId], references: [id], onDelete: SetNull)` relation</subtask>
+          <subtask id="2.3">Add `@@index([moduleId])` for query performance</subtask>
+          <subtask id="2.4">Add `assignments Assignment[]` relation array to Module model</subtask>
+        </subtasks>
+      </task>
+      <task id="3" ac="3">
+        <description>Add moduleId to Discussion model</description>
+        <subtasks>
+          <subtask id="3.1">Add `moduleId String?` field to Discussion model</subtask>
+          <subtask id="3.2">Add `module Module? @relation(fields: [moduleId], references: [id], onDelete: SetNull)` relation</subtask>
+          <subtask id="3.3">Add `@@index([moduleId])` for query performance</subtask>
+          <subtask id="3.4">Add `discussions Discussion[]` relation array to Module model</subtask>
+        </subtasks>
+      </task>
+      <task id="4" ac="5,6">
+        <description>Generate and run migration</description>
+        <subtasks>
+          <subtask id="4.1">Run `npx prisma migrate dev --name add_module_foreign_keys`</subtask>
+          <subtask id="4.2">Verify migration only adds columns, does not modify existing data</subtask>
+          <subtask id="4.3">Run `npx prisma generate` to update Prisma client</subtask>
+          <subtask id="4.4">Verify existing CourseContent, Assignment, Discussion records have NULL moduleId</subtask>
+        </subtasks>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="1">CourseContent model has optional moduleId field (nullable for migration)</criterion>
+    <criterion id="2">Assignment model has optional moduleId field (nullable for migration)</criterion>
+    <criterion id="3">Discussion model has optional moduleId field (nullable for migration)</criterion>
+    <criterion id="4">Foreign key constraints reference Module.id with SET NULL on delete</criterion>
+    <criterion id="5">Prisma migration runs successfully</criterion>
+    <criterion id="6">Existing data remains intact (no data loss)</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/PRD-course-modules.md" relevance="high">
+        <purpose>Product requirements defining module organization goals and functional requirements</purpose>
+        <keyPoints>
+          <point>FR006: Course content items belong to exactly one module</point>
+          <point>FR010: Assignments belong to exactly one module</point>
+          <point>FR014: Discussions belong to exactly one module</point>
+          <point>FR022-FR024: All existing content/assignments/discussions migrate to default Module 1</point>
+          <point>NFR003: Data migration runs without downtime (backward compatible)</point>
+        </keyPoints>
+      </doc>
+      <doc path="docs/architecture-course-modules.md" relevance="critical">
+        <purpose>Technical architecture and migration strategy for module implementation</purpose>
+        <keyPoints>
+          <point>ADR-003: Two-phase migration - Phase 2 adds nullable foreign keys</point>
+          <point>ADR-004: Keep courseId alongside moduleId for backward compatibility</point>
+          <point>Phase 2 Migration Strategy: Add nullable moduleId columns to course_content, assignments, discussions tables</point>
+          <point>Foreign key constraints use SET NULL on delete (not CASCADE) to preserve orphaned content</point>
+          <point>All foreign keys require indexes for query performance</point>
+        </keyPoints>
+        <migrationPhases>
+          <phase number="1">Add Module and ModuleProgress models (Story 1.1)</phase>
+          <phase number="2">Add nullable foreign keys to existing models (THIS STORY)</phase>
+          <phase number="3">Run data migration script to populate moduleId (Story 1.3)</phase>
+          <phase number="4">Make foreign keys required after verification (future story)</phase>
+        </migrationPhases>
+      </doc>
+      <doc path="docs/epics-course-modules.md" relevance="high">
+        <purpose>Epic 1 story breakdown and sequencing</purpose>
+        <keyPoints>
+          <point>Story 1.2 prerequisites: Story 1.1 (Module model must exist)</point>
+          <point>Story 1.2 is prerequisite for Story 1.3 (data migration)</point>
+          <point>Acceptance Criteria map to PRD functional requirements</point>
+        </keyPoints>
+      </doc>
+    </docs>
+
+    <code>
+      <file path="prisma/schema.prisma" relevance="critical">
+        <purpose>Database schema definition - target for modifications</purpose>
+        <existingModels>
+          <model name="CourseContent" location="lines 199-219">
+            <currentFields>id, title, type, content, fileUrl, s3Key, thumbnailUrl, thumbnailS3Key, orderIndex, isPublished, createdAt, deletedAt</currentFields>
+            <currentRelations>courseId -> Course (onDelete: Cascade)</currentRelations>
+            <currentIndexes>@@index([deletedAt])</currentIndexes>
+            <requiredChanges>Add moduleId String?, module relation, @@index([moduleId])</requiredChanges>
+          </model>
+          <model name="Assignment" location="lines 84-105">
+            <currentFields>id, title, description, dueDate, maxPoints, isPublished, createdAt, updatedAt, deletedAt</currentFields>
+            <currentRelations>courseId -> Course (onDelete: Cascade), createdById -> User</currentRelations>
+            <currentIndexes>@@index([deletedAt])</currentIndexes>
+            <requiredChanges>Add moduleId String?, module relation, @@index([moduleId])</requiredChanges>
+          </model>
+          <model name="Discussion" location="lines 144-162">
+            <currentFields>id, title, description, isPinned, isLocked, createdAt, deletedAt</currentFields>
+            <currentRelations>courseId -> Course (onDelete: Cascade), createdBy -> User</currentRelations>
+            <currentIndexes>@@index([deletedAt])</currentIndexes>
+            <requiredChanges>Add moduleId String?, module relation, @@index([moduleId])</requiredChanges>
+          </model>
+        </existingModels>
+        <patterns>
+          <pattern>All IDs use @default(cuid())</pattern>
+          <pattern>Soft deletes use deletedAt DateTime? with @@index([deletedAt])</pattern>
+          <pattern>Foreign key relations use onDelete: Cascade or SetNull</pattern>
+          <pattern>Table names use @@map("snake_case")</pattern>
+        </patterns>
+      </file>
+
+      <file path="prisma/migrations/20251125104830_add_soft_delete_fields/migration.sql" relevance="medium">
+        <purpose>Example migration pattern for adding nullable columns with indexes</purpose>
+        <pattern>
+          <step>ALTER TABLE statements to add nullable columns</step>
+          <step>CREATE INDEX statements for new columns</step>
+        </pattern>
+      </file>
+    </code>
+
+    <dependencies>
+      <dependency name="@prisma/client" version="^6.9.0">Used for database access</dependency>
+      <dependency name="prisma" version="^6.9.0">Used for schema management and migrations</dependency>
+      <dependency name="zod" version="^4.1.13">Input validation (not needed for this story)</dependency>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="critical" source="architecture">
+      <title>Fields MUST be nullable (String?)</title>
+      <rationale>Required for zero-downtime migration per ADR-003. Existing records will have NULL moduleId until data migration runs in Story 1.3.</rationale>
+    </constraint>
+    <constraint type="critical" source="architecture">
+      <title>Use onDelete: SetNull (not Cascade)</title>
+      <rationale>Architecture specifies SET NULL on delete to preserve orphaned content during module deletion. Content should remain accessible at course level even if module is deleted.</rationale>
+    </constraint>
+    <constraint type="required" source="architecture">
+      <title>Keep existing courseId</title>
+      <rationale>Per ADR-004, courseId remains for direct course-level queries and backward compatibility during migration.</rationale>
+    </constraint>
+    <constraint type="required" source="architecture">
+      <title>Add indexes for all foreign keys</title>
+      <rationale>Performance requirement for module-filtered queries. Pattern: @@index([moduleId])</rationale>
+    </constraint>
+    <constraint type="prerequisite" source="epic">
+      <title>Story 1.1 must be complete</title>
+      <rationale>Module model must exist before adding foreign key relations to it.</rationale>
+    </constraint>
+    <constraint type="data-safety" source="AC6">
+      <title>No data loss during migration</title>
+      <rationale>Verify existing CourseContent, Assignment, Discussion records remain intact with NULL moduleId values.</rationale>
+    </constraint>
+  </constraints>
+
+  <interfaces>
+    <existingModels>
+      <model name="Module">
+        <status>Created in Story 1.1</status>
+        <expectedStructure>
+          id: String (cuid)
+          title: String
+          description: String?
+          orderIndex: Int
+          isPublished: Boolean
+          requiresPrevious: Boolean
+          courseId: String
+          createdAt: DateTime
+          updatedAt: DateTime
+          deletedAt: DateTime?
+        </expectedStructure>
+        <note>This story adds reverse relations to Module: content[], assignments[], discussions[]</note>
+      </model>
+    </existingModels>
+  </interfaces>
+
+  <tests>
+    <standards>
+      <approach>Integration testing for database migrations</approach>
+      <testingPhilosophy>Verify schema changes and data integrity</testingPhilosophy>
+      <framework>Playwright for e2e tests, Jest for unit tests</framework>
+    </standards>
+
+    <locations>
+      <directory>__tests__/e2e/</directory>
+      <directory>__tests__/integration/</directory>
+      <directory>__tests__/unit/</directory>
+    </locations>
+
+    <ideas>
+      <testIdea ac="5">
+        <description>Verify migration runs without errors</description>
+        <approach>Run `npx prisma migrate dev --name add_module_foreign_keys` and check exit code</approach>
+      </testIdea>
+      <testIdea ac="6">
+        <description>Verify existing data integrity</description>
+        <approach>Query existing CourseContent, Assignment, Discussion records before and after migration. Count should match and all moduleId values should be NULL.</approach>
+      </testIdea>
+      <testIdea ac="1,2,3">
+        <description>Verify nullable moduleId columns added</description>
+        <approach>Check Prisma schema shows moduleId String? on all three models</approach>
+      </testIdea>
+      <testIdea ac="4">
+        <description>Verify foreign key constraints</description>
+        <approach>Inspect generated migration SQL to confirm onDelete: SetNull behavior</approach>
+      </testIdea>
+      <testIdea>
+        <description>Verify indexes created</description>
+        <approach>Check migration SQL includes CREATE INDEX for moduleId on all three tables</approach>
+      </testIdea>
+      <testIdea>
+        <description>Verify Prisma client regenerated</description>
+        <approach>Check that TypeScript types include optional moduleId field after running prisma generate</approach>
+      </testIdea>
+    </ideas>
+  </tests>
+
+  <implementation>
+    <approach>Schema modification with backward-compatible migration</approach>
+    <steps>
+      <step order="1">Modify CourseContent model in prisma/schema.prisma to add moduleId and module relation</step>
+      <step order="2">Modify Assignment model in prisma/schema.prisma to add moduleId and module relation</step>
+      <step order="3">Modify Discussion model in prisma/schema.prisma to add moduleId and module relation</step>
+      <step order="4">Modify Module model to add reverse relations (content[], assignments[], discussions[])</step>
+      <step order="5">Run npx prisma migrate dev --name add_module_foreign_keys</step>
+      <step order="6">Inspect generated migration SQL to verify nullable columns and indexes</step>
+      <step order="7">Run npx prisma generate to update Prisma client</step>
+      <step order="8">Verify existing data has NULL moduleId using database query or Prisma Studio</step>
+    </steps>
+  </implementation>
+
+  <references>
+    <archDecisions>
+      <adr id="ADR-003" path="docs/architecture-course-modules.md">
+        <title>Two-Phase Migration</title>
+        <relevance>This story implements Phase 2 of the migration strategy</relevance>
+      </adr>
+      <adr id="ADR-004" path="docs/architecture-course-modules.md">
+        <title>Keep courseId alongside moduleId</title>
+        <relevance>Do not remove courseId when adding moduleId</relevance>
+      </adr>
+    </archDecisions>
+  </references>
+
+  <learningsFromPreviousStories>
+    <learning source="Story 1.1 Dev Notes">
+      <title>Module model location and patterns</title>
+      <content>Module model will be in prisma/schema.prisma with @@map("modules"), using @default(cuid()) for ID, and following existing soft delete pattern with deletedAt DateTime?</content>
+    </learning>
+    <learning source="Migration 20251125104830">
+      <title>Migration pattern for adding nullable columns</title>
+      <content>Use ALTER TABLE to add nullable columns, followed by CREATE INDEX for each new index. Migration file will be auto-generated by Prisma.</content>
+    </learning>
+  </learningsFromPreviousStories>
+
+  <devNotes>
+    <note priority="critical">
+      This is Phase 2 of a 4-phase migration. Do NOT make moduleId required - that happens in Phase 4 after data migration is verified.
+    </note>
+    <note priority="high">
+      Use onDelete: SetNull (not Cascade) to preserve content when modules are deleted.
+    </note>
+    <note priority="medium">
+      After this story, the system will have nullable moduleId columns but all values will be NULL. Story 1.3 will populate these values.
+    </note>
+  </devNotes>
+</story-context>

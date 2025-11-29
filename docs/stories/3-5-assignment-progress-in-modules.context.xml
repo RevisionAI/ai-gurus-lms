@@ -1,0 +1,858 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>3-5-assignment-progress-in-modules</story-id>
+    <story-title>Assignment Progress in Modules</story-title>
+    <epic>Epic 3: Student Module Experience</epic>
+    <generated-date>2025-11-28</generated-date>
+    <dependencies>
+      <dependency>Story 3-4: Content Completion Tracking</dependency>
+      <dependency>Story 1-4: Add Module Progress Tracking Model</dependency>
+    </dependencies>
+  </metadata>
+
+  <story-requirements>
+    <user-story>
+      As a student,
+      I want my assignment submissions to count toward module progress,
+      so that completing assignments unlocks next modules.
+    </user-story>
+
+    <acceptance-criteria>
+      <criterion id="AC1">Assignments visible within module context</criterion>
+      <criterion id="AC2">Submitted assignments marked as complete in progress</criterion>
+      <criterion id="AC3">Module progress includes assignment weight (50%)</criterion>
+      <criterion id="AC4">Module shows "Complete" when all content viewed AND all assignments submitted</criterion>
+      <criterion id="AC5">Progress calculation: (viewedContent/totalContent * 0.5) + (submittedAssignments/totalAssignments * 0.5)</criterion>
+    </acceptance-criteria>
+
+    <key-implementation-points>
+      <point>Submission-based completion: Just having a submission counts (grade not required)</point>
+      <point>Edge case: No assignments = Assignment portion auto-completes (50%)</point>
+      <point>Edge case: No content = Content portion auto-completes (50%)</point>
+      <point>completedAt trigger: Set when progress reaches 100%</point>
+      <point>Progress calculated on-demand (no background trigger needed)</point>
+    </key-implementation-points>
+  </story-requirements>
+
+  <architecture-decisions>
+    <decision ref="ADR-002">
+      <title>Progress Formula (50/50 Split)</title>
+      <description>Module progress weighted equally between content viewing (50%) and assignment submission (50%)</description>
+      <rationale>Fair weighting values both learning activities equally. Simple to understand and explain to users.</rationale>
+    </decision>
+
+    <decision ref="ADR-001">
+      <title>Server-Side Progress Calculation</title>
+      <description>Progress calculated server-side in module-progress.ts</description>
+      <rationale>Single source of truth, prevents client-side manipulation, consistent across all API calls</rationale>
+    </decision>
+  </architecture-decisions>
+
+  <database-models>
+    <model name="ModuleProgress">
+      <location>prisma/schema.prisma (lines 271-290)</location>
+      <fields>
+        <field name="id" type="String" pk="true">Unique identifier</field>
+        <field name="completedAt" type="DateTime?" nullable="true">Timestamp when module reached 100%</field>
+        <field name="contentViewed" type="String[]">Array of content IDs viewed by student</field>
+        <field name="createdAt" type="DateTime">Record creation timestamp</field>
+        <field name="updatedAt" type="DateTime">Last update timestamp</field>
+        <field name="deletedAt" type="DateTime?" nullable="true">Soft delete support</field>
+        <field name="moduleId" type="String" fk="Module">Module being tracked</field>
+        <field name="userId" type="String" fk="User">Student user</field>
+      </fields>
+      <constraints>
+        <unique>moduleId, userId</unique>
+        <index>userId</index>
+        <index>moduleId</index>
+        <index>deletedAt</index>
+      </constraints>
+    </model>
+
+    <model name="Assignment">
+      <location>prisma/schema.prisma (lines 86-110)</location>
+      <relevant-fields>
+        <field name="id" type="String" pk="true">Assignment identifier</field>
+        <field name="title" type="String">Assignment name</field>
+        <field name="dueDate" type="DateTime?" nullable="true">Due date</field>
+        <field name="maxPoints" type="Int">Maximum points</field>
+        <field name="isPublished" type="Boolean">Published status</field>
+        <field name="moduleId" type="String?" fk="Module">Parent module</field>
+        <field name="courseId" type="String" fk="Course">Parent course</field>
+      </relevant-fields>
+      <relations>
+        <relation name="submissions" type="Submission[]">Student submissions</relation>
+      </relations>
+    </model>
+
+    <model name="Submission">
+      <location>prisma/schema.prisma (lines 112-127)</location>
+      <fields>
+        <field name="id" type="String" pk="true">Submission identifier</field>
+        <field name="content" type="String?" nullable="true">Text submission</field>
+        <field name="fileUrl" type="String?" nullable="true">File attachment URL</field>
+        <field name="s3Key" type="String?" nullable="true">S3/R2 object key</field>
+        <field name="submittedAt" type="DateTime">Submission timestamp</field>
+        <field name="assignmentId" type="String" fk="Assignment">Assignment being submitted</field>
+        <field name="studentId" type="String" fk="User">Submitting student</field>
+      </fields>
+      <constraints>
+        <unique>assignmentId, studentId</unique>
+      </constraints>
+    </model>
+
+    <model name="Module">
+      <location>prisma/schema.prisma (lines 247-269)</location>
+      <relevant-fields>
+        <field name="id" type="String" pk="true">Module identifier</field>
+        <field name="title" type="String">Module name</field>
+        <field name="isPublished" type="Boolean">Published status</field>
+        <field name="deletedAt" type="DateTime?" nullable="true">Soft delete</field>
+      </relevant-fields>
+      <relations>
+        <relation name="content" type="CourseContent[]">Module content items</relation>
+        <relation name="assignments" type="Assignment[]">Module assignments</relation>
+        <relation name="progress" type="ModuleProgress[]">Student progress records</relation>
+      </relations>
+    </model>
+  </database-models>
+
+  <existing-code-patterns>
+    <pattern name="Assignment Display in Student View">
+      <file>src/app/courses/[id]/page.tsx (lines 139-141, 584-617)</file>
+      <description>Current student course view shows assignments in a list with due dates and max points</description>
+      <code><![CDATA[
+// Upcoming assignments filter
+const upcomingAssignments = assignments.filter(a =>
+  a.dueDate && new Date(a.dueDate) > new Date()
+).slice(0, 3)
+
+// Assignments tab display
+{assignments.map((assignment) => (
+  <Link
+    key={assignment.id}
+    href={`/courses/${course.id}/assignments/${assignment.id}`}
+    className="block p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+  >
+    <div className="flex items-center justify-between">
+      <div>
+        <h4 className="font-medium text-gray-900">{assignment.title}</h4>
+        <div className="flex items-center space-x-4 mt-1">
+          <span className="text-sm text-gray-500">
+            Max Points: {assignment.maxPoints}
+          </span>
+          {assignment.dueDate && (
+            <span className={`text-sm ${
+              new Date(assignment.dueDate) < new Date()
+                ? 'text-red-600'
+                : 'text-gray-500'
+            }`}>
+              Due: {new Date(assignment.dueDate).toLocaleDateString()}
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  </Link>
+))}
+      ]]></code>
+    </pattern>
+
+    <pattern name="Assignment Submission API">
+      <file>src/app/api/student/assignments/[id]/submission/route.ts</file>
+      <description>Handles POST and PUT for assignment submissions</description>
+      <code><![CDATA[
+// POST creates new submission
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params
+  const { content, fileUrl } = await request.json()
+
+  // Validate assignment exists, is published, student enrolled
+  // Check not overdue, no existing submission
+
+  const submission = await prisma.submission.create({
+    data: {
+      content: content || null,
+      fileUrl: fileUrl || null,
+      assignmentId: id,
+      studentId: session.user.id
+    }
+  })
+
+  return NextResponse.json(submission, { status: 201 })
+}
+
+// PUT updates existing submission
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  // Update submission with new content/file
+  // Check not overdue
+  const submission = await prisma.submission.update({
+    where: {
+      assignmentId_studentId: {
+        assignmentId: id,
+        studentId: session.user.id
+      }
+    },
+    data: {
+      content: content || null,
+      fileUrl: fileUrl || null,
+      submittedAt: new Date()
+    }
+  })
+
+  return NextResponse.json(submission)
+}
+      ]]></code>
+      <integration-point>After successful submission, recalculate module progress</integration-point>
+    </pattern>
+
+    <pattern name="Student Assignment Detail View">
+      <file>src/app/courses/[id]/assignments/[assignmentId]/page.tsx</file>
+      <description>Shows assignment details with submission form and status</description>
+      <key-sections>
+        <section>Lines 53-92: Fetches assignment, submission, and grade data</section>
+        <section>Lines 121-150: handleSubmit function for new submissions</section>
+        <section>Lines 152-182: handleUpdate function for editing submissions</section>
+        <section>Lines 398-426: Submission Status sidebar showing submitted/graded state</section>
+      </key-sections>
+    </pattern>
+
+    <pattern name="Fetch Course Assignments API">
+      <file>src/app/api/student/courses/[id]/assignments/route.ts</file>
+      <description>Returns all published assignments for a course</description>
+      <code><![CDATA[
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  // Verify student enrollment
+  const enrollment = await prisma.enrollment.findUnique({
+    where: {
+      userId_courseId: {
+        userId: session.user.id,
+        courseId: id
+      }
+    }
+  })
+
+  // Return published assignments
+  const assignments = await prisma.assignment.findMany({
+    where: {
+      courseId: id,
+      isPublished: true
+    },
+    orderBy: {
+      dueDate: 'asc'
+    }
+  })
+
+  return NextResponse.json(assignments)
+}
+      ]]></code>
+      <note>This will need module-aware version for filtering by moduleId</note>
+    </pattern>
+
+    <pattern name="Soft Delete Pattern">
+      <file>src/lib/soft-delete.ts (lines 39-49)</file>
+      <description>Standard pattern for filtering active records</description>
+      <code><![CDATA[
+// Use in all queries to exclude soft-deleted records
+export const notDeleted = { deletedAt: null } as const
+
+// Example usage
+const assignments = await prisma.assignment.findMany({
+  where: {
+    moduleId: moduleId,
+    isPublished: true,
+    ...notDeleted
+  }
+})
+      ]]></code>
+    </pattern>
+
+    <pattern name="Instructor Module API Pattern">
+      <file>src/app/api/instructor/courses/[id]/modules/[moduleId]/route.ts</file>
+      <description>Example of module API structure and authorization</description>
+      <code><![CDATA[
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string; moduleId: string }> }
+) {
+  const session = await getServerSession(authOptions);
+
+  if (!session || (session.user.role !== 'INSTRUCTOR' && session.user.role !== 'ADMIN')) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const { id, moduleId } = await params;
+
+  // Verify course ownership
+  const course = await prisma.course.findFirst({
+    where: {
+      id: id,
+      ...(session.user.role === 'ADMIN' ? {} : { instructorId: session.user.id }),
+      ...notDeleted,
+    },
+  });
+
+  // Fetch module with counts
+  const foundModule = await prisma.module.findFirst({
+    where: {
+      id: moduleId,
+      courseId: id,
+      ...notDeleted,
+    },
+    include: {
+      _count: {
+        select: {
+          content: { where: notDeleted },
+          assignments: { where: notDeleted },
+          discussions: { where: notDeleted },
+        },
+      },
+    },
+  });
+
+  return NextResponse.json(foundModule);
+}
+      ]]></code>
+      <note>Student module endpoints should follow similar pattern with enrollment check</note>
+    </pattern>
+  </existing-code-patterns>
+
+  <files-to-create>
+    <file path="src/lib/module-progress.ts">
+      <purpose>Core progress calculation logic</purpose>
+      <functions>
+        <function name="calculateModuleProgress">
+          <signature>async (moduleId: string, userId: string): Promise&lt;ModuleProgressResult&gt;</signature>
+          <description>Calculates current module progress percentage based on content viewed and assignments submitted</description>
+          <returns>
+            <field>percentage: number (0-100)</field>
+            <field>isComplete: boolean (true if 100%)</field>
+            <field>contentViewed: number</field>
+            <field>contentTotal: number</field>
+            <field>assignmentsSubmitted: number</field>
+            <field>assignmentsTotal: number</field>
+          </returns>
+          <implementation-notes>
+            <note>Query module with published content and assignments</note>
+            <note>Get ModuleProgress record for user</note>
+            <note>Count submissions where studentId matches and assignmentId in module's assignments</note>
+            <note>Calculate: (contentViewed/contentTotal * 50) + (assignmentsSubmitted/assignmentsTotal * 50)</note>
+            <note>Edge case: If contentTotal = 0, contentScore = 50 (auto-complete)</note>
+            <note>Edge case: If assignmentsTotal = 0, assignmentScore = 50 (auto-complete)</note>
+            <note>Round final percentage to integer</note>
+          </implementation-notes>
+        </function>
+
+        <function name="markContentViewed">
+          <signature>async (moduleId: string, userId: string, contentId: string): Promise&lt;ModuleProgressResult&gt;</signature>
+          <description>Marks content as viewed and recalculates progress</description>
+          <implementation-notes>
+            <note>Upsert ModuleProgress record</note>
+            <note>Add contentId to contentViewed array (use push in update)</note>
+            <note>Recalculate progress</note>
+            <note>If progress reaches 100%, set completedAt timestamp</note>
+            <note>Return updated progress result</note>
+          </implementation-notes>
+        </function>
+      </functions>
+
+      <reference>Architecture Doc (lines 415-535) provides full implementation example</reference>
+    </file>
+
+    <file path="src/app/api/student/courses/[id]/modules/[moduleId]/route.ts">
+      <purpose>Student module detail API - includes assignments with submission status</purpose>
+      <endpoint method="GET" path="/api/student/courses/[id]/modules/[moduleId]">
+        <authorization>STUDENT role, enrolled in course, module unlocked</authorization>
+        <response-structure>
+          <field>module.id: string</field>
+          <field>module.title: string</field>
+          <field>module.description: string | null</field>
+          <field>module.progress: number (0-100)</field>
+          <field>module.content: array of content items with isViewed flag</field>
+          <field>module.assignments: array of assignments with submission status</field>
+          <field>module.discussions: array of discussions</field>
+        </response-structure>
+        <assignment-fields>
+          <field>id: string</field>
+          <field>title: string</field>
+          <field>dueDate: DateTime | null</field>
+          <field>maxPoints: number</field>
+          <field>isSubmitted: boolean (check Submission table)</field>
+          <field>isGraded: boolean (check Grade table)</field>
+          <field>grade: number | null (points if graded)</field>
+        </assignment-fields>
+        <implementation-notes>
+          <note>Check enrollment in course</note>
+          <note>Check module is unlocked (use isModuleUnlocked from architecture)</note>
+          <note>Fetch module with content, assignments, discussions</note>
+          <note>For each assignment, query submissions and grades for current user</note>
+          <note>Calculate progress using calculateModuleProgress</note>
+          <note>Return enhanced module object</note>
+        </implementation-notes>
+      </endpoint>
+    </file>
+
+    <file path="src/components/modules/StudentModuleDetail.tsx">
+      <purpose>Display module detail with content, assignments, and progress for students</purpose>
+      <sections>
+        <section name="Module Header">
+          <display>Title, description, progress bar</display>
+        </section>
+        <section name="Content List">
+          <display>Content items with checkmarks for viewed items</display>
+          <interaction>Click to view content</interaction>
+        </section>
+        <section name="Assignments List">
+          <display>Assignment cards with submission status badges</display>
+          <fields>Title, due date, max points, submission status, grade (if graded)</fields>
+          <badges>
+            <badge condition="isSubmitted and isGraded" color="green">Graded: {grade}/{maxPoints}</badge>
+            <badge condition="isSubmitted and not isGraded" color="blue">Submitted</badge>
+            <badge condition="not isSubmitted and overdue" color="red">Overdue</badge>
+            <badge condition="not isSubmitted and not overdue" color="yellow">Not Submitted</badge>
+          </badges>
+          <interaction>Link to assignment submission page</interaction>
+        </section>
+        <section name="Progress Summary">
+          <display>Overall module progress percentage</display>
+          <display>Content completion: X/Y items viewed</display>
+          <display>Assignment completion: X/Y submitted</display>
+        </section>
+      </sections>
+    </file>
+  </files-to-create>
+
+  <files-to-modify>
+    <file path="src/app/api/student/assignments/[id]/submission/route.ts">
+      <modification>
+        <location>POST function (after line 113)</location>
+        <action>After successful submission creation, recalculate module progress</action>
+        <code><![CDATA[
+// After creating submission
+const submission = await prisma.submission.create({
+  data: {
+    content: content || null,
+    fileUrl: fileUrl || null,
+    assignmentId: id,
+    studentId: session.user.id
+  }
+})
+
+// NEW: Recalculate module progress if assignment belongs to a module
+if (assignment.moduleId) {
+  const { calculateModuleProgress } = await import('@/lib/module-progress');
+  await calculateModuleProgress(assignment.moduleId, session.user.id);
+
+  // Check if module just completed and set completedAt
+  const progress = await prisma.moduleProgress.findUnique({
+    where: { moduleId_userId: { moduleId: assignment.moduleId, userId: session.user.id } }
+  });
+
+  // calculateModuleProgress will handle setting completedAt if needed
+}
+
+return NextResponse.json(submission, { status: 201 })
+        ]]></code>
+      </modification>
+
+      <modification>
+        <location>PUT function (after line 177)</location>
+        <action>Same recalculation logic after updating submission</action>
+      </modification>
+    </file>
+
+    <file path="src/app/courses/[id]/assignments/[assignmentId]/page.tsx">
+      <modification>
+        <location>After handleSubmit success (line 140)</location>
+        <action>Show toast notification about progress update</action>
+        <code><![CDATA[
+if (response.ok) {
+  const newSubmission = await response.json()
+  setSubmission(newSubmission)
+
+  // Optional: Show toast about module progress update
+  // toast.success('Assignment submitted! Your module progress has been updated.')
+}
+        ]]></code>
+      </modification>
+      <note>Consider adding visual feedback that assignment submission affects module progress</note>
+    </file>
+  </files-to-modify>
+
+  <api-contracts>
+    <endpoint>
+      <method>GET</method>
+      <path>/api/student/courses/[id]/modules/[moduleId]</path>
+      <description>Get module detail with assignments and submission status</description>
+      <authorization>STUDENT role, enrolled, module unlocked</authorization>
+      <response>
+        <success status="200">
+          <example><![CDATA[
+{
+  "module": {
+    "id": "clxxx...",
+    "title": "AI Fundamentals",
+    "description": "Introduction to AI concepts",
+    "progress": 60,
+    "content": [
+      {
+        "id": "content1",
+        "title": "What is AI?",
+        "type": "VIDEO",
+        "isViewed": true
+      },
+      {
+        "id": "content2",
+        "title": "Machine Learning Basics",
+        "type": "TEXT",
+        "isViewed": false
+      }
+    ],
+    "assignments": [
+      {
+        "id": "assign1",
+        "title": "AI Concepts Quiz",
+        "dueDate": "2025-12-01T00:00:00Z",
+        "maxPoints": 100,
+        "isSubmitted": true,
+        "isGraded": true,
+        "grade": 85
+      },
+      {
+        "id": "assign2",
+        "title": "Reflection Assignment",
+        "dueDate": "2025-12-08T00:00:00Z",
+        "maxPoints": 50,
+        "isSubmitted": false,
+        "isGraded": false,
+        "grade": null
+      }
+    ],
+    "discussions": [
+      {
+        "id": "disc1",
+        "title": "Share your AI experience",
+        "postCount": 15
+      }
+    ]
+  }
+}
+          ]]></example>
+        </success>
+        <error status="401">Unauthorized - Not logged in or wrong role</error>
+        <error status="403">Not enrolled in course</error>
+        <error status="404">Module not found or course not found</error>
+        <error status="423">Module is locked - Complete previous module first</error>
+      </response>
+    </endpoint>
+
+    <endpoint>
+      <method>GET</method>
+      <path>/api/student/courses/[id]/modules/[moduleId]/progress</path>
+      <description>Get detailed progress for a module</description>
+      <authorization>STUDENT role, enrolled</authorization>
+      <response>
+        <success status="200">
+          <example><![CDATA[
+{
+  "percentage": 60,
+  "isComplete": false,
+  "contentViewed": 3,
+  "contentTotal": 5,
+  "assignmentsSubmitted": 1,
+  "assignmentsTotal": 2,
+  "completedAt": null
+}
+          ]]></example>
+        </success>
+      </response>
+    </endpoint>
+  </api-contracts>
+
+  <progress-calculation-examples>
+    <example>
+      <scenario>Module with 5 content items and 2 assignments</scenario>
+      <state>
+        <content-viewed>3</content-viewed>
+        <content-total>5</content-total>
+        <assignments-submitted>1</assignments-submitted>
+        <assignments-total>2</assignments-total>
+      </state>
+      <calculation>
+        <step>Content score = (3 / 5) * 50 = 30</step>
+        <step>Assignment score = (1 / 2) * 50 = 25</step>
+        <step>Total = 30 + 25 = 55%</step>
+      </calculation>
+    </example>
+
+    <example>
+      <scenario>Module with 5 content items, all viewed, 2 assignments, both submitted</scenario>
+      <state>
+        <content-viewed>5</content-viewed>
+        <content-total>5</content-total>
+        <assignments-submitted>2</assignments-submitted>
+        <assignments-total>2</assignments-total>
+      </state>
+      <calculation>
+        <step>Content score = (5 / 5) * 50 = 50</step>
+        <step>Assignment score = (2 / 2) * 50 = 50</step>
+        <step>Total = 50 + 50 = 100%</step>
+        <step>Set completedAt = current timestamp</step>
+      </calculation>
+    </example>
+
+    <example>
+      <scenario>Module with 5 content items, all viewed, NO assignments</scenario>
+      <state>
+        <content-viewed>5</content-viewed>
+        <content-total>5</content-total>
+        <assignments-submitted>0</assignments-submitted>
+        <assignments-total>0</assignments-total>
+      </state>
+      <calculation>
+        <step>Content score = (5 / 5) * 50 = 50</step>
+        <step>Assignment score = 50 (auto-complete, no assignments)</step>
+        <step>Total = 50 + 50 = 100%</step>
+      </calculation>
+    </example>
+
+    <example>
+      <scenario>Module with NO content, 2 assignments, 1 submitted</scenario>
+      <state>
+        <content-viewed>0</content-viewed>
+        <content-total>0</content-total>
+        <assignments-submitted>1</assignments-submitted>
+        <assignments-total>2</assignments-total>
+      </state>
+      <calculation>
+        <step>Content score = 50 (auto-complete, no content)</step>
+        <step>Assignment score = (1 / 2) * 50 = 25</step>
+        <step>Total = 50 + 25 = 75%</step>
+      </calculation>
+    </example>
+  </progress-calculation-examples>
+
+  <testing-requirements>
+    <unit-tests>
+      <test name="calculateModuleProgress - normal case">
+        <description>Test progress calculation with mixed completion</description>
+        <setup>Module with 5 content, 2 assignments; 3 content viewed, 1 assignment submitted</setup>
+        <expected>Progress = 55%, isComplete = false</expected>
+      </test>
+
+      <test name="calculateModuleProgress - complete">
+        <description>Test 100% completion sets completedAt</description>
+        <setup>All content viewed, all assignments submitted</setup>
+        <expected>Progress = 100%, isComplete = true, completedAt set</expected>
+      </test>
+
+      <test name="calculateModuleProgress - no assignments">
+        <description>Test edge case with no assignments</description>
+        <setup>Module with 5 content, 0 assignments; all content viewed</setup>
+        <expected>Progress = 100% (content 50% + auto-complete 50%)</expected>
+      </test>
+
+      <test name="calculateModuleProgress - no content">
+        <description>Test edge case with no content</description>
+        <setup>Module with 0 content, 2 assignments; 1 submitted</setup>
+        <expected>Progress = 75% (auto-complete 50% + assignments 25%)</expected>
+      </test>
+
+      <test name="calculateModuleProgress - empty module">
+        <description>Test module with no content or assignments</description>
+        <setup>Module with 0 content, 0 assignments</setup>
+        <expected>Progress = 100% (both auto-complete)</expected>
+      </test>
+
+      <test name="calculateModuleProgress - ignores unpublished items">
+        <description>Test that only published content and assignments count</description>
+        <setup>Module with 5 content (3 published), 2 assignments (1 published)</setup>
+        <expected>Calculations based only on published items</expected>
+      </test>
+
+      <test name="markContentViewed - idempotent">
+        <description>Test marking same content twice doesn't affect progress</description>
+        <setup>Mark content1 as viewed twice</setup>
+        <expected>contentViewed array contains content1 only once</expected>
+      </test>
+    </unit-tests>
+
+    <integration-tests>
+      <test name="Assignment submission updates module progress">
+        <description>Test submission triggers progress recalculation</description>
+        <steps>
+          <step>Student views module, progress = 30% (content only)</step>
+          <step>Student submits assignment</step>
+          <step>Fetch module progress</step>
+        </steps>
+        <expected>Progress increased to reflect assignment submission</expected>
+      </test>
+
+      <test name="Module completion unlocks next module">
+        <description>Test that reaching 100% enables next module</description>
+        <steps>
+          <step>Module 1 at 90% progress</step>
+          <step>Submit final assignment</step>
+          <step>Check Module 2 unlock status</step>
+        </steps>
+        <expected>Module 2 isUnlocked = true after Module 1 completion</expected>
+      </test>
+
+      <test name="GET module detail shows correct submission status">
+        <description>Test API returns accurate isSubmitted flags</description>
+        <steps>
+          <step>Create module with 2 assignments</step>
+          <step>Submit 1 assignment as student</step>
+          <step>GET /api/student/courses/[id]/modules/[moduleId]</step>
+        </steps>
+        <expected>First assignment shows isSubmitted=true, second shows false</expected>
+      </test>
+    </integration-tests>
+
+    <manual-testing>
+      <scenario name="Student completes module">
+        <steps>
+          <step>Login as student</step>
+          <step>Navigate to module with mixed progress</step>
+          <step>View remaining content items</step>
+          <step>Submit remaining assignments</step>
+          <step>Observe progress bar update to 100%</step>
+          <step>Verify "Complete" badge appears</step>
+          <step>Verify next module unlocks</step>
+        </steps>
+      </scenario>
+
+      <scenario name="Assignment display in module context">
+        <steps>
+          <step>Navigate to module detail as student</step>
+          <step>Observe assignments section</step>
+          <step>Verify each assignment shows: title, due date, submission status</step>
+          <step>Click assignment to go to submission page</step>
+          <step>Submit assignment</step>
+          <step>Return to module, verify status updated</step>
+        </steps>
+      </scenario>
+    </manual-testing>
+  </testing-requirements>
+
+  <technical-notes>
+    <note priority="high">
+      <title>Submission triggers progress recalculation</title>
+      <description>After POST or PUT to /api/student/assignments/[id]/submission, must call calculateModuleProgress if assignment has a moduleId</description>
+    </note>
+
+    <note priority="medium">
+      <title>Query optimization</title>
+      <description>Use include with _count for efficient counting. Avoid N+1 queries by fetching all submissions for module's assignments in one query</description>
+    </note>
+
+    <note priority="medium">
+      <title>Progress is always calculated fresh</title>
+      <description>Don't store percentage in database. Always calculate from contentViewed array and submissions count. This ensures accuracy.</description>
+    </note>
+
+    <note priority="low">
+      <title>Grade not required for progress</title>
+      <description>Just having a submission counts toward progress. Grade value doesn't affect module completion, only submission existence.</description>
+    </note>
+
+    <note priority="high">
+      <title>Soft delete awareness</title>
+      <description>All queries must filter deletedAt: null to exclude soft-deleted content and assignments from progress calculations</description>
+    </note>
+  </technical-notes>
+
+  <references>
+    <reference type="architecture">
+      <file>docs/architecture-course-modules.md</file>
+      <sections>
+        <section>Lines 415-535: Progress Calculation implementation</section>
+        <section>Lines 799-809: ADR-002 Progress Formula (50/50 Split)</section>
+        <section>Lines 288-330: Student Module Detail API contract</section>
+      </sections>
+    </reference>
+
+    <reference type="prd">
+      <file>docs/PRD-course-modules.md</file>
+      <sections>
+        <section>Lines 78-85: FR019 Module completion tracking</section>
+        <section>Lines 137-164: User Journey 2: Student Progresses Through Modules</section>
+      </sections>
+    </reference>
+
+    <reference type="epic">
+      <file>docs/epics-course-modules.md</file>
+      <sections>
+        <section>Lines 355-369: Story 3.5 original specification</section>
+      </sections>
+    </reference>
+
+    <reference type="story">
+      <file>docs/stories/3-4-content-completion-tracking.md</file>
+      <description>Previous story implementing content viewing portion of progress. Assignment submission builds on this foundation.</description>
+    </reference>
+
+    <reference type="prisma-schema">
+      <file>prisma/schema.prisma</file>
+      <sections>
+        <section>Lines 86-110: Assignment model</section>
+        <section>Lines 112-127: Submission model</section>
+        <section>Lines 271-290: ModuleProgress model</section>
+        <section>Lines 247-269: Module model</section>
+      </sections>
+    </reference>
+  </references>
+
+  <implementation-sequence>
+    <phase number="1" title="Core Progress Logic">
+      <task>Create src/lib/module-progress.ts with calculateModuleProgress function</task>
+      <task>Implement assignment counting from submissions table</task>
+      <task>Add markContentViewed function (defer to Story 3-4 if not done)</task>
+      <task>Write unit tests for progress calculations</task>
+      <task>Test edge cases (no content, no assignments, empty module)</task>
+    </phase>
+
+    <phase number="2" title="Student Module Detail API">
+      <task>Create GET /api/student/courses/[id]/modules/[moduleId] endpoint</task>
+      <task>Add enrollment verification</task>
+      <task>Add module unlock check</task>
+      <task>Query assignments with submission status for current user</task>
+      <task>Include grade information if available</task>
+      <task>Return enhanced module object with all data</task>
+    </phase>
+
+    <phase number="3" title="Progress Recalculation on Submission">
+      <task>Modify POST /api/student/assignments/[id]/submission</task>
+      <task>After submission creation, check if assignment has moduleId</task>
+      <task>Call calculateModuleProgress to update progress</task>
+      <task>Check if module just completed (100%) and set completedAt</task>
+      <task>Apply same logic to PUT endpoint for submission updates</task>
+    </phase>
+
+    <phase number="4" title="UI Components">
+      <task>Create StudentModuleDetail component</task>
+      <task>Add assignments section with submission status badges</task>
+      <task>Add progress summary showing content and assignment completion</task>
+      <task>Link assignment cards to submission page</task>
+      <task>Add visual indicators for graded vs ungraded submissions</task>
+    </phase>
+
+    <phase number="5" title="Testing and Integration">
+      <task>Test submission flow updates progress correctly</task>
+      <task>Test 100% completion sets completedAt timestamp</task>
+      <task>Test module unlock after completion (Story 3-6 integration)</task>
+      <task>Test UI shows accurate submission status</task>
+      <task>Manual testing of complete student flow</task>
+    </phase>
+  </implementation-sequence>
+</story-context>

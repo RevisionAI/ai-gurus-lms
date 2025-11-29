@@ -1,0 +1,657 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context id="1-5" v="1.0">
+  <metadata>
+    <epicId>1</epicId>
+    <storyId>5</storyId>
+    <title>Create Module API Endpoints (Backend Only)</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-11-28</generatedAt>
+  </metadata>
+
+  <story>
+    <asA>developer</asA>
+    <iWant>create basic CRUD API endpoints for modules</iWant>
+    <soThat>the frontend can manage modules</soThat>
+
+    <tasks>
+      <task id="1" name="Create Zod validation schemas" ac="7">
+        <subtask id="1.1">Create src/lib/validations/module.ts file</subtask>
+        <subtask id="1.2">Define createModuleSchema with title (required), description (optional), requiresPrevious (optional)</subtask>
+        <subtask id="1.3">Define updateModuleSchema with all optional fields</subtask>
+        <subtask id="1.4">Export schemas for use in API routes</subtask>
+      </task>
+
+      <task id="2" name="Create list modules endpoint" ac="1,6,8">
+        <subtask id="2.1">Create src/app/api/instructor/courses/[id]/modules/route.ts</subtask>
+        <subtask id="2.2">Implement GET handler with authorization check (instructor of course)</subtask>
+        <subtask id="2.3">Query modules where deletedAt is null, ordered by orderIndex</subtask>
+        <subtask id="2.4">Include counts: contentCount, assignmentCount, discussionCount</subtask>
+        <subtask id="2.5">Return JSON response with modules array</subtask>
+      </task>
+
+      <task id="3" name="Create module endpoint" ac="2,6,7,8">
+        <subtask id="3.1">Implement POST handler in same route.ts file</subtask>
+        <subtask id="3.2">Validate request body with Zod schema</subtask>
+        <subtask id="3.3">Authorization check for instructor role</subtask>
+        <subtask id="3.4">Auto-assign orderIndex as max(orderIndex) + 1</subtask>
+        <subtask id="3.5">Create module with isPublished: false default</subtask>
+        <subtask id="3.6">Return created module with 201 status</subtask>
+      </task>
+
+      <task id="4" name="Create get/update/delete endpoints" ac="3,4,5,6,7,8">
+        <subtask id="4.1">Create src/app/api/instructor/courses/[id]/modules/[moduleId]/route.ts</subtask>
+        <subtask id="4.2">Implement GET handler with authorization and 404 handling</subtask>
+        <subtask id="4.3">Implement PUT handler with Zod validation and partial updates</subtask>
+        <subtask id="4.4">Implement DELETE handler with soft delete (set deletedAt)</subtask>
+        <subtask id="4.5">All handlers verify moduleId belongs to courseId</subtask>
+      </task>
+
+      <task id="5" name="Implement authorization helper" ac="6">
+        <subtask id="5.1">Create/use validateInstructorAccess helper function</subtask>
+        <subtask id="5.2">Check session user is instructor of the specified course</subtask>
+        <subtask id="5.3">Return 401 for unauthenticated, 403 for unauthorized</subtask>
+        <subtask id="5.4">Reuse existing authorization patterns from course API</subtask>
+      </task>
+
+      <task id="6" name="Test endpoints manually" ac="1-8">
+        <subtask id="6.1">Test all endpoints with valid instructor auth</subtask>
+        <subtask id="6.2">Test authorization failures (wrong user, student role)</subtask>
+        <subtask id="6.3">Test validation failures (missing title, invalid data)</subtask>
+        <subtask id="6.4">Test 404 scenarios (invalid courseId, moduleId)</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="1">GET /api/instructor/courses/[id]/modules - List all modules for a course</criterion>
+    <criterion id="2">POST /api/instructor/courses/[id]/modules - Create new module</criterion>
+    <criterion id="3">GET /api/instructor/courses/[id]/modules/[moduleId] - Get module details</criterion>
+    <criterion id="4">PUT /api/instructor/courses/[id]/modules/[moduleId] - Update module</criterion>
+    <criterion id="5">DELETE /api/instructor/courses/[id]/modules/[moduleId] - Soft delete module</criterion>
+    <criterion id="6">All endpoints require instructor role for the course</criterion>
+    <criterion id="7">Input validation with Zod schemas</criterion>
+    <criterion id="8">Proper error handling and status codes</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/architecture-course-modules.md">
+        <section name="API Contracts">
+          <description>Complete API specifications for instructor module endpoints including request/response formats</description>
+          <keyPoints>
+            <point>GET /api/instructor/courses/[id]/modules - Returns modules array with counts (contentCount, assignmentCount, discussionCount)</point>
+            <point>POST /api/instructor/courses/[id]/modules - Creates module with title, description, requiresPrevious</point>
+            <point>PUT /api/instructor/courses/[id]/modules/[moduleId] - Updates module with partial fields</point>
+            <point>DELETE /api/instructor/courses/[id]/modules/[moduleId] - Soft deletes by setting deletedAt</point>
+            <point>Module response includes: id, title, description, orderIndex, isPublished, requiresPrevious, createdAt, counts</point>
+          </keyPoints>
+        </section>
+        <section name="Data Architecture">
+          <description>Module and ModuleProgress Prisma models with relations</description>
+          <keyPoints>
+            <point>Module model has: id, title, description, orderIndex, isPublished, requiresPrevious, deletedAt</point>
+            <point>Module relations: courseId, content[], assignments[], discussions[], progress[]</point>
+            <point>Soft delete pattern: deletedAt timestamp (NULL = active)</point>
+            <point>Indexes on courseId and deletedAt for query performance</point>
+          </keyPoints>
+        </section>
+        <section name="Security Considerations">
+          <description>Authorization rules and validation patterns</description>
+          <keyPoints>
+            <point>Instructor module endpoints: Must be course instructor</point>
+            <point>All module operations validate: user role, course exists, user has access, module belongs to course</point>
+            <point>Return 401 for unauthenticated, 403 for unauthorized, 404 for not found</point>
+          </keyPoints>
+        </section>
+        <section name="Validation Rules">
+          <description>Zod schema examples for module creation and updates</description>
+          <keyPoints>
+            <point>createModuleSchema: title (1-200 chars, required), description (max 2000 chars, optional), requiresPrevious (boolean, default true)</point>
+            <point>updateModuleSchema: all fields optional for partial updates (title, description, isPublished, requiresPrevious)</point>
+          </keyPoints>
+        </section>
+      </doc>
+      <doc path="docs/PRD-course-modules.md">
+        <section name="Functional Requirements">
+          <description>Module management requirements FR001-FR005</description>
+          <keyPoints>
+            <point>Instructors create modules with title, description, and ordering</point>
+            <point>Modules organize course content into logical units</point>
+            <point>Sequential progression with optional prerequisites</point>
+          </keyPoints>
+        </section>
+      </doc>
+    </docs>
+
+    <code>
+      <existingPatterns>
+        <pattern name="API Route Authorization" file="src/app/api/instructor/courses/[id]/content/route.ts">
+          <description>Standard instructor authorization pattern used across all instructor endpoints</description>
+          <implementation>
+            - Get session via getServerSession(authOptions)
+            - Check session exists and role is INSTRUCTOR
+            - Await params for Next.js 15 compatibility
+            - Find course with instructorId check
+            - Return 401 if no session/wrong role, 404 if course not found
+          </implementation>
+        </pattern>
+
+        <pattern name="GET List Handler" file="src/app/api/instructor/courses/[id]/content/route.ts">
+          <description>Pattern for listing course resources with ordering</description>
+          <implementation>
+            - Verify instructor access to course
+            - Query resources with courseId filter
+            - Order by orderIndex or createdAt
+            - Return JSON array directly
+          </implementation>
+        </pattern>
+
+        <pattern name="POST Create Handler" file="src/app/api/instructor/courses/[id]/content/route.ts">
+          <description>Pattern for creating new course resources with auto-increment orderIndex</description>
+          <implementation>
+            - Verify instructor access
+            - Extract fields from request.json()
+            - Validate required fields (manual or Zod)
+            - Get max orderIndex via findFirst with orderBy desc
+            - Calculate new orderIndex as (last?.orderIndex || 0) + 1
+            - Create resource with defaults (isPublished: false)
+            - Return created resource (no explicit 201 status in existing code but should use)
+          </implementation>
+        </pattern>
+
+        <pattern name="GET Single Resource" file="src/app/api/instructor/courses/[id]/content/[contentId]/route.ts">
+          <description>Pattern for fetching single resource with nested params</description>
+          <implementation>
+            - Await params to get both id and resourceId
+            - Verify instructor access to course
+            - Find resource with id and courseId (ensures resource belongs to course)
+            - Return 404 if not found
+            - Return resource JSON
+          </implementation>
+        </pattern>
+
+        <pattern name="PUT Update Handler" file="src/app/api/instructor/courses/[id]/content/[contentId]/route.ts">
+          <description>Pattern for partial updates with field merging</description>
+          <implementation>
+            - Verify instructor access
+            - Extract all possible fields from request.json()
+            - Find existing resource to verify existence and ownership
+            - Update using: field !== undefined ? field : existing.field pattern
+            - Return updated resource
+          </implementation>
+        </pattern>
+
+        <pattern name="DELETE Soft Delete Handler" file="src/app/api/instructor/courses/[id]/content/[contentId]/route.ts">
+          <description>Pattern for soft deleting resources</description>
+          <implementation>
+            - Verify instructor access
+            - Find resource with ...notDeleted filter to prevent double-delete
+            - Call softDelete helper from '@/lib/soft-delete'
+            - Return success message
+          </implementation>
+        </pattern>
+
+        <pattern name="Include Counts" file="src/app/api/instructor/courses/[id]/assignments/route.ts">
+          <description>Pattern for including relation counts in queries</description>
+          <implementation>
+            - Use include._count.select in Prisma query
+            - Example: include: { _count: { select: { submissions: true } } }
+            - Returns _count object with specified counts
+          </implementation>
+        </pattern>
+      </existingPatterns>
+
+      <helpers>
+        <helper name="soft-delete utilities" file="src/lib/soft-delete.ts">
+          <description>Soft delete helper functions for audit trail compliance</description>
+          <exports>
+            - notDeleted: { deletedAt: null } - filter for active records
+            - onlyDeleted: { deletedAt: { not: null } } - filter for deleted records
+            - softDelete(model, id) - sets deletedAt to new Date()
+            - restore(model, id) - sets deletedAt to null
+          </exports>
+          <usage>
+            - Import: import { softDelete, notDeleted } from '@/lib/soft-delete'
+            - Filter queries: where: { courseId: id, ...notDeleted }
+            - Soft delete: await softDelete(prisma.module, moduleId)
+          </usage>
+        </helper>
+
+        <helper name="auth configuration" file="src/lib/auth.ts">
+          <description>NextAuth configuration with JWT strategy</description>
+          <exports>
+            - authOptions: NextAuthOptions configuration
+          </exports>
+          <usage>
+            - Import: import { authOptions } from '@/lib/auth'
+            - Get session: const session = await getServerSession(authOptions)
+            - Session shape: { user: { id, email, name, role } }
+            - Roles: STUDENT | INSTRUCTOR | ADMIN
+          </usage>
+        </helper>
+
+        <helper name="prisma client" file="src/lib/prisma.ts">
+          <description>Singleton Prisma client instance</description>
+          <exports>
+            - prisma: PrismaClient instance
+          </exports>
+          <usage>
+            - Import: import { prisma } from '@/lib/prisma'
+            - All database operations use this singleton
+          </usage>
+        </helper>
+      </helpers>
+
+      <schemaReferences>
+        <model name="Module">
+          <location>prisma/schema.prisma (to be added in Story 1-1)</location>
+          <fields>
+            - id: String @id @default(cuid())
+            - title: String
+            - description: String?
+            - orderIndex: Int
+            - isPublished: Boolean @default(false)
+            - requiresPrevious: Boolean @default(true)
+            - createdAt: DateTime @default(now())
+            - updatedAt: DateTime @updatedAt
+            - deletedAt: DateTime?
+            - courseId: String
+            - course: Course relation
+            - content: CourseContent[] relation
+            - assignments: Assignment[] relation
+            - discussions: Discussion[] relation
+            - progress: ModuleProgress[] relation
+          </fields>
+          <indexes>
+            - @@index([courseId])
+            - @@index([deletedAt])
+          </indexes>
+        </model>
+
+        <model name="Course">
+          <location>prisma/schema.prisma</location>
+          <relevantFields>
+            - id: String @id
+            - title: String
+            - instructorId: String
+            - instructor: User relation
+            - modules: Module[] (to be added)
+          </relevantFields>
+        </model>
+      </schemaReferences>
+    </code>
+
+    <dependencies>
+      <runtime>
+        <dependency name="next" version="15.3.3">
+          <purpose>App router with async params support</purpose>
+          <note>Params must be awaited in route handlers (Next.js 15 requirement)</note>
+        </dependency>
+        <dependency name="next-auth" version="^4.24.11">
+          <purpose>Authentication with getServerSession</purpose>
+          <usage>import { getServerSession } from 'next-auth'</usage>
+        </dependency>
+        <dependency name="@prisma/client" version="^6.9.0">
+          <purpose>Database ORM for PostgreSQL</purpose>
+          <usage>import { prisma } from '@/lib/prisma'</usage>
+        </dependency>
+        <dependency name="zod" version="^4.1.13">
+          <purpose>Schema validation for request bodies</purpose>
+          <usage>import { z } from 'zod'</usage>
+        </dependency>
+      </runtime>
+
+      <devDependencies>
+        <dependency name="typescript" version="^5">
+          <purpose>Type safety for API route handlers</purpose>
+        </dependency>
+      </devDependencies>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <authorization>
+      <rule>All endpoints require authenticated session</rule>
+      <rule>All endpoints require INSTRUCTOR role</rule>
+      <rule>Instructor must be the owner of the course (course.instructorId === session.user.id)</rule>
+      <rule>Return 401 for unauthenticated requests</rule>
+      <rule>Return 403 for authenticated but unauthorized requests (student trying to access instructor endpoints)</rule>
+      <rule>Return 404 for course not found or module not found</rule>
+    </authorization>
+
+    <validation>
+      <rule>Module title: required, 1-200 characters</rule>
+      <rule>Module description: optional, max 2000 characters</rule>
+      <rule>requiresPrevious: boolean, defaults to true</rule>
+      <rule>isPublished: boolean, defaults to false on creation</rule>
+      <rule>orderIndex: auto-calculated on creation, can be updated via PUT</rule>
+      <rule>Use Zod schemas for request validation</rule>
+      <rule>Return 400 for validation failures with descriptive error messages</rule>
+    </validation>
+
+    <dataIntegrity>
+      <rule>Module must belong to the specified course</rule>
+      <rule>Soft delete only - never hard delete modules</rule>
+      <rule>Filter out deleted modules in GET queries (deletedAt: null)</rule>
+      <rule>Auto-increment orderIndex based on max existing orderIndex</rule>
+      <rule>Include accurate counts for content, assignments, discussions using Prisma _count</rule>
+    </dataIntegrity>
+
+    <errorHandling>
+      <rule>Wrap all handlers in try/catch</rule>
+      <rule>Log errors to console with context</rule>
+      <rule>Return 500 for internal server errors with generic message</rule>
+      <rule>Never expose sensitive error details to client</rule>
+      <rule>Use consistent error response format: { error: 'message' }</rule>
+    </errorHandling>
+  </constraints>
+
+  <interfaces>
+    <apiResponseFormats>
+      <format name="GET /api/instructor/courses/[id]/modules">
+        <response>
+          {
+            "modules": [
+              {
+                "id": "clxxx...",
+                "title": "AI Fundamentals",
+                "description": "Introduction to AI concepts",
+                "orderIndex": 0,
+                "isPublished": true,
+                "requiresPrevious": false,
+                "contentCount": 5,
+                "assignmentCount": 2,
+                "discussionCount": 1,
+                "createdAt": "2025-11-28T00:00:00Z"
+              }
+            ]
+          }
+        </response>
+        <notes>
+          - Return modules array even if empty
+          - Order by orderIndex ascending
+          - Filter out deleted modules (deletedAt: null)
+          - Include counts using Prisma _count
+        </notes>
+      </format>
+
+      <format name="POST /api/instructor/courses/[id]/modules">
+        <request>
+          {
+            "title": "Module Title",
+            "description": "Optional description",
+            "requiresPrevious": true
+          }
+        </request>
+        <response>
+          {
+            "id": "clxxx...",
+            "title": "Module Title",
+            "description": "Optional description",
+            "orderIndex": 1,
+            "isPublished": false,
+            "requiresPrevious": true,
+            "courseId": "clyyyy...",
+            "createdAt": "2025-11-28T00:00:00Z",
+            "updatedAt": "2025-11-28T00:00:00Z",
+            "deletedAt": null
+          }
+        </response>
+        <statusCode>201</statusCode>
+        <notes>
+          - Auto-assign orderIndex as max(orderIndex) + 1
+          - Default isPublished to false
+          - Default requiresPrevious to true if not provided
+        </notes>
+      </format>
+
+      <format name="GET /api/instructor/courses/[id]/modules/[moduleId]">
+        <response>
+          {
+            "id": "clxxx...",
+            "title": "Module Title",
+            "description": "Module description",
+            "orderIndex": 0,
+            "isPublished": true,
+            "requiresPrevious": false,
+            "courseId": "clyyyy...",
+            "createdAt": "2025-11-28T00:00:00Z",
+            "updatedAt": "2025-11-28T00:00:00Z",
+            "deletedAt": null
+          }
+        </response>
+        <notes>
+          - Return 404 if module not found or doesn't belong to course
+          - Don't include counts for single module detail (can add if needed)
+        </notes>
+      </format>
+
+      <format name="PUT /api/instructor/courses/[id]/modules/[moduleId]">
+        <request>
+          {
+            "title": "Updated Title",
+            "description": "Updated description",
+            "isPublished": true,
+            "requiresPrevious": true
+          }
+        </request>
+        <response>
+          {
+            "id": "clxxx...",
+            "title": "Updated Title",
+            "description": "Updated description",
+            "orderIndex": 0,
+            "isPublished": true,
+            "requiresPrevious": true,
+            "courseId": "clyyyy...",
+            "createdAt": "2025-11-28T00:00:00Z",
+            "updatedAt": "2025-11-28T00:00:00Z",
+            "deletedAt": null
+          }
+        </response>
+        <notes>
+          - All fields optional for partial updates
+          - Use field !== undefined ? field : existing.field pattern
+          - Verify module belongs to course before updating
+        </notes>
+      </format>
+
+      <format name="DELETE /api/instructor/courses/[id]/modules/[moduleId]">
+        <response>
+          {
+            "message": "Module archived successfully"
+          }
+        </response>
+        <notes>
+          - Soft delete only (set deletedAt)
+          - Return 404 if already deleted or not found
+          - Use notDeleted filter to prevent double-delete
+        </notes>
+      </format>
+    </apiResponseFormats>
+
+    <existingPatternReference>
+      <pattern>Follow Next.js 15 App Router conventions</pattern>
+      <pattern>Use route.ts files for API endpoints (not route.js)</pattern>
+      <pattern>Export named async functions: GET, POST, PUT, DELETE</pattern>
+      <pattern>Params are Promise types, must be awaited</pattern>
+      <pattern>Return NextResponse.json() for all responses</pattern>
+      <pattern>Use 201 for resource creation, 200 for success, 4xx for client errors, 500 for server errors</pattern>
+    </existingPatternReference>
+  </interfaces>
+
+  <tests>
+    <standards>
+      <approach>Manual API testing for MVP (automated tests to be added later)</approach>
+      <tools>
+        - Use browser DevTools or Postman/Insomnia for API testing
+        - Test all endpoints with valid instructor authentication
+        - Test authorization failures (wrong user, student role)
+        - Test validation failures (missing required fields, invalid data)
+        - Test edge cases (404 scenarios, soft delete)
+      </tools>
+    </standards>
+
+    <locations>
+      <directory path="__tests__/integration/api">
+        <description>Integration tests for API endpoints</description>
+        <note>Tests exist for other features, can be used as reference for future module API tests</note>
+      </directory>
+    </locations>
+
+    <ideas>
+      <testSuite name="Module CRUD Operations">
+        <test name="GET list modules - success">
+          - Authenticated as instructor of course
+          - Course has multiple modules
+          - Returns modules array ordered by orderIndex
+          - Includes accurate counts for content/assignments/discussions
+          - Excludes soft-deleted modules
+        </test>
+
+        <test name="GET list modules - empty course">
+          - Course has no modules yet
+          - Returns empty modules array
+          - Returns 200 status
+        </test>
+
+        <test name="POST create module - success">
+          - Valid title and description
+          - Auto-assigns next orderIndex
+          - Defaults isPublished to false
+          - Returns created module with 201 status
+        </test>
+
+        <test name="POST create module - validation failure">
+          - Missing required title
+          - Returns 400 with error message
+        </test>
+
+        <test name="GET single module - success">
+          - Module exists and belongs to course
+          - Returns module details
+        </test>
+
+        <test name="GET single module - not found">
+          - Module doesn't exist or belongs to different course
+          - Returns 404
+        </test>
+
+        <test name="PUT update module - partial update">
+          - Only update title field
+          - Other fields remain unchanged
+          - Returns updated module
+        </test>
+
+        <test name="DELETE module - soft delete">
+          - Module exists
+          - Sets deletedAt timestamp
+          - Module no longer appears in GET list
+          - Can still be found with onlyDeleted filter (for restore)
+        </test>
+      </testSuite>
+
+      <testSuite name="Authorization">
+        <test name="Unauthorized - no session">
+          - No authentication token
+          - Returns 401 for all endpoints
+        </test>
+
+        <test name="Unauthorized - student role">
+          - Authenticated as STUDENT
+          - Returns 401 (or 403) for all instructor endpoints
+        </test>
+
+        <test name="Unauthorized - wrong instructor">
+          - Authenticated as INSTRUCTOR
+          - Trying to access another instructor's course
+          - Returns 404 (course not found with instructorId check)
+        </test>
+
+        <test name="Authorized - correct instructor">
+          - Authenticated as course owner
+          - All operations succeed
+        </test>
+      </testSuite>
+
+      <testSuite name="Edge Cases">
+        <test name="Module belongs to different course">
+          - Instructor owns courseA
+          - Tries to GET/PUT/DELETE module from courseB
+          - Returns 404 (module not found for this course)
+        </test>
+
+        <test name="Double soft delete">
+          - Module already soft deleted
+          - Try to delete again
+          - Returns 404 (not found with notDeleted filter)
+        </test>
+
+        <test name="OrderIndex calculation">
+          - Create multiple modules
+          - Each gets sequential orderIndex (0, 1, 2, ...)
+          - Delete middle module
+          - New module gets max(orderIndex) + 1
+        </test>
+      </testSuite>
+    </ideas>
+  </tests>
+
+  <implementation>
+    <fileStructure>
+      <file path="src/lib/validations/module.ts">
+        <purpose>Zod validation schemas for module requests</purpose>
+        <exports>
+          - createModuleSchema
+          - updateModuleSchema
+        </exports>
+      </file>
+
+      <file path="src/app/api/instructor/courses/[id]/modules/route.ts">
+        <purpose>List and create modules endpoints</purpose>
+        <exports>
+          - async GET(request, { params })
+          - async POST(request, { params })
+        </exports>
+      </file>
+
+      <file path="src/app/api/instructor/courses/[id]/modules/[moduleId]/route.ts">
+        <purpose>Get, update, and delete single module endpoints</purpose>
+        <exports>
+          - async GET(request, { params })
+          - async PUT(request, { params })
+          - async DELETE(request, { params })
+        </exports>
+      </file>
+    </fileStructure>
+
+    <keyDecisions>
+      <decision>Use existing authorization pattern (verify course.instructorId === session.user.id)</decision>
+      <decision>Leverage soft-delete utilities from @/lib/soft-delete</decision>
+      <decision>Follow Next.js 15 async params pattern</decision>
+      <decision>Return 201 for POST create (best practice, even if some existing endpoints don't)</decision>
+      <decision>Use Zod for request validation instead of manual checks</decision>
+      <decision>Include counts in list endpoint using Prisma _count</decision>
+      <decision>Don't create separate authorization helper for now - inline checks are sufficient</decision>
+    </keyDecisions>
+
+    <deferredItems>
+      <item>Automated tests (manual testing for MVP)</item>
+      <item>Rate limiting (global rate limit exists, module-specific not needed yet)</item>
+      <item>Pagination for module list (courses won't have hundreds of modules in MVP)</item>
+      <item>Bulk operations (reorder will be separate story 2-3)</item>
+      <item>Module content move endpoint (separate story 2-5)</item>
+    </deferredItems>
+  </implementation>
+
+  <references>
+    <architectureDoc>docs/architecture-course-modules.md</architectureDoc>
+    <prdDoc>docs/PRD-course-modules.md</prdDoc>
+    <epicDoc>docs/epics-course-modules.md</epicDoc>
+    <relatedStories>
+      <story id="1-1">Create Module Database Model - defines Module schema</story>
+      <story id="1-2">Add Module Foreign Keys - adds moduleId to content/assignments/discussions</story>
+      <story id="1-4">Add Module Progress Tracking - defines ModuleProgress model</story>
+    </relatedStories>
+  </references>
+</story-context>

@@ -1,0 +1,602 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context id="3-4" version="1.0">
+  <metadata>
+    <epic-id>3</epic-id>
+    <story-id>4</story-id>
+    <title>Content Completion Tracking</title>
+    <status>ready-for-dev</status>
+    <generated-at>2025-11-28</generated-at>
+    <story-file>docs/stories/3-4-content-completion-tracking.md</story-file>
+  </metadata>
+
+  <story>
+    <as-a>student</as-a>
+    <i-want>my content progress to be tracked</i-want>
+    <so-that>I know what I've completed</so-that>
+
+    <tasks>
+      <task id="1" title="Create content completion API endpoint" ac="5">
+        <subtask id="1.1">Create POST /api/student/courses/[id]/modules/[moduleId]/content/[contentId]/complete</subtask>
+        <subtask id="1.2">Verify student enrollment and module unlock</subtask>
+        <subtask id="1.3">Verify content belongs to module</subtask>
+        <subtask id="1.4">Call markContentViewed function</subtask>
+        <subtask id="1.5">Return updated progress</subtask>
+      </task>
+
+      <task id="2" title="Implement markContentViewed function" ac="1,4">
+        <subtask id="2.1">Create/use src/lib/module-progress.ts</subtask>
+        <subtask id="2.2">Upsert ModuleProgress record</subtask>
+        <subtask id="2.3">Add contentId to contentViewed array (if not already present)</subtask>
+        <subtask id="2.4">Persist to database</subtask>
+      </task>
+
+      <task id="3" title="Implement progress calculation" ac="3">
+        <subtask id="3.1">Create calculateModuleProgress function</subtask>
+        <subtask id="3.2">Content progress = contentViewed.length / totalContent * 50</subtask>
+        <subtask id="3.3">Assignment progress = submittedAssignments / totalAssignments * 50</subtask>
+        <subtask id="3.4">Total = content progress + assignment progress</subtask>
+        <subtask id="3.5">Handle edge cases (no content = 50% auto)</subtask>
+      </task>
+
+      <task id="4" title="Trigger completion on content view" ac="1">
+        <subtask id="4.1">Find content viewer component</subtask>
+        <subtask id="4.2">Call completion API when content is viewed</subtask>
+        <subtask id="4.3">Define "viewed" criteria (e.g., page load, scroll completion, video watched)</subtask>
+        <subtask id="4.4">Debounce to avoid duplicate calls</subtask>
+      </task>
+
+      <task id="5" title="Update UI to show completion" ac="2,3">
+        <subtask id="5.1">Update StudentContentItem to show checkmark when viewed</subtask>
+        <subtask id="5.2">Update module progress percentage display</subtask>
+        <subtask id="5.3">Refresh progress on completion</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptance-criteria>
+    <criterion id="AC1">Viewing content marks it as "viewed" in ModuleProgress</criterion>
+    <criterion id="AC2">Checkmark appears on viewed content items</criterion>
+    <criterion id="AC3">Module progress percentage updates (content weight: 50%)</criterion>
+    <criterion id="AC4">Progress persists across sessions</criterion>
+    <criterion id="AC5">API endpoint to mark content complete</criterion>
+  </acceptance-criteria>
+
+  <artifacts>
+    <documentation>
+      <doc path="docs/architecture-course-modules.md" section="Progress Calculation">
+        <description>markContentViewed function implementation specification</description>
+        <key-points>
+          <point>Function signature: async markContentViewed(moduleId, userId, contentId): Promise&lt;ModuleProgressResult&gt;</point>
+          <point>Upserts ModuleProgress record using moduleId_userId unique constraint</point>
+          <point>Adds contentId to contentViewed array using push operation</point>
+          <point>Calls calculateModuleProgress to return updated progress</point>
+          <point>Idempotent - safe to call multiple times without duplicate entries</point>
+        </key-points>
+        <code-snippet>
+export async function markContentViewed(
+  moduleId: string,
+  userId: string,
+  contentId: string
+): Promise&lt;ModuleProgressResult&gt; {
+  // Upsert progress record
+  await prisma.moduleProgress.upsert({
+    where: { moduleId_userId: { moduleId, userId } },
+    create: { moduleId, userId, contentViewed: [contentId] },
+    update: { contentViewed: { push: contentId } }
+  });
+
+  return calculateModuleProgress(moduleId, userId);
+}
+        </code-snippet>
+      </doc>
+
+      <doc path="docs/architecture-course-modules.md" section="ADR-002">
+        <description>Progress formula decision (50/50 split)</description>
+        <key-points>
+          <point>Total Progress = (ContentViewed/TotalContent * 50%) + (AssignmentsSubmitted/TotalAssignments * 50%)</point>
+          <point>Edge case: No content items means Content portion = 50% (auto-complete)</point>
+          <point>Edge case: No assignments means Assignment portion = 50% (auto-complete)</point>
+          <point>Progress stored in ModuleProgress.contentViewed array</point>
+        </key-points>
+      </doc>
+
+      <doc path="docs/PRD-course-modules.md" section="FR019, FR020">
+        <description>Functional requirements for progress tracking</description>
+        <key-points>
+          <point>FR019: Module completion tracked (all content viewed, all assignments submitted)</point>
+          <point>FR020: Students can see progress through each module</point>
+        </key-points>
+      </doc>
+
+      <doc path="docs/stories/3-4-content-completion-tracking.md" section="Dev Notes">
+        <description>Implementation details and API contract</description>
+        <key-points>
+          <point>Simple "viewed" definition for MVP: mark complete on page load</point>
+          <point>Array uniqueness: Check if contentId already in array before push</point>
+          <point>Session persistence: Progress saved to database</point>
+          <point>API response includes moduleProgress percentage and isModuleComplete flag</point>
+        </key-points>
+      </doc>
+    </documentation>
+
+    <code>
+      <file path="prisma/schema.prisma">
+        <description>ModuleProgress model with contentViewed array field</description>
+        <relevant-sections>
+          <section name="ModuleProgress model" lines="271-290">
+            <code>
+model ModuleProgress {
+  id            String    @id @default(cuid())
+  completedAt   DateTime?
+  contentViewed String[]  // Array of content IDs viewed by user
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime? // Soft delete support
+
+  // Relations
+  moduleId String
+  userId   String
+  module   Module @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([moduleId, userId])
+  @@index([userId])
+  @@index([moduleId])
+  @@index([deletedAt])
+  @@map("module_progress")
+}
+            </code>
+            <note>contentViewed is String[] array to store list of viewed content IDs</note>
+            <note>Unique constraint on (moduleId, userId) ensures one progress record per user per module</note>
+            <note>completedAt is nullable - only set when module reaches 100%</note>
+          </section>
+
+          <section name="Module model" lines="247-269">
+            <note>Module has relation to ModuleProgress for tracking</note>
+            <note>Module includes content, assignments, and discussions relations</note>
+          </section>
+
+          <section name="CourseContent model" lines="207-230">
+            <note>CourseContent belongs to Module via moduleId</note>
+            <note>isPublished field filters what content is visible</note>
+          </section>
+
+          <section name="Submission model" lines="112-127">
+            <note>Submission table tracks assignment submissions for progress calculation</note>
+            <note>Unique constraint on (assignmentId, studentId)</note>
+          </section>
+        </relevant-sections>
+      </file>
+
+      <file path="src/app/api/student/courses/[id]/route.ts">
+        <description>Student course API pattern with enrollment verification</description>
+        <relevant-sections>
+          <section name="Authentication pattern" lines="11-15">
+            <code>
+const session = await getServerSession(authOptions)
+if (!session || session.user.role !== 'STUDENT') {
+  return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+}
+            </code>
+            <note>All student endpoints verify STUDENT role</note>
+          </section>
+
+          <section name="Enrollment verification" lines="20-31">
+            <code>
+const enrollment = await prisma.enrollment.findUnique({
+  where: {
+    userId_courseId: {
+      userId: session.user.id,
+      courseId: id
+    }
+  }
+})
+
+if (!enrollment) {
+  return NextResponse.json({ error: 'Not enrolled in this course' }, { status: 403 })
+}
+            </code>
+            <note>Student must be enrolled to access course resources</note>
+          </section>
+        </relevant-sections>
+      </file>
+
+      <file path="src/app/api/student/courses/[id]/content/route.ts">
+        <description>Student content listing API pattern</description>
+        <relevant-sections>
+          <section name="Content query with filters" lines="34-52">
+            <code>
+const content = await prisma.courseContent.findMany({
+  where: {
+    courseId: id,
+    isPublished: true
+  },
+  orderBy: {
+    orderIndex: 'asc'
+  },
+  select: {
+    id: true,
+    title: true,
+    type: true,
+    content: true,
+    fileUrl: true,
+    thumbnailUrl: true,
+    orderIndex: true,
+    createdAt: true
+  }
+})
+            </code>
+            <note>Only published content is visible to students</note>
+            <note>Content ordered by orderIndex</note>
+          </section>
+        </relevant-sections>
+      </file>
+
+      <file path="src/lib/soft-delete.ts">
+        <description>Soft delete utilities with notDeleted filter</description>
+        <relevant-sections>
+          <section name="notDeleted constant" lines="39">
+            <code>
+export const notDeleted = { deletedAt: null } as const
+            </code>
+            <note>Use notDeleted in all queries to exclude soft-deleted records</note>
+          </section>
+
+          <section name="SOFT_DELETE_MODELS" lines="16-26">
+            <note>ModuleProgress included in soft delete support</note>
+            <note>Module included in soft delete support</note>
+          </section>
+        </relevant-sections>
+      </file>
+
+      <file path="src/lib/validation.ts">
+        <description>Validation utilities for request handling</description>
+        <relevant-sections>
+          <section name="cuidSchema" lines="216-221">
+            <code>
+export const CUID_REGEX = /^c[a-z0-9]{24}$/
+export const cuidSchema = z.string().regex(CUID_REGEX, 'Invalid ID format')
+            </code>
+            <note>Use cuidSchema to validate moduleId and contentId path parameters</note>
+          </section>
+
+          <section name="validateRequest helper" lines="69-115">
+            <note>Consistent validation pattern for all API endpoints</note>
+            <note>Returns ValidationResult with success flag and data or error response</note>
+          </section>
+        </relevant-sections>
+      </file>
+    </code>
+
+    <dependencies>
+      <dependency type="framework" name="Next.js" version="15.x">
+        <description>App router with route handlers</description>
+        <usage>API route pattern: /api/student/courses/[id]/modules/[moduleId]/content/[contentId]/complete/route.ts</usage>
+      </dependency>
+
+      <dependency type="library" name="Prisma" version="^6.9.0">
+        <description>Database ORM for queries and mutations</description>
+        <usage>ModuleProgress upsert, Module queries, Submission counting</usage>
+      </dependency>
+
+      <dependency type="library" name="NextAuth" version="^4.x">
+        <description>Authentication and session management</description>
+        <usage>getServerSession for user authentication</usage>
+      </dependency>
+
+      <dependency type="library" name="Zod" version="^3.x">
+        <description>Schema validation library</description>
+        <usage>Validate request parameters and body</usage>
+      </dependency>
+
+      <dependency type="story" name="1-4-add-module-progress-tracking-model">
+        <description>ModuleProgress model must exist in database</description>
+        <status>review</status>
+      </dependency>
+
+      <dependency type="story" name="3-3-module-content-view">
+        <description>Content viewer component needs completion tracking integration</description>
+        <status>drafted</status>
+      </dependency>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="database">
+      <title>Idempotent content marking</title>
+      <description>Marking same content multiple times should not duplicate entries in contentViewed array</description>
+      <rationale>User might reload page or revisit content - should not affect progress percentage</rationale>
+      <implementation>Check if contentId exists in array before adding (or use database array contains check)</implementation>
+    </constraint>
+
+    <constraint type="security">
+      <title>Enrollment verification required</title>
+      <description>Student must be enrolled in course to mark content complete</description>
+      <rationale>Prevents unauthorized progress tracking</rationale>
+      <implementation>Check enrollment before allowing progress update</implementation>
+    </constraint>
+
+    <constraint type="security">
+      <title>Module unlock check</title>
+      <description>Student must have unlocked module before marking content complete</description>
+      <rationale>Enforces sequential progression through modules</rationale>
+      <implementation>Call isModuleUnlocked before allowing content marking</implementation>
+    </constraint>
+
+    <constraint type="data-integrity">
+      <title>Content belongs to module validation</title>
+      <description>Content must actually belong to the specified module</description>
+      <rationale>Prevents cross-module content marking</rationale>
+      <implementation>Verify content.moduleId === moduleId parameter</implementation>
+    </constraint>
+
+    <constraint type="performance">
+      <title>Single database transaction</title>
+      <description>Progress update should complete in &lt;200ms</description>
+      <rationale>User expects immediate feedback on content completion</rationale>
+      <implementation>Use upsert operation to minimize database round-trips</implementation>
+    </constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="POST /api/student/courses/[id]/modules/[moduleId]/content/[contentId]/complete">
+      <description>Mark content as viewed and return updated progress</description>
+      <method>POST</method>
+      <authentication>Required - Student role only</authentication>
+      <path-parameters>
+        <param name="id" type="string">Course ID (cuid)</param>
+        <param name="moduleId" type="string">Module ID (cuid)</param>
+        <param name="contentId" type="string">Content ID (cuid)</param>
+      </path-parameters>
+      <request-body>
+        <description>No body required</description>
+      </request-body>
+      <responses>
+        <response status="200">
+          <description>Content marked complete successfully</description>
+          <schema>
+{
+  "success": true,
+  "moduleProgress": 80,
+  "isModuleComplete": false
+}
+          </schema>
+        </response>
+        <response status="401">
+          <description>Unauthorized - not authenticated or not student</description>
+        </response>
+        <response status="403">
+          <description>Not enrolled in course or module locked</description>
+        </response>
+        <response status="404">
+          <description>Course, module, or content not found</description>
+        </response>
+        <response status="500">
+          <description>Internal server error</description>
+        </response>
+      </responses>
+    </interface>
+
+    <interface name="markContentViewed function">
+      <description>Library function to mark content viewed and update progress</description>
+      <location>src/lib/module-progress.ts</location>
+      <signature>
+async function markContentViewed(
+  moduleId: string,
+  userId: string,
+  contentId: string
+): Promise&lt;ModuleProgressResult&gt;
+      </signature>
+      <parameters>
+        <param name="moduleId" type="string">Module containing the content</param>
+        <param name="userId" type="string">Student viewing the content</param>
+        <param name="contentId" type="string">Content being marked viewed</param>
+      </parameters>
+      <returns>
+        <type>ModuleProgressResult</type>
+        <schema>
+{
+  percentage: number;        // 0-100
+  isComplete: boolean;       // true if 100%
+  contentViewed: number;     // Count of viewed content
+  contentTotal: number;      // Total content in module
+  assignmentsSubmitted: number;
+  assignmentsTotal: number;
+}
+        </schema>
+      </returns>
+    </interface>
+
+    <interface name="calculateModuleProgress function">
+      <description>Calculate current progress percentage for a module</description>
+      <location>src/lib/module-progress.ts</location>
+      <signature>
+async function calculateModuleProgress(
+  moduleId: string,
+  userId: string
+): Promise&lt;ModuleProgressResult&gt;
+      </signature>
+      <algorithm>
+1. Fetch module with published content and assignments
+2. Get ModuleProgress record (or default if not exists)
+3. Count submissions for module assignments
+4. Calculate content score: (viewedCount / totalContent) * 50
+5. Calculate assignment score: (submittedCount / totalAssignments) * 50
+6. Handle edge cases: no content = 50%, no assignments = 50%
+7. Return combined percentage and details
+      </algorithm>
+    </interface>
+  </interfaces>
+
+  <file-paths>
+    <files-to-create>
+      <file path="src/lib/module-progress.ts">
+        <description>Progress calculation and content marking functions</description>
+        <exports>
+          <export>markContentViewed(moduleId, userId, contentId)</export>
+          <export>calculateModuleProgress(moduleId, userId)</export>
+          <export>ModuleProgressResult interface</export>
+        </exports>
+      </file>
+
+      <file path="src/app/api/student/courses/[id]/modules/[moduleId]/content/[contentId]/complete/route.ts">
+        <description>API endpoint to mark content complete</description>
+        <exports>
+          <export>POST handler</export>
+        </exports>
+      </file>
+    </files-to-create>
+
+    <files-to-modify>
+      <file path="src/components/modules/ModuleContentList.tsx">
+        <description>Update to show checkmarks on viewed content</description>
+        <changes>
+          <change>Add isViewed property to content items</change>
+          <change>Display checkmark icon when isViewed is true</change>
+          <change>Call completion API when content is clicked/viewed</change>
+        </changes>
+      </file>
+
+      <file path="src/components/modules/ModuleCard.tsx">
+        <description>Update to display progress percentage</description>
+        <changes>
+          <change>Add progress bar component</change>
+          <change>Fetch and display module progress percentage</change>
+          <change>Update progress when content marked complete</change>
+        </changes>
+      </file>
+    </files-to-modify>
+  </file-paths>
+
+  <tests>
+    <standards>
+      <approach>E2E testing with Playwright</approach>
+      <framework>Playwright (v1.57.0)</framework>
+      <location>__tests__/e2e/</location>
+      <commands>
+        <command name="test:e2e">Run all E2E tests</command>
+        <command name="test:e2e:ui">Run tests with Playwright UI</command>
+        <command name="test:e2e:debug">Run tests in debug mode</command>
+      </commands>
+    </standards>
+
+    <test-locations>
+      <directory>__tests__/e2e/</directory>
+      <pattern>*.spec.ts</pattern>
+      <note>No unit tests directory exists yet - E2E tests are primary testing approach</note>
+    </test-locations>
+
+    <test-ideas>
+      <idea priority="high">Mark content complete: Student marks content viewed and verifies checkmark appears</idea>
+      <idea priority="high">Progress updates: Verify module progress percentage increases when content marked</idea>
+      <idea priority="high">Idempotent marking: Mark same content twice and verify progress doesn't double</idea>
+      <idea priority="high">Session persistence: Mark content, logout, login, verify still marked</idea>
+      <idea priority="high">Authorization: Non-enrolled student cannot mark content complete (403)</idea>
+      <idea priority="medium">50/50 formula: Verify content contributes 50% to total progress</idea>
+      <idea priority="medium">Edge case - no content: Module with only assignments shows 50% base progress</idea>
+      <idea priority="medium">Edge case - no assignments: Module with only content shows 50% base progress</idea>
+      <idea priority="medium">Locked module: Student cannot mark content in locked module complete</idea>
+      <idea priority="medium">Content validation: Cannot mark content from different module</idea>
+      <idea priority="low">Progress API performance: Completion endpoint responds in &lt;200ms</idea>
+      <idea priority="low">Multiple students: Two students track progress independently</idea>
+    </test-ideas>
+  </tests>
+
+  <implementation-notes>
+    <note category="architecture">
+      <title>Progress calculation architecture</title>
+      <description>The calculateModuleProgress function is the single source of truth for progress. It's called by markContentViewed and can be called independently by other features (e.g., assignment grading).</description>
+    </note>
+
+    <note category="ui-ux">
+      <title>Immediate visual feedback</title>
+      <description>Use optimistic UI updates - show checkmark immediately while API call is in flight. Rollback on error.</description>
+    </note>
+
+    <note category="implementation">
+      <title>Array uniqueness handling</title>
+      <description>Prisma's push operation on arrays doesn't check for duplicates. Need to either: (1) Check array before push in application code, or (2) Accept duplicates and use contentViewed.length with Set for accurate count. Recommend option 1 for data cleanliness.</description>
+      <code>
+// Option 1: Check before push
+const existing = await prisma.moduleProgress.findUnique({
+  where: { moduleId_userId: { moduleId, userId } }
+});
+
+if (!existing?.contentViewed.includes(contentId)) {
+  await prisma.moduleProgress.update({
+    where: { moduleId_userId: { moduleId, userId } },
+    data: { contentViewed: { push: contentId } }
+  });
+}
+      </code>
+    </note>
+
+    <note category="performance">
+      <title>Database query optimization</title>
+      <description>Use select to fetch only needed fields. For progress calculation, include relations in single query to avoid N+1 problem.</description>
+    </note>
+
+    <note category="future-enhancement">
+      <title>Advanced completion tracking</title>
+      <description>MVP marks content viewed on page load. Future enhancements could track: video watch percentage, document scroll depth, quiz completion, SCORM completion events.</description>
+    </note>
+
+    <note category="completion-criteria">
+      <title>Content "viewed" definition for MVP</title>
+      <description>
+        - TEXT: Mark complete on page load
+        - VIDEO/YOUTUBE: Mark complete on page load (could enhance to track watch time)
+        - DOCUMENT: Mark complete on page load
+        - LINK: Mark complete when link clicked
+        - SCORM: Use SCORM completion callback if available, otherwise page load
+      </description>
+    </note>
+
+    <note category="soft-delete">
+      <title>Soft delete consideration</title>
+      <description>Use notDeleted filter when querying ModuleProgress, Module, and CourseContent to exclude soft-deleted records.</description>
+    </note>
+  </implementation-notes>
+
+  <references>
+    <reference type="architecture">
+      <source>docs/architecture-course-modules.md#Progress-Calculation</source>
+      <description>markContentViewed and calculateModuleProgress function specifications</description>
+    </reference>
+
+    <reference type="architecture">
+      <source>docs/architecture-course-modules.md#ADR-002</source>
+      <description>Progress formula decision: 50% content + 50% assignments</description>
+    </reference>
+
+    <reference type="prd">
+      <source>docs/PRD-course-modules.md#FR019</source>
+      <description>Module completion tracking requirement</description>
+    </reference>
+
+    <reference type="prd">
+      <source>docs/PRD-course-modules.md#FR020</source>
+      <description>Student progress visibility requirement</description>
+    </reference>
+
+    <reference type="epic">
+      <source>docs/epics-course-modules.md#Story-3.4</source>
+      <description>Original story specification in epic breakdown</description>
+    </reference>
+
+    <reference type="story">
+      <source>docs/stories/3-3-module-content-view.md</source>
+      <description>Related story - content viewer needs completion trigger integration</description>
+    </reference>
+
+    <reference type="story">
+      <source>docs/stories/1-4-add-module-progress-tracking-model.md</source>
+      <description>Prerequisite story - ModuleProgress model implementation</description>
+    </reference>
+
+    <reference type="story">
+      <source>docs/stories/3-5-assignment-progress-in-modules.md</source>
+      <description>Related story - assignment submission progress uses same calculation</description>
+    </reference>
+  </references>
+</story-context>

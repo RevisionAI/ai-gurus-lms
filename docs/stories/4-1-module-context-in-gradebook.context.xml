@@ -1,0 +1,522 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-key>4-1-module-context-in-gradebook</story-key>
+    <epic-id>4</epic-id>
+    <story-id>1</story-id>
+    <title>Module Context in Gradebook</title>
+    <status>drafted</status>
+    <generated-date>2025-11-28</generated-date>
+  </metadata>
+
+  <user-story>
+    <as-a>an instructor</as-a>
+    <i-want>the gradebook to show which module each assignment belongs to</i-want>
+    <so-that>I can understand grades in context</so-that>
+  </user-story>
+
+  <acceptance-criteria>
+    <criterion id="AC1">
+      <description>Gradebook grid shows module name for each assignment column</description>
+    </criterion>
+    <criterion id="AC2">
+      <description>Assignments grouped by module in column headers</description>
+    </criterion>
+    <criterion id="AC3">
+      <description>Filter dropdown to show only assignments from specific module</description>
+    </criterion>
+    <criterion id="AC4">
+      <description>Module column in CSV export</description>
+    </criterion>
+    <criterion id="AC5">
+      <description>Sort by module option</description>
+    </criterion>
+  </acceptance-criteria>
+
+  <story-tasks>
+    <task id="1" ac-refs="AC1,AC2">
+      <title>Update gradebook data fetching</title>
+      <subtasks>
+        <subtask id="1.1">Locate gradebook data query</subtask>
+        <subtask id="1.2">Include module relation when fetching assignments</subtask>
+        <subtask id="1.3">Add module.title to assignment data</subtask>
+      </subtasks>
+    </task>
+    <task id="2" ac-refs="AC1,AC2">
+      <title>Add module name to column headers</title>
+      <subtasks>
+        <subtask id="2.1">Locate gradebook grid component</subtask>
+        <subtask id="2.2">Add module name above assignment name in header</subtask>
+        <subtask id="2.3">Group adjacent assignments from same module visually</subtask>
+        <subtask id="2.4">Optional: Color-code or border groups</subtask>
+      </subtasks>
+    </task>
+    <task id="3" ac-refs="AC3">
+      <title>Add module filter dropdown</title>
+      <subtasks>
+        <subtask id="3.1">Add filter dropdown above gradebook grid</subtask>
+        <subtask id="3.2">Populate with unique modules from course</subtask>
+        <subtask id="3.3">Include "All Modules" option</subtask>
+        <subtask id="3.4">Filter grid columns based on selection</subtask>
+      </subtasks>
+    </task>
+    <task id="4" ac-refs="AC4">
+      <title>Update CSV export</title>
+      <subtasks>
+        <subtask id="4.1">Locate gradebook export function</subtask>
+        <subtask id="4.2">Add "Module" column to export</subtask>
+        <subtask id="4.3">Module name appears for each assignment column</subtask>
+      </subtasks>
+    </task>
+    <task id="5" ac-refs="AC5">
+      <title>Add sort by module option</title>
+      <subtasks>
+        <subtask id="5.1">Add "Module" to sort options</subtask>
+        <subtask id="5.2">Sorting groups assignments by module orderIndex</subtask>
+        <subtask id="5.3">Within module, maintain existing sort order</subtask>
+      </subtasks>
+    </task>
+  </story-tasks>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/PRD-course-modules.md</path>
+        <title>AI Gurus LMS - Course Modules Feature PRD</title>
+        <section>Functional Requirements - FR013</section>
+        <snippet>FR013: Gradebook displays module context for each assignment. Instructors can see which module each assignment belongs to when viewing or exporting grades.</snippet>
+      </doc>
+      <doc>
+        <path>docs/PRD-course-modules.md</path>
+        <title>AI Gurus LMS - Course Modules Feature PRD</title>
+        <section>User Journeys - Journey 3</section>
+        <snippet>Sarah opens the Gradebook for "AI Fluency Program". She sees assignments grouped by module: Module 1: "AI Concepts Quiz" | "Reflection Assignment", Module 2: "Decision Framework Exercise" | "Case Study". She filters to show only Module 1 assignments. She exports gradebook with module columns.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture-course-modules.md</path>
+        <title>Course Modules Feature - Architecture Document</title>
+        <section>Modified Models - Assignment</section>
+        <snippet>Assignment model has moduleId foreign key. Can include module in queries with module relation that includes id, title, orderIndex fields.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture-course-modules.md</path>
+        <title>Course Modules Feature - Architecture Document</title>
+        <section>Epic to Architecture Mapping</section>
+        <snippet>Epic 4: Feature Integration - Modified existing routes, /components/gradebook/, existing content/assignment forms</snippet>
+      </doc>
+      <doc>
+        <path>docs/epics-course-modules.md</path>
+        <title>AI Gurus LMS - Course Modules Epic Breakdown</title>
+        <section>Story 4.1: Module Context in Gradebook</section>
+        <snippet>As an instructor, I want the gradebook to show which module each assignment belongs to, so that I can understand grades in context. AC: 1) Gradebook grid shows module name for each assignment column, 2) Assignments grouped by module in column headers, 3) Filter dropdown to show only assignments from specific module, 4) Module column in CSV export, 5) Sort by module option.</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <artifact>
+        <path>src/app/api/instructor/gradebook/[courseId]/route.ts</path>
+        <kind>api-route</kind>
+        <symbol>GET</symbol>
+        <lines>121-401</lines>
+        <reason>Main gradebook API endpoint. Needs to include module relation when fetching assignments. Returns GradebookMatrix with assignments array that needs module data added.</reason>
+      </artifact>
+      <artifact>
+        <path>src/app/api/instructor/gradebook/[courseId]/route.ts</path>
+        <kind>api-route</kind>
+        <symbol>GradebookAssignment</symbol>
+        <lines>54-61</lines>
+        <reason>Interface definition for assignment columns. Needs moduleId and moduleTitle fields added to include module context.</reason>
+      </artifact>
+      <artifact>
+        <path>src/app/api/instructor/gradebook/[courseId]/route.ts</path>
+        <kind>api-route</kind>
+        <symbol>assignments query</symbol>
+        <lines>256-277</lines>
+        <reason>Prisma query fetching assignments. Currently missing module include. Need to add: include: { module: { select: { id: true, title: true, orderIndex: true } } }</reason>
+      </artifact>
+      <artifact>
+        <path>src/app/api/instructor/gradebook/[courseId]/export/route.ts</path>
+        <kind>api-route</kind>
+        <symbol>GET</symbol>
+        <lines>123-437</lines>
+        <reason>CSV export endpoint. Needs to include module data in assignments query and pass to CSV generator for module column.</reason>
+      </artifact>
+      <artifact>
+        <path>src/app/api/instructor/gradebook/[courseId]/export/route.ts</path>
+        <kind>api-route</kind>
+        <symbol>assignments query</symbol>
+        <lines>292-313</lines>
+        <reason>Prisma query for assignments in export. Needs same module include as main gradebook route.</reason>
+      </artifact>
+      <artifact>
+        <path>src/lib/csv-export.ts</path>
+        <kind>library</kind>
+        <symbol>generateGradebookCSV</symbol>
+        <lines>87-134</lines>
+        <reason>CSV generation function. Needs to add Module column to header row and include module name for each assignment in data structure.</reason>
+      </artifact>
+      <artifact>
+        <path>src/lib/csv-export.ts</path>
+        <kind>library</kind>
+        <symbol>CSVGradebookAssignment</symbol>
+        <lines>30-34</lines>
+        <reason>Type definition for assignments in CSV. Needs moduleId and moduleTitle fields added.</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/gradebook/types.ts</path>
+        <kind>types</kind>
+        <symbol>GradebookAssignment</symbol>
+        <lines>39-46</lines>
+        <reason>TypeScript interface for assignment columns. Needs moduleId?: string and moduleTitle?: string fields added.</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/gradebook/EditableGradebookGrid.tsx</path>
+        <kind>component</kind>
+        <symbol>EditableGradebookGrid</symbol>
+        <lines>38-219</lines>
+        <reason>Main gradebook grid component. Column headers at lines 156-172 need to display module name above assignment title. May need visual grouping for adjacent same-module assignments.</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/gradebook/GradebookFilters.tsx</path>
+        <kind>component</kind>
+        <symbol>GradebookFilters</symbol>
+        <lines>79-334</lines>
+        <reason>Filter component. Need to add module filter dropdown alongside existing assignment filter (lines 234-253). Filter state needs moduleId field.</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/gradebook/GradebookFilters.tsx</path>
+        <kind>component</kind>
+        <symbol>GradebookFilterState</symbol>
+        <lines>23-31</lines>
+        <reason>Filter state interface. Needs moduleId: string | null field added.</reason>
+      </artifact>
+      <artifact>
+        <path>src/validators/gradebook.ts</path>
+        <kind>validation</kind>
+        <symbol>gradebookFiltersSchema</symbol>
+        <lines>99-137</lines>
+        <reason>Zod schema for gradebook filters. Need to add moduleId field validation (optional CUID or empty string).</reason>
+      </artifact>
+      <artifact>
+        <path>src/app/instructor/courses/[id]/gradebook/page.tsx</path>
+        <kind>page</kind>
+        <symbol>buildFilterQueryString</symbol>
+        <lines>39-59</lines>
+        <reason>Query string builder for filters. Need to add moduleId to URL params if set.</reason>
+      </artifact>
+      <artifact>
+        <path>src/app/instructor/courses/[id]/gradebook/page.tsx</path>
+        <kind>page</kind>
+        <symbol>parseFiltersFromSearchParams</symbol>
+        <lines>64-74</lines>
+        <reason>Parse filters from URL. Need to extract moduleId from search params.</reason>
+      </artifact>
+      <artifact>
+        <path>prisma/schema.prisma</path>
+        <kind>schema</kind>
+        <symbol>assignments</symbol>
+        <lines>25-46</lines>
+        <reason>Assignment model has moduleId field (line 37) and modules relation (line 40). Used to include module data in gradebook queries.</reason>
+      </artifact>
+      <artifact>
+        <path>prisma/schema.prisma</path>
+        <kind>schema</kind>
+        <symbol>modules</symbol>
+        <lines>192-211</lines>
+        <reason>Module model with id, title, orderIndex fields. Referenced in assignment queries for module context.</reason>
+      </artifact>
+    </code>
+
+    <dependencies>
+      <node>
+        <name>@prisma/client</name>
+        <version>Latest per package.json</version>
+        <ecosystem>npm</ecosystem>
+        <purpose>Database ORM - used to query assignments with module relations</purpose>
+      </node>
+      <node>
+        <name>react</name>
+        <version>Latest per package.json</version>
+        <ecosystem>npm</ecosystem>
+        <purpose>UI components for gradebook grid and filters</purpose>
+      </node>
+      <node>
+        <name>next</name>
+        <version>15.x</version>
+        <ecosystem>npm</ecosystem>
+        <purpose>App router API routes for gradebook data and export</purpose>
+      </node>
+      <node>
+        <name>zod</name>
+        <version>Latest per package.json</version>
+        <ecosystem>npm</ecosystem>
+        <purpose>Schema validation for filter parameters including moduleId</purpose>
+      </node>
+      <node>
+        <name>date-fns</name>
+        <version>Latest per package.json</version>
+        <ecosystem>npm</ecosystem>
+        <purpose>Date formatting in CSV exports</purpose>
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <interfaces>
+    <interface>
+      <name>GET /api/instructor/gradebook/[courseId]</name>
+      <kind>rest-endpoint</kind>
+      <signature>
+Query params: studentFilter?, assignmentId?, moduleId?, dateFrom?, dateTo?, status?
+Response: { data: GradebookMatrix }
+GradebookMatrix.assignments[] needs module fields added
+      </signature>
+      <path>src/app/api/instructor/gradebook/[courseId]/route.ts</path>
+    </interface>
+    <interface>
+      <name>GET /api/instructor/gradebook/[courseId]/export</name>
+      <kind>rest-endpoint</kind>
+      <signature>
+Query params: studentFilter?, assignmentId?, moduleId?, dateFrom?, dateTo?, status?
+Response: CSV file with module column
+      </signature>
+      <path>src/app/api/instructor/gradebook/[courseId]/export/route.ts</path>
+    </interface>
+    <interface>
+      <name>GradebookAssignment</name>
+      <kind>typescript-interface</kind>
+      <signature>
+interface GradebookAssignment {
+  id: string;
+  title: string;
+  maxPoints: number;
+  dueDate: Date | string | null;
+  // TO ADD:
+  moduleId?: string;
+  moduleTitle?: string;
+  moduleOrderIndex?: number;
+}
+      </signature>
+      <path>src/components/gradebook/types.ts</path>
+    </interface>
+    <interface>
+      <name>GradebookFilterState</name>
+      <kind>typescript-interface</kind>
+      <signature>
+interface GradebookFilterState {
+  studentFilter: string;
+  assignmentId: string | null;
+  // TO ADD:
+  moduleId: string | null;
+  dateFrom: string | null;
+  dateTo: string | null;
+  status: 'all' | CellStatus;
+}
+      </signature>
+      <path>src/components/gradebook/GradebookFilters.tsx</path>
+    </interface>
+  </interfaces>
+
+  <constraints>
+    <constraint>
+      <type>architectural</type>
+      <description>Must maintain backward compatibility with existing gradebook functionality. Module fields are optional to support assignments not yet assigned to modules.</description>
+    </constraint>
+    <constraint>
+      <type>performance</type>
+      <description>Adding module include to assignment queries must not exceed 500ms for gradebook load (per NFR001 in PRD). Use selective field inclusion (id, title, orderIndex only).</description>
+    </constraint>
+    <constraint>
+      <type>data-integrity</type>
+      <description>Handle cases where assignment.moduleId is null (for assignments created before module migration or not yet assigned). Display "No Module" or similar for these cases.</description>
+    </constraint>
+    <constraint>
+      <type>ui-pattern</type>
+      <description>Follow existing gradebook filter patterns from GradebookFilters component. Module filter should align with assignment filter styling and behavior.</description>
+    </constraint>
+    <constraint>
+      <type>sorting</type>
+      <description>When sorting by module, use module.orderIndex as primary sort key, then assignment.dueDate or assignment.createdAt as secondary sort within each module group.</description>
+    </constraint>
+    <constraint>
+      <type>export</type>
+      <description>CSV export must include module information without breaking existing export format. Add module column before assignment columns for context.</description>
+    </constraint>
+    <constraint>
+      <type>validation</type>
+      <description>Module filter validation should use existing cuidSchema pattern from validators/gradebook.ts. Must handle "all" option to show all modules.</description>
+    </constraint>
+  </constraints>
+
+  <tests>
+    <standards>
+      The project follows Next.js testing patterns with unit tests in __tests__/unit/ and e2e tests in __tests__/e2e/.
+      Unit tests use Jest and React Testing Library for component testing.
+      E2e tests use Playwright for full user journey validation.
+      API routes tested via integration tests validating request/response contracts.
+      Existing gradebook tests in __tests__/unit/components/gradebook/ provide patterns to follow.
+    </standards>
+    <locations>
+      <pattern>__tests__/unit/components/gradebook/*.test.tsx</pattern>
+      <pattern>__tests__/e2e/*.spec.ts</pattern>
+      <pattern>__tests__/integration/api/*.test.ts</pattern>
+    </locations>
+    <ideas>
+      <test ac-refs="AC1,AC2">
+        <description>Unit test: GradebookAssignment interface includes moduleId, moduleTitle, moduleOrderIndex fields</description>
+      </test>
+      <test ac-refs="AC1,AC2">
+        <description>Unit test: EditableGradebookGrid renders module name above assignment title in column headers when moduleTitle is provided</description>
+      </test>
+      <test ac-refs="AC1,AC2">
+        <description>Unit test: EditableGradebookGrid handles assignments with null moduleId gracefully (displays "No Module" or similar)</description>
+      </test>
+      <test ac-refs="AC3">
+        <description>Unit test: GradebookFilters includes module dropdown populated with unique modules from course</description>
+      </test>
+      <test ac-refs="AC3">
+        <description>Unit test: GradebookFilterState includes moduleId field and handles "all" vs specific module selection</description>
+      </test>
+      <test ac-refs="AC3">
+        <description>Integration test: GET /api/instructor/gradebook/[courseId]?moduleId=xyz returns only assignments from specified module</description>
+      </test>
+      <test ac-refs="AC4">
+        <description>Unit test: generateGradebookCSV includes Module column in header row</description>
+      </test>
+      <test ac-refs="AC4">
+        <description>Unit test: CSV export includes module name for each assignment row</description>
+      </test>
+      <test ac-refs="AC4">
+        <description>Integration test: GET /api/instructor/gradebook/[courseId]/export returns CSV with Module column</description>
+      </test>
+      <test ac-refs="AC5">
+        <description>Integration test: Assignments ordered by module.orderIndex when sorted by module, with secondary sort by dueDate within module</description>
+      </test>
+      <test ac-refs="AC5">
+        <description>E2E test: Instructor selects "Sort by Module" and sees assignments grouped by module in correct order</description>
+      </test>
+      <test ac-refs="AC1,AC2,AC3">
+        <description>E2E test: Complete user journey - instructor views gradebook with module context, filters by module, exports CSV with module column</description>
+      </test>
+    </ideas>
+  </tests>
+
+  <dev-notes>
+    <note>
+      <title>Database Query Pattern</title>
+      <content>
+When fetching assignments, include module relation:
+```typescript
+const assignments = await prisma.assignment.findMany({
+  where: { courseId, deletedAt: null },
+  include: {
+    module: {
+      select: { id: true, title: true, orderIndex: true }
+    }
+  },
+  orderBy: [
+    { module: { orderIndex: 'asc' } },
+    { dueDate: 'asc' }
+  ]
+});
+```
+This pattern already recommended in architecture doc lines 96-102.
+      </content>
+    </note>
+    <note>
+      <title>UI Visual Grouping</title>
+      <content>
+Two approaches for showing module in headers:
+1. Simple: "Assignment Title (Module Name)" in single header cell
+2. Enhanced: Module name as sub-header above assignment name, with visual grouping (borders/background) for adjacent same-module assignments
+
+Recommend starting with approach #1 (simpler), then iterate to #2 if user feedback requests better visual separation.
+      </content>
+    </note>
+    <note>
+      <title>Null Module Handling</title>
+      <content>
+Assignments created before module migration or not yet assigned will have moduleId: null.
+Display these as "No Module" or "Unassigned" in UI and CSV.
+Filter should include "No Module" option to show only unassigned assignments.
+      </content>
+    </note>
+    <note>
+      <title>Filter URL Sync</title>
+      <content>
+Existing filter pattern at src/app/instructor/courses/[id]/gradebook/page.tsx lines 132-142 syncs filter state to URL.
+Module filter should follow same pattern - update buildFilterQueryString and parseFiltersFromSearchParams.
+      </content>
+    </note>
+    <note>
+      <title>CSV Module Column Placement</title>
+      <content>
+Add Module column in CSV header after Email, before first assignment column.
+Format: "Student Name, Email, Module 1 Name, Assignment 1 (pts), Module 1 Name, Assignment 2 (pts), Module 2 Name, Assignment 3 (pts), ..."
+Or simpler: Add module name in assignment column header: "Assignment 1 - Module 1 (pts)"
+      </content>
+    </note>
+    <note>
+      <title>Module Sort Implementation</title>
+      <content>
+Sorting by module should:
+1. Group assignments by module.orderIndex (ascending)
+2. Within each module group, maintain existing sort (typically dueDate)
+3. Handle null moduleId assignments (place at end or beginning consistently)
+
+This can be done in the orderBy clause of the Prisma query OR in client-side sort logic.
+      </content>
+    </note>
+  </dev-notes>
+
+  <learnings>
+    <learning source="Epic 1">
+      <title>Module Model Structure</title>
+      <content>Module model exists with fields: id, title, description, orderIndex, isPublished, requiresPrevious, courseId, createdAt, updatedAt, deletedAt. Foreign keys already added to assignments, course_content, discussions via moduleId field.</content>
+    </learning>
+    <learning source="Epic 1">
+      <title>Data Migration Completed</title>
+      <content>All existing content already migrated to default "Module 1" per course. All assignments should have moduleId populated, but defensive coding for null moduleId still recommended.</content>
+    </learning>
+    <learning source="Story 2.3">
+      <title>Existing Filter Patterns</title>
+      <content>GradebookFilters component already implements debounced search, assignment dropdown, date range, and status filters. Follow same patterns for module filter. Filter validation uses Zod schemas in validators/gradebook.ts.</content>
+    </learning>
+    <learning source="Story 2.3">
+      <title>CSV Export Patterns</title>
+      <content>CSV export uses lib/csv-export.ts with generateGradebookCSV function. Includes UTF-8 BOM for Excel compatibility, proper escaping, and validation. Follow same patterns when adding module column.</content>
+    </learning>
+  </learnings>
+
+  <references>
+    <reference>
+      <type>story</type>
+      <path>docs/stories/4-1-module-context-in-gradebook.md</path>
+      <description>Original story specification</description>
+    </reference>
+    <reference>
+      <type>prd</type>
+      <path>docs/PRD-course-modules.md</path>
+      <description>Product Requirements Document for Course Modules feature</description>
+    </reference>
+    <reference>
+      <type>architecture</type>
+      <path>docs/architecture-course-modules.md</path>
+      <description>Architecture decisions and technical design for modules</description>
+    </reference>
+    <reference>
+      <type>epic</type>
+      <path>docs/epics-course-modules.md</path>
+      <description>Epic breakdown with all stories in modules feature</description>
+    </reference>
+    <reference>
+      <type>existing-tests</type>
+      <path>__tests__/unit/components/gradebook/GradebookGrid.test.tsx</path>
+      <description>Example unit tests for gradebook components</description>
+    </reference>
+    <reference>
+      <type>existing-tests</type>
+      <path>__tests__/unit/components/gradebook/GradebookCell.test.tsx</path>
+      <description>Example unit tests for gradebook cell rendering</description>
+    </reference>
+  </references>
+</story-context>

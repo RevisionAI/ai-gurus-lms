@@ -1,0 +1,435 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-key>4-5-module-aware-navigation</story-key>
+    <epic-id>4</epic-id>
+    <story-id>5</story-id>
+    <title>Module-Aware Navigation</title>
+    <status>ready-for-dev</status>
+    <generated-date>2025-11-28</generated-date>
+  </metadata>
+
+  <user-story>
+    <as-a>user</as-a>
+    <i-want>breadcrumbs and navigation to reflect module hierarchy</i-want>
+    <so-that>I always know where I am</so-that>
+  </user-story>
+
+  <acceptance-criteria>
+    <criterion id="AC1">
+      <description>Breadcrumb format: Course > Module > Content/Assignment/Discussion</description>
+    </criterion>
+    <criterion id="AC2">
+      <description>Clicking module in breadcrumb returns to module view</description>
+    </criterion>
+    <criterion id="AC3">
+      <description>Sidebar navigation shows modules as expandable sections</description>
+    </criterion>
+    <criterion id="AC4">
+      <description>Current module highlighted in navigation</description>
+    </criterion>
+    <criterion id="AC5">
+      <description>Mobile navigation collapses modules appropriately</description>
+    </criterion>
+  </acceptance-criteria>
+
+  <tasks>
+    <task id="1" acceptance-criteria="AC1, AC2">
+      <title>Update breadcrumb component</title>
+      <subtasks>
+        <subtask id="1.1">Locate breadcrumb component</subtask>
+        <subtask id="1.2">Add module level between course and content</subtask>
+        <subtask id="1.3">Make each breadcrumb segment clickable</subtask>
+        <subtask id="1.4">Module click navigates to module detail page</subtask>
+      </subtasks>
+    </task>
+    <task id="2" acceptance-criteria="AC3, AC4">
+      <title>Update sidebar navigation</title>
+      <subtasks>
+        <subtask id="2.1">Locate course sidebar navigation</subtask>
+        <subtask id="2.2">Add modules as collapsible sections</subtask>
+        <subtask id="2.3">Show content/assignments/discussions under each module</subtask>
+        <subtask id="2.4">Highlight current module section</subtask>
+      </subtasks>
+    </task>
+    <task id="3" acceptance-criteria="AC4">
+      <title>Implement current location highlighting</title>
+      <subtasks>
+        <subtask id="3.1">Detect current module from URL or route params</subtask>
+        <subtask id="3.2">Apply highlight style to current module in nav</subtask>
+        <subtask id="3.3">Auto-expand current module section</subtask>
+      </subtasks>
+    </task>
+    <task id="4" acceptance-criteria="AC5">
+      <title>Mobile navigation</title>
+      <subtasks>
+        <subtask id="4.1">Ensure modules collapse on mobile view</subtask>
+        <subtask id="4.2">Tap to expand module sections</subtask>
+        <subtask id="4.3">Test navigation works on small screens</subtask>
+      </subtasks>
+    </task>
+    <task id="5">
+      <title>Update all relevant pages</title>
+      <subtasks>
+        <subtask id="5.1">Content detail pages show module breadcrumb</subtask>
+        <subtask id="5.2">Assignment pages show module breadcrumb</subtask>
+        <subtask id="5.3">Discussion pages show module breadcrumb</subtask>
+      </subtasks>
+    </task>
+  </tasks>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/PRD-course-modules.md</path>
+        <title>Course Modules Feature PRD</title>
+        <section>UX Design Principles</section>
+        <snippet>Consistent Navigation Hierarchy: Course → Module → Content/Assignment/Discussion. Breadcrumbs always visible for context. Easy navigation back to module overview.</snippet>
+      </doc>
+      <doc>
+        <path>docs/PRD-course-modules.md</path>
+        <title>Course Modules Feature PRD</title>
+        <section>Design Constraints</section>
+        <snippet>Must integrate with existing Tailwind CSS design system. Reuse existing Radix UI components where possible. Mobile-responsive (modules collapse to accordion on small screens).</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture-course-modules.md</path>
+        <title>Course Modules Feature - Architecture Document</title>
+        <section>Project Structure</section>
+        <snippet>Component organization: /components/modules/ for module-specific components. Student pages: /app/courses/[id]/modules/[moduleId]/. Instructor pages: /app/instructor/courses/[id]/modules/.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture-course-modules.md</path>
+        <title>Course Modules Feature - Architecture Document</title>
+        <section>API Contracts - Student Module Endpoints</section>
+        <snippet>GET /api/student/courses/[id]/modules returns modules list with progress. GET /api/student/courses/[id]/modules/[moduleId] returns module detail with content, assignments, discussions if unlocked.</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <artifact>
+        <path>src/components/Breadcrumb.tsx</path>
+        <kind>component</kind>
+        <symbol>Breadcrumb</symbol>
+        <lines>1-217</lines>
+        <reason>Existing breadcrumb component with utility functions. Currently supports student/instructor course and assignment breadcrumbs. Needs module level added between course and content.</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/Breadcrumb.tsx</path>
+        <kind>utility</kind>
+        <symbol>generateBreadcrumbs</symbol>
+        <lines>48-217</lines>
+        <reason>Utility functions for generating common breadcrumb patterns. Need to add module-aware versions for content, assignment, and discussion pages.</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/Navbar.tsx</path>
+        <kind>component</kind>
+        <symbol>Navbar</symbol>
+        <lines>1-75</lines>
+        <reason>Main navigation bar component. Does not include sidebar or course-specific navigation. This is the top-level navbar only.</reason>
+      </artifact>
+      <artifact>
+        <path>src/app/courses/[id]/page.tsx</path>
+        <kind>page</kind>
+        <symbol>StudentCourseDetailPage</symbol>
+        <lines>1-727</lines>
+        <reason>Student course detail page with tab-based navigation. Currently shows modules in a tab. No sidebar navigation - uses tabs instead. Breadcrumb at line 202-207.</reason>
+      </artifact>
+      <artifact>
+        <path>src/app/courses/[id]/modules/[moduleId]/page.tsx</path>
+        <kind>page</kind>
+        <symbol>StudentModuleDetailPage</symbol>
+        <lines>1-402</lines>
+        <reason>Student module detail page. Has basic breadcrumb (Dashboard > Course > Module) at lines 250-257. This is where module context should be most prominent in navigation.</reason>
+      </artifact>
+      <artifact>
+        <path>src/app/instructor/courses/[id]/page.tsx</path>
+        <kind>page</kind>
+        <symbol>CourseDetailPage</symbol>
+        <lines>1-551</lines>
+        <reason>Instructor course detail page with tab-based navigation. Modules tab at line 418-420. No breadcrumbs currently shown. Uses tabs not sidebar for navigation.</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/modules/StudentModuleList.tsx</path>
+        <kind>component</kind>
+        <symbol>StudentModuleList</symbol>
+        <lines>N/A</lines>
+        <reason>Student module list component. Should be reviewed for navigation integration when creating sidebar.</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/modules/ModuleList.tsx</path>
+        <kind>component</kind>
+        <symbol>ModuleList</symbol>
+        <lines>N/A</lines>
+        <reason>Instructor module list component. Referenced in instructor course page. May need navigation integration.</reason>
+      </artifact>
+    </code>
+
+    <dependencies>
+      <node>
+        <package name="next" version="15.3.3" />
+        <package name="react" version="^19.0.0" />
+        <package name="react-dom" version="^19.0.0" />
+        <package name="lucide-react" version="^0.514.0" />
+        <package name="tailwindcss" version="^4" />
+        <package name="@radix-ui/react-dialog" version="^1.1.14" />
+        <package name="@radix-ui/react-dropdown-menu" version="^2.1.15" />
+        <package name="@radix-ui/react-tabs" version="^1.1.12" />
+        <package name="next-auth" version="^4.24.11" />
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <interfaces>
+    <interface>
+      <name>BreadcrumbItem</name>
+      <kind>TypeScript interface</kind>
+      <signature>
+        interface BreadcrumbItem {
+          label: string
+          href?: string
+          isLoading?: boolean
+        }
+      </signature>
+      <path>src/components/Breadcrumb.tsx</path>
+    </interface>
+    <interface>
+      <name>Breadcrumb component props</name>
+      <kind>React component interface</kind>
+      <signature>
+        interface BreadcrumbProps {
+          items: BreadcrumbItem[]
+          className?: string
+        }
+      </signature>
+      <path>src/components/Breadcrumb.tsx</path>
+    </interface>
+    <interface>
+      <name>generateBreadcrumbs utility</name>
+      <kind>Utility object</kind>
+      <signature>
+        export const generateBreadcrumbs = {
+          studentCourse: (courseId: string, courseTitle?: string | null) => BreadcrumbItem[]
+          studentCourseSection: (courseId, courseTitle, sectionName, sectionHref?) => BreadcrumbItem[]
+          instructorCourse: (courseId: string, courseTitle?: string | null) => BreadcrumbItem[]
+          instructorCourseSection: (courseId, courseTitle, sectionName, sectionHref?) => BreadcrumbItem[]
+          studentAssignment: (courseId, courseTitle, assignmentId, assignmentTitle?) => BreadcrumbItem[]
+          instructorAssignment: (courseId, courseTitle, assignmentId, assignmentTitle?) => BreadcrumbItem[]
+          studentDiscussion: (courseId, courseTitle, discussionId?, discussionTitle?) => BreadcrumbItem[]
+          instructorDiscussion: (courseId, courseTitle, discussionId?, discussionTitle?) => BreadcrumbItem[]
+          custom: (items: BreadcrumbItem[]) => BreadcrumbItem[]
+        }
+      </signature>
+      <path>src/components/Breadcrumb.tsx</path>
+    </interface>
+    <interface>
+      <name>Module API Response (Student)</name>
+      <kind>API endpoint response</kind>
+      <signature>
+        GET /api/student/courses/[id]/modules/[moduleId]
+        Response: {
+          module: {
+            id: string
+            title: string
+            description: string | null
+            progress: number
+            content: Array&lt;{id, title, type, thumbnailUrl, orderIndex, isViewed}&gt;
+            assignments: Array&lt;{id, title, dueDate, maxPoints, isSubmitted, isGraded, grade}&gt;
+            discussions: Array&lt;{id, title, postCount}&gt;
+          }
+          course: {
+            id: string
+            title: string
+          }
+        }
+      </signature>
+      <path>docs/architecture-course-modules.md</path>
+    </interface>
+    <interface>
+      <name>Next.js useParams hook</name>
+      <kind>React hook</kind>
+      <signature>
+        const params = useParams()
+        // Returns: { id: string, moduleId?: string, contentId?: string, assignmentId?: string, discussionId?: string }
+      </signature>
+      <path>next/navigation</path>
+    </interface>
+  </interfaces>
+
+  <constraints>
+    <constraint>
+      <category>Architecture</category>
+      <description>Use Next.js 15 App Router with client components ('use client')</description>
+    </constraint>
+    <constraint>
+      <category>Architecture</category>
+      <description>Follow existing page structure: /app/courses/[id]/, /app/instructor/courses/[id]/</description>
+    </constraint>
+    <constraint>
+      <category>Patterns</category>
+      <description>Navigation components must support both student and instructor views</description>
+    </constraint>
+    <constraint>
+      <category>Patterns</category>
+      <description>Use existing Breadcrumb component and extend generateBreadcrumbs utility</description>
+    </constraint>
+    <constraint>
+      <category>UI/UX</category>
+      <description>Must integrate with existing Tailwind CSS design system</description>
+    </constraint>
+    <constraint>
+      <category>UI/UX</category>
+      <description>Reuse Radix UI components where possible for accessibility</description>
+    </constraint>
+    <constraint>
+      <category>UI/UX</category>
+      <description>Mobile-responsive: modules collapse to accordion on small screens</description>
+    </constraint>
+    <constraint>
+      <category>UI/UX</category>
+      <description>Breadcrumb must use proper aria-breadcrumb role for accessibility</description>
+    </constraint>
+    <constraint>
+      <category>Performance</category>
+      <description>Don't fetch module data redundantly - use existing page data where available</description>
+    </constraint>
+    <constraint>
+      <category>Performance</category>
+      <description>Module context from URL route params, not additional API calls</description>
+    </constraint>
+    <constraint>
+      <category>Routing</category>
+      <description>Module detail route: /courses/[id]/modules/[moduleId]</description>
+    </constraint>
+    <constraint>
+      <category>Routing</category>
+      <description>Content detail route: /courses/[id]/modules/[moduleId]/content/[contentId]</description>
+    </constraint>
+    <constraint>
+      <category>Icons</category>
+      <description>Use lucide-react icons for consistency (ChevronRight, Layers, etc.)</description>
+    </constraint>
+  </constraints>
+
+  <tests>
+    <standards>
+      The project uses Jest for unit/component testing and Playwright for E2E testing. Component tests should be placed in __tests__ directories alongside components. Use @testing-library/react for React component testing. E2E tests go in e2e/ directory.
+    </standards>
+    <locations>
+      <location>src/components/__tests__/</location>
+      <location>src/app/__tests__/</location>
+      <location>e2e/</location>
+    </locations>
+    <ideas>
+      <test-idea acceptance-criteria="AC1">
+        <description>Unit test: generateBreadcrumbs creates module-aware breadcrumbs with correct hierarchy (Course > Module > Content)</description>
+      </test-idea>
+      <test-idea acceptance-criteria="AC2">
+        <description>E2E test: Clicking module in breadcrumb navigates to module detail page</description>
+      </test-idea>
+      <test-idea acceptance-criteria="AC2">
+        <description>Unit test: Breadcrumb items have correct href values for module navigation</description>
+      </test-idea>
+      <test-idea acceptance-criteria="AC3">
+        <description>Component test: Sidebar navigation component renders modules as expandable sections</description>
+      </test-idea>
+      <test-idea acceptance-criteria="AC4">
+        <description>Component test: Current module is highlighted when viewing module content</description>
+      </test-idea>
+      <test-idea acceptance-criteria="AC4">
+        <description>E2E test: Current module section auto-expands when navigating to module content</description>
+      </test-idea>
+      <test-idea acceptance-criteria="AC5">
+        <description>E2E test: Mobile viewport shows collapsed modules that expand on tap</description>
+      </test-idea>
+      <test-idea acceptance-criteria="AC5">
+        <description>Accessibility test: Touch targets meet 44px minimum on mobile</description>
+      </test-idea>
+    </ideas>
+  </tests>
+
+  <dev-notes>
+    <note>
+      <title>Current Navigation Structure</title>
+      <content>
+        The app currently uses TAB-BASED navigation on course pages, not a sidebar. Student course page has tabs for Overview, Modules, Content, Assignments, Discussions, Announcements. There is NO course-level sidebar currently. The main Navbar is application-level only (Dashboard, Courses, Instructor, Admin).
+      </content>
+    </note>
+    <note>
+      <title>Breadcrumb Implementation Pattern</title>
+      <content>
+        Existing breadcrumb uses generateBreadcrumbs utility functions. Need to add:
+        - studentModule(courseId, courseTitle, moduleId, moduleTitle)
+        - studentModuleContent(courseId, courseTitle, moduleId, moduleTitle, contentId, contentTitle)
+        - studentModuleAssignment(courseId, courseTitle, moduleId, moduleTitle, assignmentId, assignmentTitle)
+        - studentModuleDiscussion(courseId, courseTitle, moduleId, moduleTitle, discussionId, discussionTitle)
+        - Similar instructor versions
+      </content>
+    </note>
+    <note>
+      <title>Sidebar vs Tabs Consideration</title>
+      <content>
+        Story mentions "sidebar navigation" but current implementation uses tabs. Decision needed:
+        1. Add a course-level sidebar alongside tabs?
+        2. Convert tabs to sidebar navigation?
+        3. Add module navigation within the module detail view only?
+
+        Recommendation: Create a module-specific sidebar that appears when viewing a module detail page, showing the module's content/assignments/discussions in an expandable tree structure.
+      </content>
+    </note>
+    <note>
+      <title>Mobile Considerations</title>
+      <content>
+        - Breadcrumbs should truncate module names on small screens
+        - If sidebar is added, it should collapse to hamburger menu
+        - Touch targets for expand/collapse must be 44px minimum
+        - Test on viewport widths: 320px (mobile), 768px (tablet), 1024px (desktop)
+      </content>
+    </note>
+    <note>
+      <title>Module Context from URL</title>
+      <content>
+        Use Next.js useParams() to extract moduleId from route. Available on pages:
+        - /courses/[id]/modules/[moduleId] - params.moduleId
+        - /courses/[id]/modules/[moduleId]/content/[contentId] - params.moduleId + params.contentId
+
+        This provides module context without additional API calls.
+      </content>
+    </note>
+    <note>
+      <title>Integration with Existing Module Components</title>
+      <content>
+        Existing module components to integrate with:
+        - StudentModuleList (shows all modules)
+        - StudentModuleCard (individual module in list)
+        - ModuleContentList (shows content within a module)
+        - StudentContentItem (individual content item)
+
+        These already exist and should inform navigation structure.
+      </content>
+    </note>
+    <note>
+      <title>Accessibility Requirements</title>
+      <content>
+        - Breadcrumb must use nav element with aria-label="Breadcrumb"
+        - Current page in breadcrumb should have aria-current="page"
+        - Collapsible sections need proper ARIA attributes (aria-expanded, aria-controls)
+        - Keyboard navigation: Tab through links, Enter to activate, Arrow keys for tree navigation
+      </content>
+    </note>
+    <note>
+      <title>Routes Requiring Breadcrumb Updates</title>
+      <content>
+        Student routes:
+        - /courses/[id]/modules/[moduleId] - Add: Course > Module
+        - /courses/[id]/modules/[moduleId]/content/[contentId] - Add: Course > Module > Content
+        - /courses/[id]/assignments/[assignmentId] - Update if assignment has moduleId
+        - /courses/[id]/discussions/[discussionId] - Update if discussion has moduleId
+
+        Instructor routes:
+        - /instructor/courses/[id]/modules/[moduleId]
+        - Similar content/assignment/discussion routes
+      </content>
+    </note>
+  </dev-notes>
+</story-context>

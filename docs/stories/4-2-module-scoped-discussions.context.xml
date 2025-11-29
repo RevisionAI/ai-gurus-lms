@@ -1,0 +1,421 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Story Context: 4-2-module-scoped-discussions
+  Generated: 2025-11-28
+  Project: AI Gurus LMS - Course Modules Enhancement
+-->
+<story-context>
+  <metadata>
+    <story-id>4-2-module-scoped-discussions</story-id>
+    <epic-id>4</epic-id>
+    <story-number>2</story-number>
+    <title>Module-Scoped Discussions</title>
+    <status>drafted</status>
+  </metadata>
+
+  <!-- User Story -->
+  <user-story>
+    <as-a>student</as-a>
+    <i-want>to see discussions relevant to the module I'm in</i-want>
+    <so-that>conversations are focused on current topics</so-that>
+  </user-story>
+
+  <!-- Acceptance Criteria -->
+  <acceptance-criteria>
+    <criterion id="AC-1">
+      <description>Discussion list filtered by current module</description>
+    </criterion>
+    <criterion id="AC-2">
+      <description>Discussion creation form pre-selects current module</description>
+    </criterion>
+    <criterion id="AC-3">
+      <description>Discussion cards show module badge</description>
+    </criterion>
+    <criterion id="AC-4">
+      <description>Students can only post in discussions for unlocked modules</description>
+    </criterion>
+    <criterion id="AC-5">
+      <description>Instructor can view all discussions across modules</description>
+    </criterion>
+  </acceptance-criteria>
+
+  <!-- Tasks from Story File -->
+  <tasks>
+    <task id="1" ac-ref="AC-1">
+      <title>Update discussion list filtering</title>
+      <subtasks>
+        <subtask id="1.1">Add moduleId filter parameter to discussion list API</subtask>
+        <subtask id="1.2">When viewing from module context, filter by moduleId</subtask>
+        <subtask id="1.3">Course-level view shows all discussions (no filter)</subtask>
+      </subtasks>
+    </task>
+    <task id="2" ac-ref="AC-2">
+      <title>Update discussion creation</title>
+      <subtasks>
+        <subtask id="2.1">Add module selector to discussion creation form</subtask>
+        <subtask id="2.2">If creating from module context, pre-select that module</subtask>
+        <subtask id="2.3">Validate moduleId belongs to course on submit</subtask>
+      </subtasks>
+    </task>
+    <task id="3" ac-ref="AC-3">
+      <title>Add module badge to discussion cards</title>
+      <subtasks>
+        <subtask id="3.1">Locate discussion card component</subtask>
+        <subtask id="3.2">Add module name badge to card</subtask>
+        <subtask id="3.3">Style badge consistently with other module badges</subtask>
+      </subtasks>
+    </task>
+    <task id="4" ac-ref="AC-4">
+      <title>Enforce module unlock for posting</title>
+      <subtasks>
+        <subtask id="4.1">Check module unlock status before allowing post creation</subtask>
+        <subtask id="4.2">Disable reply button if module locked</subtask>
+        <subtask id="4.3">Show message: "Complete previous module to participate"</subtask>
+      </subtasks>
+    </task>
+    <task id="5" ac-ref="AC-5">
+      <title>Instructor view all discussions</title>
+      <subtasks>
+        <subtask id="5.1">Instructor sees all discussions regardless of module</subtask>
+        <subtask id="5.2">Instructor can filter by module in UI</subtask>
+        <subtask id="5.3">No unlock restrictions for instructor</subtask>
+      </subtasks>
+    </task>
+  </tasks>
+
+  <!-- Architecture & Design Context -->
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/PRD-course-modules.md</path>
+        <title>Course Modules Feature PRD</title>
+        <section>Functional Requirements - Discussions</section>
+        <snippet>FR014: Discussions belong to exactly one module. FR015: Instructors can create discussions within a specific module. FR016: Students can only participate in discussions for unlocked modules.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture-course-modules.md</path>
+        <title>Architecture Document</title>
+        <section>Data Architecture - Modified Models</section>
+        <snippet>Discussion model updated with moduleId foreign key linking to Module. Server-side unlock logic enforced per ADR-001 to prevent client-side bypass.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture-course-modules.md</path>
+        <title>Architecture Document</title>
+        <section>ADR-001: Server-Side Unlock Logic</section>
+        <snippet>Decision: Server-side calculation in /lib/modules.ts. Rationale: Prevents client-side bypass of prerequisites, single source of truth for unlock status.</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <!-- Existing Discussion API Routes (to be modified) -->
+      <artifact>
+        <path>src/app/api/student/courses/[id]/discussions/route.ts</path>
+        <kind>api-route</kind>
+        <symbol>GET</symbol>
+        <lines>17-98</lines>
+        <reason>Already supports optional moduleId filter parameter (Story 4.6). Returns discussions with module information included.</reason>
+      </artifact>
+      <artifact>
+        <path>src/app/api/instructor/courses/[id]/discussions/route.ts</path>
+        <kind>api-route</kind>
+        <symbol>GET, POST</symbol>
+        <lines>17-192</lines>
+        <reason>Instructor API already supports moduleId filter in GET and moduleId validation in POST. Needs UI enhancements for module selector in creation form.</reason>
+      </artifact>
+      <artifact>
+        <path>src/app/api/student/courses/[id]/discussions/[discussionId]/posts/route.ts</path>
+        <kind>api-route</kind>
+        <symbol>POST</symbol>
+        <lines>6-95</lines>
+        <reason>Creates discussion posts. Needs module unlock check before allowing students to post (AC-4).</reason>
+      </artifact>
+
+      <!-- Student Discussion Pages (to be modified) -->
+      <artifact>
+        <path>src/app/courses/[id]/discussions/page.tsx</path>
+        <kind>page-component</kind>
+        <symbol>StudentDiscussionsPage</symbol>
+        <lines>34-181</lines>
+        <reason>Student discussion list page. Needs module badge display (AC-3) and optional moduleId filtering when viewed from module context.</reason>
+      </artifact>
+      <artifact>
+        <path>src/app/courses/[id]/discussions/[discussionId]/page.tsx</path>
+        <kind>page-component</kind>
+        <symbol>StudentDiscussionDetailPage</symbol>
+        <lines>43-149</lines>
+        <reason>Student discussion detail/post view. Needs module unlock check before allowing post/reply creation (AC-4).</reason>
+      </artifact>
+
+      <!-- Instructor Discussion Pages (to be modified) -->
+      <artifact>
+        <path>src/app/instructor/courses/[id]/discussions/page.tsx</path>
+        <kind>page-component</kind>
+        <symbol>InstructorDiscussionsPage</symbol>
+        <lines>34-383</lines>
+        <reason>Instructor discussion list and creation. Needs module selector in creation form (AC-2) and module badge display (AC-3). Instructor sees all discussions (AC-5).</reason>
+      </artifact>
+
+      <!-- Module Detail Page (reference for context) -->
+      <artifact>
+        <path>src/app/courses/[id]/modules/[moduleId]/page.tsx</path>
+        <kind>page-component</kind>
+        <symbol>StudentModuleDetailPage</symbol>
+        <lines>59-200</lines>
+        <reason>Shows module lock state and discussions within module context. Reference for how discussions should be displayed and filtered within a module.</reason>
+      </artifact>
+
+      <!-- Module Utilities (for unlock logic) -->
+      <artifact>
+        <path>src/lib/modules.ts</path>
+        <kind>utility-library</kind>
+        <symbol>isModuleUnlocked, isModuleCompleted</symbol>
+        <lines>48-162</lines>
+        <reason>Server-side unlock calculation. Must be used before allowing students to post in discussions (AC-4). Per ADR-001.</reason>
+      </artifact>
+
+      <!-- Database Schema -->
+      <artifact>
+        <path>prisma/schema.prisma</path>
+        <kind>database-schema</kind>
+        <symbol>discussions</symbol>
+        <lines>109-127</lines>
+        <reason>Discussion model with moduleId foreign key. Already includes module relation with title and orderIndex for display.</reason>
+      </artifact>
+
+      <!-- Validators -->
+      <artifact>
+        <path>src/validators/discussion.ts</path>
+        <kind>validation-schema</kind>
+        <symbol>createDiscussionSchema, createDiscussionPostSchema</symbol>
+        <lines>18-66</lines>
+        <reason>Zod schemas for discussion validation. May need to add optional moduleId to createDiscussionSchema if not already present.</reason>
+      </artifact>
+    </code>
+
+    <!-- Dependencies -->
+    <dependencies>
+      <node>
+        <package name="next" version="15.3.3" />
+        <package name="react" version="^19.0.0" />
+        <package name="@prisma/client" version="^6.9.0" />
+        <package name="zod" version="^4.1.13" />
+        <package name="next-auth" version="^4.24.11" />
+        <package name="lucide-react" version="^0.514.0" />
+        <package name="tailwindcss" version="^4" />
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <!-- API Interfaces -->
+  <interfaces>
+    <interface>
+      <name>GET /api/student/courses/[id]/discussions</name>
+      <kind>REST endpoint</kind>
+      <signature>
+        Query params: moduleId (optional)
+        Returns: Discussion[] with { id, title, description, isPinned, isLocked, author, _count: { posts }, module: { id, title, orderIndex } }
+      </signature>
+      <path>src/app/api/student/courses/[id]/discussions/route.ts</path>
+      <note>Already supports moduleId filtering per Story 4.6. Use when viewing from module context (AC-1).</note>
+    </interface>
+    <interface>
+      <name>GET /api/instructor/courses/[id]/discussions</name>
+      <kind>REST endpoint</kind>
+      <signature>
+        Query params: moduleId (optional)
+        Returns: Discussion[] with module information
+      </signature>
+      <path>src/app/api/instructor/courses/[id]/discussions/route.ts</path>
+      <note>Instructor can optionally filter by module but sees all by default (AC-5).</note>
+    </interface>
+    <interface>
+      <name>POST /api/instructor/courses/[id]/discussions</name>
+      <kind>REST endpoint</kind>
+      <signature>
+        Body: { title, description?, isPinned?, moduleId? }
+        Validates moduleId belongs to course
+        Returns: Created Discussion
+      </signature>
+      <path>src/app/api/instructor/courses/[id]/discussions/route.ts</path>
+      <note>Already validates moduleId if provided (lines 138-153). Needs UI module selector (AC-2).</note>
+    </interface>
+    <interface>
+      <name>POST /api/student/courses/[id]/discussions/[discussionId]/posts</name>
+      <kind>REST endpoint</kind>
+      <signature>
+        Body: { content, parentId? }
+        Currently checks: enrollment, discussion exists, not locked
+        Returns: Created DiscussionPost
+      </signature>
+      <path>src/app/api/student/courses/[id]/discussions/[discussionId]/posts/route.ts</path>
+      <note>Must add module unlock check using isModuleUnlocked() before allowing post creation (AC-4).</note>
+    </interface>
+    <interface>
+      <name>isModuleUnlocked(moduleId, userId, courseId)</name>
+      <kind>utility function</kind>
+      <signature>
+        Returns: Promise&lt;ModuleUnlockInfo&gt; { isUnlocked: boolean, status: ModuleStatus, progress: number, unlockMessage?: string }
+      </signature>
+      <path>src/lib/modules.ts</path>
+      <note>Server-side unlock check per ADR-001. Use this before allowing students to post in discussions.</note>
+    </interface>
+  </interfaces>
+
+  <!-- Development Constraints -->
+  <constraints>
+    <constraint>
+      <category>security</category>
+      <rule>All module unlock checks MUST be server-side only (ADR-001). Never rely on client-side checks.</rule>
+    </constraint>
+    <constraint>
+      <category>data-integrity</category>
+      <rule>When moduleId is provided in discussion creation, validate it belongs to the course before saving.</rule>
+    </constraint>
+    <constraint>
+      <category>user-experience</category>
+      <rule>Module badges must be styled consistently with existing module badges in module cards and content items.</rule>
+    </constraint>
+    <constraint>
+      <category>backward-compatibility</category>
+      <rule>Legacy discussions without moduleId (from migration) should continue to display correctly. They belong to "Module 1" per migration.</rule>
+    </constraint>
+    <constraint>
+      <category>role-based-access</category>
+      <rule>Instructors bypass all module unlock restrictions and can view/post in any discussion regardless of module state.</rule>
+    </constraint>
+    <constraint>
+      <category>pattern</category>
+      <rule>Follow existing Next.js 15 App Router patterns with async params. Use getServerSession for auth in API routes.</rule>
+    </constraint>
+  </constraints>
+
+  <!-- Testing Standards -->
+  <tests>
+    <standards>
+      The project uses Jest for unit/integration tests and Playwright for E2E tests.
+      API routes should validate authorization (session, role, enrollment) before performing operations.
+      Module unlock logic tests exist from Story 3.2 and can be referenced for discussion unlock checks.
+      Test both student (with unlock restrictions) and instructor (without restrictions) scenarios.
+    </standards>
+
+    <locations>
+      <location>__tests__/</location>
+      <location>e2e/</location>
+      <location>src/app/api/**/*.test.ts (co-located with routes)</location>
+    </locations>
+
+    <ideas>
+      <test-idea ac-ref="AC-1">
+        <description>Test moduleId filter parameter in discussion list API</description>
+        <scenarios>
+          - Course-level view: no moduleId param returns all discussions
+          - Module-level view: with moduleId param returns only discussions for that module
+          - Verify discussions are ordered by module orderIndex, then created date
+        </scenarios>
+      </test-idea>
+      <test-idea ac-ref="AC-2">
+        <description>Test discussion creation with module assignment</description>
+        <scenarios>
+          - From course level: instructor can select any module
+          - From module context: form pre-selects current moduleId
+          - Validation: reject invalid moduleId (doesn't belong to course)
+          - Validation: accept valid moduleId from same course
+        </scenarios>
+      </test-idea>
+      <test-idea ac-ref="AC-3">
+        <description>Test module badge display on discussion cards</description>
+        <scenarios>
+          - Badge shows module title from discussion.module.title
+          - Badge styled consistently with other module badges
+          - Legacy discussions (null moduleId) handle gracefully
+        </scenarios>
+      </test-idea>
+      <test-idea ac-ref="AC-4">
+        <description>Test module unlock enforcement for posting</description>
+        <scenarios>
+          - Student can post in unlocked module discussions
+          - Student blocked from posting in locked module discussions
+          - Error message: "Complete previous module to participate"
+          - Verify server-side check using isModuleUnlocked()
+          - Reply button disabled if module locked
+        </scenarios>
+      </test-idea>
+      <test-idea ac-ref="AC-5">
+        <description>Test instructor unrestricted access</description>
+        <scenarios>
+          - Instructor can view discussions from all modules
+          - Instructor can post in any discussion regardless of lock state
+          - Instructor sees optional module filter in UI
+          - No unlock checks applied for instructor role
+        </scenarios>
+      </test-idea>
+    </ideas>
+  </tests>
+
+  <!-- Key Implementation Notes -->
+  <implementation-notes>
+    <note priority="high">
+      <title>Module unlock check for posting (AC-4)</title>
+      <detail>
+        In src/app/api/student/courses/[id]/discussions/[discussionId]/posts/route.ts:
+        - After checking discussion exists and is not locked (line 33-47)
+        - Before creating post (line 72)
+        - Add: Get discussion.moduleId
+        - Call: isModuleUnlocked(discussion.moduleId, session.user.id, courseId)
+        - If not unlocked, return 403 with error: "MODULE_LOCKED" and message from unlock check
+      </detail>
+    </note>
+    <note priority="high">
+      <title>Module badge display (AC-3)</title>
+      <detail>
+        In src/app/courses/[id]/discussions/page.tsx and src/app/instructor/courses/[id]/discussions/page.tsx:
+        - Discussion cards already receive module data from API (lines 78-84 in API)
+        - Add badge next to isPinned/isLocked badges
+        - Display: discussion.module?.title
+        - Style: bg-blue-100 text-blue-800 (consistent with module badges elsewhere)
+      </detail>
+    </note>
+    <note priority="medium">
+      <title>Module selector in creation form (AC-2)</title>
+      <detail>
+        In src/app/instructor/courses/[id]/discussions/page.tsx:
+        - Add moduleId to formData state (line 41-44)
+        - Fetch available modules for course
+        - Add dropdown/select input in creation form (after description field)
+        - If accessing from module context (via URL param or state), pre-populate moduleId
+        - Submit moduleId in POST request body (already handled by API line 128)
+      </detail>
+    </note>
+    <note priority="medium">
+      <title>Filter discussions by moduleId from module context (AC-1)</title>
+      <detail>
+        When viewing discussions from module detail page:
+        - Pass moduleId as URL query parameter
+        - API already supports this (line 32, 59-61 in student route)
+        - Update fetchDiscussions() to accept optional moduleId param
+        - Build URL: /api/student/courses/${courseId}/discussions?moduleId=${moduleId}
+      </detail>
+    </note>
+    <note priority="low">
+      <title>Instructor module filter in UI (AC-5)</title>
+      <detail>
+        In src/app/instructor/courses/[id]/discussions/page.tsx:
+        - Add optional module filter dropdown above discussion list
+        - Default: "All Modules"
+        - Options: List all course modules
+        - On selection, call API with moduleId query param
+        - Instructor bypasses unlock checks (role check in API)
+      </detail>
+    </note>
+    <note priority="info">
+      <title>Learnings from previous stories</title>
+      <detail>
+        - Story 1.2: Discussion model already has moduleId foreign key
+        - Story 4.6: API routes already support moduleId filtering
+        - Story 3.2: isModuleUnlocked() function available in lib/modules.ts
+        - Migration: Existing discussions assigned to "Module 1"
+      </detail>
+    </note>
+  </implementation-notes>
+
+</story-context>

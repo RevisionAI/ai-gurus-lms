@@ -1,0 +1,423 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/2-8-delete-module" v="1.0">
+  <metadata>
+    <epicId>epic-2</epicId>
+    <storyId>2-8-delete-module</storyId>
+    <title>Delete Module</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-11-28</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/2-8-delete-module.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>an instructor</asA>
+    <iWant>to delete a module</iWant>
+    <soThat>I can remove unwanted course structure</soThat>
+    <tasks>
+      <task id="1" status="pending">
+        <description>Add delete option to module menu (AC: 1)</description>
+        <subtasks>
+          <subtask id="1.1">Add "Delete" option to ModuleCard action menu</subtask>
+          <subtask id="1.2">Style delete option in red/warning color</subtask>
+          <subtask id="1.3">Option triggers confirmation dialog</subtask>
+        </subtasks>
+      </task>
+      <task id="2" status="pending">
+        <description>Create delete confirmation modal (AC: 2, 3, 4)</description>
+        <subtasks>
+          <subtask id="2.1">Create src/components/modules/DeleteModuleModal.tsx</subtask>
+          <subtask id="2.2">Show warning message with content/assignment/discussion counts</subtask>
+          <subtask id="2.3">If module has content, show two options: "Move content to another module, then delete" or "Delete module and all its content"</subtask>
+          <subtask id="2.4">If module is empty, show simple confirmation</subtask>
+          <subtask id="2.5">Add "Delete" and "Cancel" buttons</subtask>
+        </subtasks>
+      </task>
+      <task id="3" status="pending">
+        <description>Implement move-then-delete option (AC: 3)</description>
+        <subtasks>
+          <subtask id="3.1">If "Move content" selected, show module selector</subtask>
+          <subtask id="3.2">Move all content to selected target module</subtask>
+          <subtask id="3.3">Then proceed with soft delete of empty module</subtask>
+        </subtasks>
+      </task>
+      <task id="4" status="pending">
+        <description>Implement delete with content option (AC: 4, 5)</description>
+        <subtasks>
+          <subtask id="4.1">DELETE endpoint soft-deletes module (sets deletedAt)</subtask>
+          <subtask id="4.2">Content, assignments, discussions with this moduleId: set moduleId = null</subtask>
+          <subtask id="4.3">Content NOT deleted, just orphaned - per architecture OnDelete: SetNull</subtask>
+        </subtasks>
+      </task>
+      <task id="5" status="pending">
+        <description>Success handling (AC: 6)</description>
+        <subtasks>
+          <subtask id="5.1">On successful delete, close modal</subtask>
+          <subtask id="5.2">Show success toast: "Module deleted successfully"</subtask>
+          <subtask id="5.3">Refetch module list to update UI</subtask>
+          <subtask id="5.4">If content was moved, toast mentions that too</subtask>
+        </subtasks>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="1">Delete option in module menu</criterion>
+    <criterion id="2">Confirmation dialog warns about contained content</criterion>
+    <criterion id="3">Option to move content to another module before delete</criterion>
+    <criterion id="4">Option to delete module and all content</criterion>
+    <criterion id="5">Soft delete (sets deletedAt)</criterion>
+    <criterion id="6">Success toast confirms deletion</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/PRD-course-modules.md" relevance="high">
+        <section name="Functional Requirements">
+          <note>FR001: Instructors can create, edit, and delete modules within a course</note>
+          <note>Modules support soft delete with deletedAt timestamp</note>
+        </section>
+      </doc>
+      <doc path="docs/architecture-course-modules.md" relevance="high">
+        <section name="Modified Models">
+          <note>Module has deletedAt field for soft delete</note>
+          <note>CourseContent.moduleId: OnDelete: SetNull - content survives module deletion</note>
+          <note>Assignment.moduleId: OnDelete: SetNull - assignments survive module deletion</note>
+          <note>Discussion.moduleId: OnDelete: SetNull - discussions survive module deletion</note>
+          <note>When module deleted, content becomes orphaned (moduleId = null) but not deleted</note>
+        </section>
+        <section name="API Contracts">
+          <note>DELETE /api/instructor/courses/[id]/modules/[moduleId] - Soft delete module</note>
+          <note>Returns: { message: 'Module archived successfully' }</note>
+        </section>
+      </doc>
+      <doc path="docs/epics-course-modules.md" relevance="medium">
+        <section name="Story 2.8">
+          <note>Prerequisites: Story 2.5 (Move Content Between Modules)</note>
+          <note>Delete option warns about contained content</note>
+          <note>Option to move content to another module before delete</note>
+        </section>
+      </doc>
+      <doc path="docs/stories/2-5-move-content-between-modules.md" relevance="high">
+        <section name="Move Content API">
+          <note>PUT /api/instructor/courses/[id]/modules/[moduleId]/move-content</note>
+          <note>Request: { contentIds: string[], targetModuleId: string }</note>
+          <note>Can reuse this pattern for move-then-delete flow</note>
+        </section>
+      </doc>
+    </docs>
+
+    <code>
+      <artifact path="src/lib/soft-delete.ts" type="utility" relevance="critical">
+        <purpose>Provides soft delete utilities and patterns used across the application</purpose>
+        <keyExports>
+          <export name="softDelete">Function to soft delete a single record by setting deletedAt</export>
+          <export name="notDeleted">Where clause constant for filtering out deleted records</export>
+          <export name="SOFT_DELETE_MODELS">Array including 'module' and 'moduleProgress'</export>
+        </keyExports>
+        <usage>
+          <example>await softDelete(prisma.module, moduleId)</example>
+          <example>Sets deletedAt to new Date()</example>
+        </usage>
+      </artifact>
+
+      <artifact path="src/app/api/instructor/courses/[id]/modules/[moduleId]/route.ts" type="api" relevance="critical">
+        <purpose>Existing module API endpoints - includes DELETE endpoint for soft delete</purpose>
+        <endpoints>
+          <endpoint method="DELETE" path="/api/instructor/courses/[id]/modules/[moduleId]">
+            <description>Soft deletes module by setting deletedAt timestamp</description>
+            <authorization>Requires instructor role for the course</authorization>
+            <response>{ message: 'Module archived successfully' }</response>
+            <implementation>Uses softDelete(prisma.module, moduleId)</implementation>
+            <note>Already implemented in Story 1.5 - can be used as-is</note>
+          </endpoint>
+        </endpoints>
+      </artifact>
+
+      <artifact path="prisma/schema.prisma" type="schema" relevance="critical">
+        <purpose>Database schema showing Module and related models</purpose>
+        <models>
+          <model name="Module">
+            <field name="deletedAt">DateTime? - Soft delete timestamp</field>
+            <relation name="content">CourseContent[] with onDelete: SetNull</relation>
+            <relation name="assignments">Assignment[] with onDelete: SetNull</relation>
+            <relation name="discussions">Discussion[] with onDelete: SetNull</relation>
+            <note>When module deleted, related records have moduleId set to null automatically</note>
+          </model>
+          <model name="CourseContent">
+            <field name="moduleId">String? - Optional reference to Module</field>
+            <relation>Module with onDelete: SetNull</relation>
+          </model>
+          <model name="Assignment">
+            <field name="moduleId">String? - Optional reference to Module</field>
+            <relation>Module with onDelete: SetNull</relation>
+          </model>
+          <model name="Discussion">
+            <field name="moduleId">String? - Optional reference to Module</field>
+            <relation>Module with onDelete: SetNull</relation>
+          </model>
+        </models>
+      </artifact>
+
+      <artifact path="src/components/admin/DeactivateConfirmation.tsx" type="component" relevance="high">
+        <purpose>Reference pattern for confirmation dialogs with warnings</purpose>
+        <keyPatterns>
+          <pattern name="Radix UI Dialog">Uses @radix-ui/react-dialog for modal</pattern>
+          <pattern name="Warning Icon">Uses AlertTriangle icon for destructive action</pattern>
+          <pattern name="Consequence List">Shows bullet points of what will happen</pattern>
+          <pattern name="Reversible Notice">Shows green text: "This action can be undone"</pattern>
+          <pattern name="Loading State">Disables buttons during API call with Loader2 spinner</pattern>
+          <pattern name="Error Handling">Shows error in red banner below content</pattern>
+          <pattern name="Focus Management">Auto-focuses confirm button when modal opens</pattern>
+        </keyPatterns>
+      </artifact>
+
+      <artifact path="src/components/gradebook/GradeUpdateConfirmDialog.tsx" type="component" relevance="medium">
+        <purpose>Another dialog pattern showing Radix UI usage</purpose>
+        <keyPatterns>
+          <pattern name="Dialog Structure">Portal, Overlay, Content, Title, Description, Actions</pattern>
+          <pattern name="Keyboard Navigation">Enter to confirm, Escape to cancel</pattern>
+          <pattern name="Animations">Fade and zoom animations via data-[state] attributes</pattern>
+        </keyPatterns>
+      </artifact>
+
+      <artifact path="src/app/instructor/assignments/page.tsx" type="component" relevance="medium">
+        <purpose>Shows toast notification pattern using react-hot-toast</purpose>
+        <keyPatterns>
+          <pattern name="Import">import toast from 'react-hot-toast'</pattern>
+          <pattern name="Error Toast">toast.error('Failed to fetch courses')</pattern>
+          <pattern name="Success Pattern">toast.success('Operation successful') - implied usage</pattern>
+        </keyPatterns>
+      </artifact>
+
+      <artifact path="src/lib/validations/module.ts" type="validation" relevance="medium">
+        <purpose>Zod schemas for module validation (referenced in module API)</purpose>
+        <note>Contains updateModuleSchema used by PUT endpoint</note>
+        <note>May need to reference for validation patterns</note>
+      </artifact>
+    </code>
+
+    <dependencies>
+      <dependency name="@radix-ui/react-dialog" version="^1.1.14">
+        <purpose>Accessible modal/dialog component for DeleteModuleModal</purpose>
+        <usage>Dialog.Root, Dialog.Portal, Dialog.Overlay, Dialog.Content, Dialog.Title, Dialog.Description, Dialog.Close</usage>
+      </dependency>
+      <dependency name="react-hot-toast" version="^2.5.2">
+        <purpose>Toast notifications for success/error feedback</purpose>
+        <usage>toast.success(), toast.error()</usage>
+      </dependency>
+      <dependency name="lucide-react" version="^0.514.0">
+        <purpose>Icons for UI elements</purpose>
+        <usage>AlertTriangle, X, Loader2, Trash2 or similar for delete icon</usage>
+      </dependency>
+      <dependency name="next" version="15.3.3">
+        <purpose>Next.js framework for API routes and components</purpose>
+      </dependency>
+      <dependency name="@prisma/client" version="^6.9.0">
+        <purpose>Database client for module operations</purpose>
+      </dependency>
+      <dependency name="zod" version="^4.1.13">
+        <purpose>Schema validation for API requests (if needed)</purpose>
+      </dependency>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="architecture">
+      <rule>Module deletion MUST use soft delete (set deletedAt, never hard delete)</rule>
+      <rule>Content, assignments, discussions MUST NOT be deleted when module is deleted</rule>
+      <rule>Related records have OnDelete: SetNull - moduleId automatically set to null</rule>
+      <rule>Orphaned content remains accessible but loses module association</rule>
+    </constraint>
+    <constraint type="ux">
+      <rule>Confirmation dialog MUST warn about contained content with counts</rule>
+      <rule>Delete button MUST be styled in red/warning color</rule>
+      <rule>Success toast MUST confirm deletion action</rule>
+      <rule>If content moved, toast MUST mention both actions</rule>
+    </constraint>
+    <constraint type="security">
+      <rule>DELETE endpoint MUST verify instructor owns the course</rule>
+      <rule>ADMIN role can delete modules from any course</rule>
+      <rule>Module MUST exist and not already be deleted before deletion</rule>
+    </constraint>
+    <constraint type="business">
+      <rule>Consider validation: Cannot delete last module (course must have at least one module)</rule>
+      <rule>Deleting module with student progress should warn about impact</rule>
+      <rule>Move-then-delete is a convenience - user can manually move content first</rule>
+    </constraint>
+    <constraint type="data-integrity">
+      <rule>Module deletion in transaction if moving content first</rule>
+      <rule>If move fails, do not proceed with delete</rule>
+      <rule>Module list must refresh after successful delete</rule>
+    </constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="DeleteModuleModal Props">
+      <purpose>Component interface for delete confirmation modal</purpose>
+      <properties>
+        <property name="isOpen" type="boolean">Whether the modal is open</property>
+        <property name="module" type="Module | null">Module to delete with counts</property>
+        <property name="onClose" type="() => void">Callback when modal closes</property>
+        <property name="onSuccess" type="() => void">Callback when deletion succeeds</property>
+      </properties>
+    </interface>
+
+    <interface name="Module (with counts)">
+      <purpose>Module data with related content counts for display</purpose>
+      <properties>
+        <property name="id" type="string">Module ID</property>
+        <property name="title" type="string">Module title</property>
+        <property name="contentCount" type="number">Number of content items</property>
+        <property name="assignmentCount" type="number">Number of assignments</property>
+        <property name="discussionCount" type="number">Number of discussions</property>
+      </properties>
+    </interface>
+
+    <interface name="DELETE Response">
+      <purpose>API response from delete module endpoint</purpose>
+      <response>
+        <success>{ message: 'Module archived successfully' }</success>
+        <error404>{ error: 'Module not found or already deleted' }</error404>
+        <error401>{ error: 'Unauthorized' }</error401>
+        <error500>{ error: 'Internal server error' }</error500>
+      </response>
+    </interface>
+
+    <interface name="Move Content Request">
+      <purpose>Request body for move-content endpoint (if implementing move-then-delete)</purpose>
+      <properties>
+        <property name="contentIds" type="string[]">Array of content IDs to move</property>
+        <property name="targetModuleId" type="string">Destination module ID</property>
+      </properties>
+      <note>Endpoint: PUT /api/instructor/courses/[id]/modules/[moduleId]/move-content</note>
+      <note>This endpoint may need to be created or referenced from Story 2.5</note>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      <standard>Follow existing test patterns in __tests__/integration/api/instructor/</standard>
+      <standard>Use Jest for unit tests, Playwright for E2E tests</standard>
+      <standard>Test both happy path and error cases</standard>
+      <standard>Mock Prisma client for unit tests</standard>
+      <standard>Integration tests use test database</standard>
+    </standards>
+
+    <locations>
+      <location path="__tests__/integration/api/instructor/modules-delete.test.ts">
+        <purpose>Integration tests for DELETE /api/instructor/courses/[id]/modules/[moduleId]</purpose>
+      </location>
+      <location path="__tests__/unit/components/modules/DeleteModuleModal.test.tsx">
+        <purpose>Unit tests for DeleteModuleModal component</purpose>
+      </location>
+      <location path="__tests__/e2e/instructor-module-delete.spec.ts">
+        <purpose>E2E tests for complete delete module workflow</purpose>
+      </location>
+    </locations>
+
+    <ideas>
+      <testIdea priority="high">
+        <name>DELETE endpoint - successful soft delete</name>
+        <description>Verify module deletedAt is set and returns success message</description>
+      </testIdea>
+      <testIdea priority="high">
+        <name>DELETE endpoint - content orphaned</name>
+        <description>Verify content, assignments, discussions have moduleId set to null after delete</description>
+      </testIdea>
+      <testIdea priority="high">
+        <name>DELETE endpoint - unauthorized access</name>
+        <description>Verify non-instructor cannot delete module</description>
+      </testIdea>
+      <testIdea priority="high">
+        <name>DELETE endpoint - module not found</name>
+        <description>Verify 404 error when module doesn't exist</description>
+      </testIdea>
+      <testIdea priority="high">
+        <name>DELETE endpoint - already deleted</name>
+        <description>Verify 404 error when module already soft deleted</description>
+      </testIdea>
+      <testIdea priority="medium">
+        <name>DeleteModuleModal - empty module flow</name>
+        <description>Show simple confirmation when module has no content</description>
+      </testIdea>
+      <testIdea priority="medium">
+        <name>DeleteModuleModal - module with content flow</name>
+        <description>Show content counts and two delete options</description>
+      </testIdea>
+      <testIdea priority="medium">
+        <name>DeleteModuleModal - move then delete</name>
+        <description>Verify content moved to target module before deletion</description>
+      </testIdea>
+      <testIdea priority="medium">
+        <name>DeleteModuleModal - delete with orphan</name>
+        <description>Verify content orphaned (moduleId = null) when deleting without move</description>
+      </testIdea>
+      <testIdea priority="medium">
+        <name>Success toast - delete only</name>
+        <description>Verify "Module deleted successfully" toast shown</description>
+      </testIdea>
+      <testIdea priority="medium">
+        <name>Success toast - move and delete</name>
+        <description>Verify toast mentions both content move and module deletion</description>
+      </testIdea>
+      <testIdea priority="low">
+        <name>Edge case - delete last module</name>
+        <description>If validation added, verify cannot delete last module in course</description>
+      </testIdea>
+      <testIdea priority="low">
+        <name>Edge case - module with student progress</name>
+        <description>Verify warning shown if students have progress in module</description>
+      </testIdea>
+      <testIdea priority="low">
+        <name>E2E - complete delete flow</name>
+        <description>From module list, click delete, confirm, verify module removed from UI</description>
+      </testIdea>
+    </ideas>
+  </tests>
+
+  <implementation-notes>
+    <note type="critical">
+      The DELETE endpoint already exists from Story 1.5 and performs soft delete correctly.
+      This story focuses on creating the UI (DeleteModuleModal) and move-then-delete logic.
+    </note>
+    <note type="important">
+      Schema OnDelete: SetNull means content/assignments/discussions are automatically orphaned.
+      No manual null-setting needed unless explicitly moving content to another module.
+    </note>
+    <note type="important">
+      Move-then-delete requires two API calls:
+      1. PUT /api/instructor/courses/[id]/modules/[moduleId]/move-content (may need to create)
+      2. DELETE /api/instructor/courses/[id]/modules/[moduleId] (already exists)
+      Wrap in transaction or handle rollback if delete fails after move.
+    </note>
+    <note type="ui-pattern">
+      Use DeactivateConfirmation.tsx as primary reference for modal structure.
+      Copy patterns: warning icon, consequence list, loading state, focus management.
+    </note>
+    <note type="ui-pattern">
+      Toast pattern: import toast from 'react-hot-toast', use toast.success() and toast.error().
+    </note>
+    <note type="edge-case">
+      If implementing "cannot delete last module" validation, check module count before showing delete option.
+    </note>
+    <note type="edge-case">
+      Module with student progress (ModuleProgress records) should show additional warning.
+      Query: await prisma.moduleProgress.count({ where: { moduleId } })
+    </note>
+  </implementation-notes>
+
+  <related-stories>
+    <story id="2-5-move-content-between-modules" relationship="prerequisite">
+      <note>Provides move-content API pattern and MoveToModuleModal reference</note>
+      <note>Move-then-delete option reuses this functionality</note>
+    </story>
+    <story id="1-5-create-module-api-endpoints" relationship="provides">
+      <note>DELETE endpoint already implemented for soft delete</note>
+      <note>Can be used as-is without modification</note>
+    </story>
+    <story id="2-1-module-list-view-for-instructors" relationship="integrates-with">
+      <note>Delete option added to module action menu in ModuleCard/ModuleList</note>
+      <note>Module list must refresh after successful delete</note>
+    </story>
+  </related-stories>
+</story-context>

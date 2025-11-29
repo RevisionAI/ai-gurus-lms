@@ -1,0 +1,641 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>3-1-student-module-overview</story-id>
+    <story-title>Student Module Overview</story-title>
+    <epic>Epic 3: Student Module Experience</epic>
+    <generated-date>2025-11-28</generated-date>
+    <prerequisites>
+      <prerequisite>Epic 1 complete (Database Schema and Data Migration)</prerequisite>
+      <prerequisite>Story 2.6 complete (Module Publish/Unpublish)</prerequisite>
+    </prerequisites>
+  </metadata>
+
+  <story-summary>
+    <user-story>
+      As a student,
+      I want to see my enrolled course organized by modules,
+      so that I understand the course structure.
+    </user-story>
+    <goal>
+      Enable students to view their courses organized by modules, providing a clear overview of the course structure with module titles, descriptions, and content counts. This establishes the foundation for the progressive learning experience where students will later see locked/unlocked states and track progress.
+    </goal>
+    <scope>
+      <in-scope>
+        <item>Student API endpoint to list modules for an enrolled course</item>
+        <item>Filter to show only published modules to students</item>
+        <item>Display modules in order (orderIndex)</item>
+        <item>Show module metadata: title, description, item counts</item>
+        <item>Display overall course progress bar at top of course page</item>
+        <item>New StudentModuleList and StudentModuleCard components</item>
+      </in-scope>
+      <out-of-scope>
+        <item>Module lock/unlock logic (Story 3.2)</item>
+        <item>Detailed progress tracking (Story 3.4)</item>
+        <item>Module detail/content view (Story 3.3)</item>
+        <item>Automatic unlock functionality (Story 3.6)</item>
+      </out-of-scope>
+    </scope>
+  </story-summary>
+
+  <acceptance-criteria>
+    <criterion id="AC1">
+      <description>Course detail page shows module list</description>
+      <verification>Student course page displays StudentModuleList component with all published modules</verification>
+    </criterion>
+    <criterion id="AC2">
+      <description>Each module card shows: title, description, item count</description>
+      <verification>Module cards display title prominently, description preview (truncated if long), and counts for content items, assignments, and discussions</verification>
+    </criterion>
+    <criterion id="AC3">
+      <description>Overall course progress bar at top</description>
+      <verification>Course page header includes progress bar showing overall completion percentage across all modules</verification>
+    </criterion>
+    <criterion id="AC4">
+      <description>Modules displayed in order (orderIndex)</description>
+      <verification>Modules appear in ascending orderIndex sequence as defined by instructor</verification>
+    </criterion>
+    <criterion id="AC5">
+      <description>Only published modules visible to students</description>
+      <verification>API filters modules where isPublished = true; unpublished modules never returned to students</verification>
+    </criterion>
+  </acceptance-criteria>
+
+  <technical-approach>
+    <architecture-alignment>
+      <reference source="architecture-course-modules.md" section="Student Module Endpoints">
+        API Contract:
+        GET /api/student/courses/[id]/modules
+
+        Response structure:
+        {
+          "modules": [
+            {
+              "id": "clxxx...",
+              "title": "AI Fundamentals",
+              "description": "Introduction to AI concepts",
+              "orderIndex": 0,
+              "status": "completed",  // From progress
+              "progress": 100,
+              "contentCount": 5,
+              "assignmentCount": 2,
+              "isUnlocked": true
+            }
+          ],
+          "courseProgress": 53
+        }
+      </reference>
+      <note>
+        For this story (3.1), we implement basic structure without full progress/unlock logic.
+        Progress and status fields will return 0/"not_started"/true for all modules initially.
+        Stories 3.2-3.6 will add the actual progress tracking and lock/unlock functionality.
+      </note>
+    </architecture-alignment>
+
+    <component-structure>
+      <new-components>
+        <component path="src/components/modules/StudentModuleList.tsx">
+          <description>Container component that fetches and displays all modules for a course</description>
+          <responsibilities>
+            - Fetch modules from student API endpoint
+            - Handle loading and error states
+            - Render list of StudentModuleCard components
+            - Display empty state if no published modules
+          </responsibilities>
+          <props>
+            - courseId: string (required)
+          </props>
+        </component>
+        <component path="src/components/modules/StudentModuleCard.tsx">
+          <description>Display component for a single module card in student view</description>
+          <responsibilities>
+            - Display module title prominently
+            - Show description with truncation (100 char max)
+            - Show item counts with icons (content, assignments, discussions)
+            - Card is clickable (navigates to module detail - Story 3.3)
+            - Visual styling distinct from instructor view
+          </responsibilities>
+          <props>
+            - module: StudentModule (title, description, contentCount, assignmentCount, discussionCount)
+            - courseId: string
+          </props>
+        </component>
+        <component path="src/components/modules/CourseProgressBar.tsx" optional="true">
+          <description>Progress bar component showing overall course completion</description>
+          <note>May reuse existing progress UI component if available, or create new one</note>
+          <responsibilities>
+            - Display percentage as visual bar
+            - Show percentage text
+            - Color coding (e.g., green when complete, blue in progress)
+          </responsibilities>
+          <props>
+            - progress: number (0-100)
+            - label?: string
+          </props>
+        </component>
+      </new-components>
+
+      <modified-components>
+        <component path="src/app/courses/[id]/page.tsx">
+          <description>Student course detail page - add module list section</description>
+          <changes>
+            - Import and render StudentModuleList component
+            - Add course progress bar section above tabs
+            - Pass courseId prop to StudentModuleList
+            - Optional: Add new "Modules" tab or display in Overview tab
+          </changes>
+        </component>
+      </modified-components>
+    </component-structure>
+
+    <api-implementation>
+      <new-endpoint>
+        <method>GET</method>
+        <path>/api/student/courses/[id]/modules/route.ts</path>
+        <description>List published modules for an enrolled student</description>
+        <authorization>
+          - Verify user is logged in and has STUDENT role
+          - Verify student is enrolled in course (check Enrollment table)
+          - Return 401 if not authenticated, 403 if not enrolled
+        </authorization>
+        <query-logic>
+          1. Verify enrollment:
+             - Check Enrollment where userId = session.user.id AND courseId = id
+          2. Fetch modules:
+             - Find all Module where courseId = id AND isPublished = true AND deletedAt = null
+             - Order by orderIndex ASC
+             - Include counts: _count for content, assignments, discussions (with notDeleted filter)
+          3. Calculate basic progress (for AC3):
+             - For MVP, return 0 progress or calculate simple average if ModuleProgress exists
+             - Full progress logic in Story 3.4
+          4. Return JSON with modules array and courseProgress
+        </query-logic>
+        <response-example>
+          {
+            "modules": [
+              {
+                "id": "module-id-1",
+                "title": "Module 1: Introduction",
+                "description": "Getting started with the course",
+                "orderIndex": 0,
+                "contentCount": 5,
+                "assignmentCount": 2,
+                "discussionCount": 1,
+                "progress": 0,
+                "status": "not_started",
+                "isUnlocked": true
+              }
+            ],
+            "courseProgress": 0
+          }
+        </response-example>
+      </new-endpoint>
+    </api-implementation>
+
+    <data-model-reference>
+      <prisma-models>
+        <model name="Module">
+          <fields>
+            - id: string (cuid)
+            - title: string
+            - description: string?
+            - orderIndex: int
+            - isPublished: boolean
+            - requiresPrevious: boolean
+            - courseId: string
+            - deletedAt: DateTime?
+          </fields>
+          <relations>
+            - course: Course
+            - content: CourseContent[]
+            - assignments: Assignment[]
+            - discussions: Discussion[]
+            - progress: ModuleProgress[]
+          </relations>
+        </model>
+        <model name="Enrollment">
+          <fields>
+            - userId: string
+            - courseId: string
+          </fields>
+          <note>Used to verify student is enrolled before showing modules</note>
+        </model>
+        <model name="ModuleProgress">
+          <fields>
+            - moduleId: string
+            - userId: string
+            - completedAt: DateTime?
+            - contentViewed: string[]
+          </fields>
+          <note>Will be used in later stories for actual progress tracking</note>
+        </model>
+      </prisma-models>
+    </data-model-reference>
+  </technical-approach>
+
+  <implementation-guidance>
+    <task id="1" title="Create student module list API" acceptance-criteria="AC4, AC5">
+      <subtask id="1.1">Create GET /api/student/courses/[id]/modules endpoint</subtask>
+      <subtask id="1.2">Filter to only isPublished = true modules</subtask>
+      <subtask id="1.3">Order by orderIndex ascending</subtask>
+      <subtask id="1.4">Include module: id, title, description, item counts</subtask>
+      <subtask id="1.5">Verify student is enrolled in course</subtask>
+      <implementation-notes>
+        - Follow pattern from existing student API endpoints (src/app/api/student/courses/[id]/route.ts)
+        - Use getServerSession(authOptions) for authentication
+        - Use prisma.enrollment.findUnique to verify enrollment
+        - Use notDeleted constant from src/lib/soft-delete.ts
+        - Return 403 if not enrolled, 404 if course not found
+        - Use _count aggregation for content/assignment/discussion counts
+      </implementation-notes>
+    </task>
+
+    <task id="2" title="Create StudentModuleList component" acceptance-criteria="AC1, AC2, AC4">
+      <subtask id="2.1">Create src/components/modules/StudentModuleList.tsx</subtask>
+      <subtask id="2.2">Fetch modules using student API endpoint</subtask>
+      <subtask id="2.3">Display modules as cards in order</subtask>
+      <subtask id="2.4">Each card shows title, description preview, item count</subtask>
+      <implementation-notes>
+        - Use React hooks (useState, useEffect) for data fetching
+        - Implement loading skeleton (see src/components/modules/ModuleList.tsx for pattern)
+        - Implement error state with retry button
+        - Empty state: "No modules available yet"
+        - Map through modules array and render StudentModuleCard for each
+      </implementation-notes>
+    </task>
+
+    <task id="3" title="Create StudentModuleCard component" acceptance-criteria="AC2">
+      <subtask id="3.1">Create src/components/modules/StudentModuleCard.tsx</subtask>
+      <subtask id="3.2">Display module title prominently</subtask>
+      <subtask id="3.3">Show description (truncated if long)</subtask>
+      <subtask id="3.4">Show item count: "X content items · Y assignments"</subtask>
+      <subtask id="3.5">Card is clickable (navigates to module detail)</subtask>
+      <implementation-notes>
+        - Use Tailwind CSS for styling (match instructor ModuleCard visual language)
+        - Truncate description to 100 characters with "..." if longer
+        - Use Lucide icons: FileText for content, ClipboardList for assignments, MessageSquare for discussions
+        - For 3.5: onClick navigates to /courses/[id]/modules/[moduleId] (implementation in Story 3.3)
+        - Add hover effect (border color change)
+      </implementation-notes>
+    </task>
+
+    <task id="4" title="Add course progress bar" acceptance-criteria="AC3">
+      <subtask id="4.1">Create CourseProgressBar component or use existing</subtask>
+      <subtask id="4.2">Calculate overall progress from all modules</subtask>
+      <subtask id="4.3">Display at top of course page: "Progress: XX%"</subtask>
+      <subtask id="4.4">Use progress bar UI component (Radix or custom)</subtask>
+      <implementation-notes>
+        - For MVP: courseProgress = average of module progress values
+        - If no ModuleProgress records exist, show 0%
+        - Display format: "Course Progress: 45%" with visual bar
+        - Place above Quick Stats section or in course header
+        - Use Tailwind progress bar classes or Radix Progress component
+      </implementation-notes>
+    </task>
+
+    <task id="5" title="Integrate with course detail page" acceptance-criteria="AC1">
+      <subtask id="5.1">Locate student course detail page (src/app/courses/[id]/page.tsx)</subtask>
+      <subtask id="5.2">Add StudentModuleList component to page</subtask>
+      <subtask id="5.3">Pass courseId for data fetching</subtask>
+      <implementation-notes>
+        - Import StudentModuleList from @/components/modules/StudentModuleList
+        - Add progress bar in course header (after description, before Quick Stats)
+        - Consider adding new "Modules" tab or displaying in "Overview" tab
+        - For "Overview" tab: place module list below "Upcoming Assignments" section
+        - Ensure responsive design (modules stack on mobile)
+      </implementation-notes>
+    </task>
+  </implementation-guidance>
+
+  <ui-design-reference>
+    <wireframe source="PRD-course-modules.md">
+      Student Course View:
+      ┌─────────────────────────────────────────────────┐
+      │ AI Fluency Program                              │
+      │ Progress: ████████░░░░░░░░ 45%                 │
+      ├─────────────────────────────────────────────────┤
+      │ ✓ Module 1: AI Fundamentals        [Complete]  │
+      │   └─ 5 items · 1 assignment · 1 discussion     │
+      │                                                 │
+      │ ▶ Module 2: Decision Framework    [In Progress]│
+      │   └─ 4 items · 2 assignments · 1 discussion    │
+      │   └─ Progress: ██████░░░░ 60%                  │
+      │                                                 │
+      │ 🔒 Module 3: Implementation       [Locked]     │
+      │   └─ Complete Module 2 to unlock               │
+      └─────────────────────────────────────────────────┘
+    </wireframe>
+    <design-notes>
+      - For Story 3.1, omit lock icons and status indicators (added in Story 3.2)
+      - Show all published modules with basic info
+      - Use consistent spacing and typography with existing course page
+      - Module cards should be visually distinct from content items
+    </design-notes>
+  </ui-design-reference>
+
+  <existing-code-patterns>
+    <pattern name="Student API Authentication">
+      <file>src/app/api/student/courses/[id]/route.ts</file>
+      <code><![CDATA[
+const session = await getServerSession(authOptions)
+
+if (!session || session.user.role !== 'STUDENT') {
+  return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+}
+
+// Check if student is enrolled in the course
+const enrollment = await prisma.enrollment.findUnique({
+  where: {
+    userId_courseId: {
+      userId: session.user.id,
+      courseId: id
+    }
+  }
+})
+
+if (!enrollment) {
+  return NextResponse.json({ error: 'Not enrolled in this course' }, { status: 403 })
+}
+      ]]></code>
+      <usage>Use this exact pattern for student module API authentication</usage>
+    </pattern>
+
+    <pattern name="Instructor Module Query">
+      <file>src/app/api/instructor/courses/[id]/modules/route.ts</file>
+      <code><![CDATA[
+const modules = await prisma.module.findMany({
+  where: {
+    courseId: id,
+    ...notDeleted,
+  },
+  orderBy: {
+    orderIndex: 'asc',
+  },
+  select: {
+    id: true,
+    title: true,
+    description: true,
+    orderIndex: true,
+    isPublished: true,
+    requiresPrevious: true,
+    createdAt: true,
+    updatedAt: true,
+    _count: {
+      select: {
+        content: { where: notDeleted },
+        assignments: { where: notDeleted },
+        discussions: { where: notDeleted },
+      },
+    },
+  },
+});
+      ]]></code>
+      <usage>Adapt this query for student API - add isPublished filter, remove instructor-only fields</usage>
+    </pattern>
+
+    <pattern name="Module List Component Structure">
+      <file>src/components/modules/ModuleList.tsx</file>
+      <code><![CDATA[
+export default function ModuleList({ courseId }: ModuleListProps) {
+  const { modules: fetchedModules, loading, error, refetch } = useModules(courseId)
+
+  // Loading State
+  if (loading) {
+    return (
+      <div className="space-y-3">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="p-4 border border-gray-200 rounded-lg animate-pulse">
+            {/* Skeleton content */}
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  // Error State
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        {/* Error display with retry */}
+      </div>
+    )
+  }
+
+  // Empty State
+  if (modules.length === 0) {
+    return (
+      <div className="text-center py-12">
+        {/* Empty state message */}
+      </div>
+    )
+  }
+
+  // Module list rendering
+  return (
+    <div className="space-y-3">
+      {modules.map((module) => (
+        <ModuleCard key={module.id} module={module} />
+      ))}
+    </div>
+  )
+}
+      ]]></code>
+      <usage>Follow this structure for StudentModuleList component with loading/error/empty states</usage>
+    </pattern>
+
+    <pattern name="Module Card Display">
+      <file>src/components/modules/ModuleCard.tsx</file>
+      <code><![CDATA[
+<div className="p-4 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors bg-white">
+  <div className="flex items-start justify-between">
+    <div className="flex-1 min-w-0">
+      {/* Title */}
+      <h4 className="font-medium text-gray-900 text-base">{module.title}</h4>
+
+      {/* Description Preview */}
+      {module.description && (
+        <p className="mt-1 text-sm text-gray-500">
+          {truncateText(module.description)}
+        </p>
+      )}
+
+      {/* Status Badge and Counts Row */}
+      <div className="mt-3 flex items-center flex-wrap gap-3">
+        {/* Counts */}
+        <div className="flex items-center gap-3 text-sm text-gray-500">
+          <span className="flex items-center gap-1">
+            <FileText className="h-4 w-4" />
+            {module.contentCount}
+          </span>
+          <span className="flex items-center gap-1">
+            <ClipboardList className="h-4 w-4" />
+            {module.assignmentCount}
+          </span>
+          <span className="flex items-center gap-1">
+            <MessageSquare className="h-4 w-4" />
+            {module.discussionCount}
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      ]]></code>
+      <usage>Adapt this layout for StudentModuleCard - remove action menu, add navigation onClick</usage>
+    </pattern>
+
+    <pattern name="Soft Delete Filter">
+      <file>src/lib/soft-delete.ts</file>
+      <code><![CDATA[
+export const notDeleted = { deletedAt: null } as const
+      ]]></code>
+      <usage>Always include notDeleted in where clauses to exclude soft-deleted records</usage>
+    </pattern>
+  </existing-code-patterns>
+
+  <testing-requirements>
+    <manual-testing>
+      <test-case id="TC1">
+        <description>Verify module list displays for enrolled student</description>
+        <steps>
+          1. Log in as student
+          2. Navigate to enrolled course detail page
+          3. Verify module list is visible
+          4. Verify all published modules appear
+        </steps>
+        <expected-result>All published modules display in correct order with title, description, counts</expected-result>
+      </test-case>
+      <test-case id="TC2">
+        <description>Verify unpublished modules are hidden from students</description>
+        <steps>
+          1. As instructor, create a module and leave it unpublished
+          2. Log in as enrolled student
+          3. Navigate to course detail page
+          4. Verify unpublished module does not appear
+        </steps>
+        <expected-result>Unpublished modules are not visible to students</expected-result>
+      </test-case>
+      <test-case id="TC3">
+        <description>Verify enrollment check prevents unauthorized access</description>
+        <steps>
+          1. Log in as student
+          2. Attempt to access /api/student/courses/[id]/modules for a course you're not enrolled in
+        </steps>
+        <expected-result>API returns 403 Forbidden error</expected-result>
+      </test-case>
+      <test-case id="TC4">
+        <description>Verify course progress bar displays</description>
+        <steps>
+          1. Log in as enrolled student
+          2. Navigate to course detail page
+          3. Locate progress bar in header
+          4. Verify progress percentage is shown
+        </steps>
+        <expected-result>Progress bar displays with percentage (0% for new enrollment)</expected-result>
+      </test-case>
+      <test-case id="TC5">
+        <description>Verify module order matches instructor settings</description>
+        <steps>
+          1. As instructor, verify module order indices (Module 1: 0, Module 2: 1, etc.)
+          2. Log in as student
+          3. Verify modules display in same order
+        </steps>
+        <expected-result>Student sees modules in ascending orderIndex sequence</expected-result>
+      </test-case>
+    </manual-testing>
+
+    <edge-cases>
+      <edge-case>Course with no published modules - should show empty state message</edge-case>
+      <edge-case>Module with very long description - should truncate with ellipsis</edge-case>
+      <edge-case>Module with no content/assignments/discussions - should show 0 counts</edge-case>
+      <edge-case>Student not enrolled - API should return 403 error</edge-case>
+      <edge-case>Course deleted - API should return 404 error</edge-case>
+    </edge-cases>
+  </testing-requirements>
+
+  <dependencies>
+    <dependency type="database">
+      <name>Module model</name>
+      <status>Complete (Story 1.1)</status>
+      <verification>Module table exists with all required fields</verification>
+    </dependency>
+    <dependency type="database">
+      <name>Module foreign keys</name>
+      <status>Complete (Story 1.2)</status>
+      <verification>courseId relation established</verification>
+    </dependency>
+    <dependency type="database">
+      <name>ModuleProgress model</name>
+      <status>Complete (Story 1.4)</status>
+      <note>Used for basic progress calculation, full implementation in Story 3.4</note>
+    </dependency>
+    <dependency type="api">
+      <name>Instructor module endpoints</name>
+      <status>Complete (Story 1.5)</status>
+      <note>Provides pattern for student endpoints</note>
+    </dependency>
+    <dependency type="ui">
+      <name>Module publish functionality</name>
+      <status>Expected from Story 2.6</status>
+      <note>Students should only see modules that instructors have published</note>
+    </dependency>
+  </dependencies>
+
+  <follow-up-stories>
+    <story id="3.2" title="Module Lock/Unlock States">
+      <relationship>Extends this story by adding lock icons and prerequisite messaging</relationship>
+    </story>
+    <story id="3.3" title="Module Content View">
+      <relationship>Makes module cards clickable to navigate to detail view</relationship>
+    </story>
+    <story id="3.4" title="Content Completion Tracking">
+      <relationship>Implements actual progress tracking logic for progress bars</relationship>
+    </story>
+  </follow-up-stories>
+
+  <files-to-create>
+    <file path="src/app/api/student/courses/[id]/modules/route.ts" type="api">
+      GET endpoint for student module list with enrollment verification
+    </file>
+    <file path="src/components/modules/StudentModuleList.tsx" type="component">
+      Container component for student module list display
+    </file>
+    <file path="src/components/modules/StudentModuleCard.tsx" type="component">
+      Individual module card component for student view
+    </file>
+    <file path="src/components/modules/CourseProgressBar.tsx" type="component" optional="true">
+      Progress bar component (if not reusing existing component)
+    </file>
+  </files-to-create>
+
+  <files-to-modify>
+    <file path="src/app/courses/[id]/page.tsx" type="page">
+      <changes>
+        - Add import for StudentModuleList
+        - Add course progress bar in header
+        - Render StudentModuleList in appropriate section (Overview tab or new Modules tab)
+      </changes>
+    </file>
+  </files-to-modify>
+
+  <definition-of-done>
+    <checklist>
+      <item>Student API endpoint created at /api/student/courses/[id]/modules</item>
+      <item>API verifies student enrollment before returning modules</item>
+      <item>API filters to only published modules (isPublished = true)</item>
+      <item>API returns modules ordered by orderIndex ascending</item>
+      <item>API includes content/assignment/discussion counts</item>
+      <item>StudentModuleList component created and functional</item>
+      <item>StudentModuleCard component created with proper styling</item>
+      <item>Module list integrated into student course detail page</item>
+      <item>Course progress bar displays in course header</item>
+      <item>Loading states implemented for async data fetching</item>
+      <item>Error handling and retry functionality implemented</item>
+      <item>Empty state displayed when no published modules exist</item>
+      <item>All acceptance criteria verified through manual testing</item>
+      <item>Edge cases tested (no enrollment, no modules, long descriptions)</item>
+      <item>Code follows existing patterns from instructor module implementation</item>
+      <item>No console errors or warnings in browser</item>
+    </checklist>
+  </definition-of-done>
+</story-context>

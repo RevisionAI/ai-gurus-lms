@@ -5,7 +5,8 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Navbar from '@/components/Navbar'
 import ProtectedRoute from '@/components/ProtectedRoute'
-import { Users, ClipboardList, MessageSquare, Settings, Plus, FileText, Calendar, BookOpen, Video, File, Link as LinkIcon, X, Search } from 'lucide-react'
+import ModuleList from '@/components/modules/ModuleList'
+import { Users, ClipboardList, MessageSquare, Settings, Plus, FileText, Calendar, BookOpen, Video, File, Link as LinkIcon, X, Search, Layers } from 'lucide-react'
 
 interface Course {
   id: string
@@ -256,6 +257,7 @@ export default function CourseDetailPage() {
 
   const tabs = [
     { id: 'overview', name: 'Overview', icon: FileText },
+    { id: 'modules', name: 'Modules', icon: Layers },
     { id: 'content', name: 'Content', icon: BookOpen },
     { id: 'students', name: 'Students', icon: Users },
     { id: 'assignments', name: 'Assignments', icon: ClipboardList },
@@ -405,6 +407,15 @@ export default function CourseDetailPage() {
                     <div>
                       <h3 className="text-lg font-medium text-gray-900 mb-4">Quick Actions</h3>
                       <div className="space-y-3">
+                        <button
+                          onClick={() => setActiveTab('modules')}
+                          className="block w-full text-left p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                        >
+                          <div className="flex items-center">
+                            <Layers className="h-5 w-5 text-indigo-600 mr-3" />
+                            <span className="font-medium">Manage Modules</span>
+                          </div>
+                        </button>
                         <Link
                           href={`/instructor/courses/${course.id}/assignments/new`}
                           className="block p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
@@ -452,6 +463,10 @@ export default function CourseDetailPage() {
                     </div>
                   </div>
                 </div>
+              )}
+
+              {activeTab === 'modules' && (
+                <ModuleList courseId={course.id} />
               )}
 
               {activeTab === 'content' && (

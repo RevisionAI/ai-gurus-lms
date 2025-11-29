@@ -1,0 +1,487 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>3-2-module-lock-unlock-states</story-id>
+    <story-title>Module Lock/Unlock States</story-title>
+    <epic>Epic 3: Student Module Experience</epic>
+    <status>ready-for-dev</status>
+    <generated-date>2025-11-28</generated-date>
+  </metadata>
+
+  <story-requirements>
+    <user-story>
+      As a student,
+      I want to see which modules are locked and why,
+      so that I know what I need to complete first.
+    </user-story>
+
+    <acceptance-criteria>
+      <criterion id="AC1">Unlocked modules show "Available" status</criterion>
+      <criterion id="AC2">Locked modules show lock icon and "Complete [Module X] to unlock"</criterion>
+      <criterion id="AC3">Completed modules show checkmark and "Complete" status</criterion>
+      <criterion id="AC4">In-progress modules show progress percentage</criterion>
+      <criterion id="AC5">Clicking locked module shows info modal (not error)</criterion>
+    </acceptance-criteria>
+
+    <module-status-definitions>
+      <status-state name="locked" condition="requiresPrevious &amp;&amp; previous not complete">
+        <badge-color>Gray "Locked"</badge-color>
+        <icon>Lock icon (🔒)</icon>
+      </status-state>
+      <status-state name="available" condition="unlocked &amp;&amp; progress = 0">
+        <badge-color>Blue "Available"</badge-color>
+        <icon>Play icon (▶️)</icon>
+      </status-state>
+      <status-state name="in_progress" condition="unlocked &amp;&amp; 0 &lt; progress &lt; 100">
+        <badge-color>Yellow "In Progress"</badge-color>
+        <icon>Clock icon (⏳)</icon>
+      </status-state>
+      <status-state name="completed" condition="progress = 100">
+        <badge-color>Green "Complete"</badge-color>
+        <icon>Checkmark (✓)</icon>
+      </status-state>
+    </module-status-definitions>
+  </story-requirements>
+
+  <architecture-patterns>
+    <server-side-unlock-logic>
+      <rationale>ADR-001 mandates server-side calculation to prevent client-side bypass</rationale>
+      <location>src/lib/modules.ts</location>
+      <function-signature>
+        <![CDATA[
+export async function isModuleUnlocked(
+  moduleId: string,
+  userId: string
+): Promise<boolean> {
+  const module = await prisma.module.findUnique({...});
+
+  // First module is always unlocked
+  if (module.orderIndex === 0) return true;
+
+  // If sequential unlock is disabled
+  if (!module.requiresPrevious) return true;
+
+  // Check if previous module is completed
+  return await isModuleCompleted(previousModule.id, userId);
+}
+        ]]>
+      </function-signature>
+    </server-side-unlock-logic>
+
+    <api-response-enhancement>
+      <endpoint>GET /api/student/courses/[id]/modules</endpoint>
+      <response-structure>
+        <![CDATA[
+{
+  "modules": [
+    {
+      "id": "...",
+      "title": "Module 2",
+      "isUnlocked": false,
+      "status": "locked",
+      "progress": 0,
+      "unlockMessage": "Complete 'AI Fundamentals' to unlock"
+    }
+  ]
+}
+        ]]>
+      </response-structure>
+    </api-response-enhancement>
+  </architecture-patterns>
+
+  <existing-code-references>
+    <prisma-schema>
+      <module-model>
+        <![CDATA[
+model Module {
+  id               String    @id @default(cuid())
+  title            String
+  description      String?
+  orderIndex       Int
+  isPublished      Boolean   @default(false)
+  requiresPrevious Boolean   @default(true)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  deletedAt        DateTime?
+
+  courseId    String
+  course      Course          @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  content     CourseContent[]
+  assignments Assignment[]
+  discussions Discussion[]
+  progress    ModuleProgress[]
+
+  @@index([courseId])
+  @@index([deletedAt])
+  @@map("modules")
+}
+        ]]>
+      </module-model>
+
+      <module-progress-model>
+        <![CDATA[
+model ModuleProgress {
+  id            String    @id @default(cuid())
+  completedAt   DateTime?
+  contentViewed String[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  moduleId String
+  userId   String
+  module   Module @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([moduleId, userId])
+  @@index([userId])
+  @@index([moduleId])
+  @@index([deletedAt])
+  @@map("module_progress")
+}
+        ]]>
+      </module-progress-model>
+    </prisma-schema>
+
+    <existing-components>
+      <component path="src/components/modules/ModuleCard.tsx">
+        <purpose>Instructor module card - reference for component structure</purpose>
+        <key-features>
+          - Uses Radix UI Dialog for modals
+          - Badge pattern for status display
+          - Lucide icons (Lock, Globe, etc.)
+          - Tailwind CSS styling
+        </key-features>
+      </component>
+
+      <component path="src/components/modules/ModuleFormModal.tsx">
+        <purpose>Modal pattern reference using Radix UI Dialog</purpose>
+        <key-patterns>
+          <![CDATA[
+import * as Dialog from '@radix-ui/react-dialog'
+
+<Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
+  <Dialog.Portal>
+    <Dialog.Overlay className="fixed inset-0 bg-black/50 z-50" />
+    <Dialog.Content className="fixed left-[50%] top-[50%] z-50 w-full max-w-md">
+      <Dialog.Title>...</Dialog.Title>
+      <Dialog.Description>...</Dialog.Description>
+      ...
+      <Dialog.Close asChild>
+        <button onClick={onClose}>
+          <X className="h-4 w-4" />
+        </button>
+      </Dialog.Close>
+    </Dialog.Content>
+  </Dialog.Portal>
+</Dialog.Root>
+          ]]>
+        </key-patterns>
+      </component>
+
+      <component path="src/app/courses/[id]/page.tsx">
+        <purpose>Student course detail page - integration point</purpose>
+        <notes>
+          - Currently shows content in tabs (overview, content, assignments, etc.)
+          - Will need to integrate StudentModuleList/Cards from Story 3.1
+          - Uses Lucide icons throughout
+          - Badge pattern for status indicators already in use
+        </notes>
+      </component>
+    </existing-components>
+
+    <soft-delete-utility>
+      <location>src/lib/soft-delete.ts</location>
+      <usage>
+        <![CDATA[
+import { notDeleted } from '@/lib/soft-delete'
+
+// Always filter out soft-deleted records
+const modules = await prisma.module.findMany({
+  where: { ...notDeleted, courseId }
+})
+        ]]>
+      </usage>
+    </soft-delete-utility>
+
+    <validation-schemas>
+      <location>src/lib/validations/module.ts</location>
+      <available-schemas>
+        - createModuleSchema
+        - updateModuleSchema
+      </available-schemas>
+    </validation-schemas>
+  </existing-code-references>
+
+  <implementation-tasks>
+    <task id="1" name="Implement unlock logic in API" acceptance-criteria="AC1, AC2, AC3, AC4">
+      <subtasks>
+        <subtask id="1.1">Create src/lib/modules.ts with isModuleUnlocked function</subtask>
+        <subtask id="1.2">First module always unlocked (orderIndex === 0)</subtask>
+        <subtask id="1.3">Check requiresPrevious flag on module</subtask>
+        <subtask id="1.4">If requiresPrevious, check previous module completion</subtask>
+        <subtask id="1.5">Return unlock status and prerequisite module info</subtask>
+      </subtasks>
+      <files-to-create>
+        - src/lib/modules.ts
+      </files-to-create>
+      <implementation-notes>
+        - Import prisma client from '@/lib/prisma'
+        - Import notDeleted filter from '@/lib/soft-delete'
+        - Handle edge cases (no previous module, deleted modules)
+        - Export isModuleUnlocked and isModuleCompleted functions
+      </implementation-notes>
+    </task>
+
+    <task id="2" name="Update student modules API" acceptance-criteria="AC1, AC2, AC3, AC4">
+      <subtasks>
+        <subtask id="2.1">Include isUnlocked boolean in module response</subtask>
+        <subtask id="2.2">Include status: "available" | "locked" | "in_progress" | "completed"</subtask>
+        <subtask id="2.3">Include unlockMessage for locked modules</subtask>
+        <subtask id="2.4">Include progress percentage for each module</subtask>
+      </subtasks>
+      <files-to-modify>
+        - src/app/api/student/courses/[id]/modules/route.ts (will be created in Story 3.1)
+      </files-to-modify>
+      <implementation-notes>
+        - Call isModuleUnlocked for each module
+        - Calculate progress using module progress logic
+        - Determine status based on unlock state and progress
+        - For locked modules, find previous module title for unlock message
+      </implementation-notes>
+    </task>
+
+    <task id="3" name="Create ModuleLockOverlay component" acceptance-criteria="AC2, AC5">
+      <subtasks>
+        <subtask id="3.1">Create src/components/modules/ModuleLockOverlay.tsx</subtask>
+        <subtask id="3.2">Show lock icon over card when module is locked</subtask>
+        <subtask id="3.3">Display "Complete [Module Name] to unlock" message</subtask>
+        <subtask id="3.4">On click, show info modal instead of navigation</subtask>
+      </subtasks>
+      <files-to-create>
+        - src/components/modules/ModuleLockOverlay.tsx
+      </files-to-create>
+      <component-structure>
+        <![CDATA[
+interface ModuleLockOverlayProps {
+  isLocked: boolean
+  unlockMessage: string
+  prerequisiteModuleId?: string
+  prerequisiteModuleTitle?: string
+}
+
+// Overlay component that:
+// - Renders semi-transparent overlay with lock icon
+// - Shows unlock message
+// - Opens modal on click (not navigation)
+        ]]>
+      </component-structure>
+    </task>
+
+    <task id="4" name="Update StudentModuleCard for states" acceptance-criteria="AC1, AC2, AC3, AC4">
+      <subtasks>
+        <subtask id="4.1">Add state badge: Available (blue), In Progress (yellow), Complete (green), Locked (gray)</subtask>
+        <subtask id="4.2">Show checkmark icon for completed modules</subtask>
+        <subtask id="4.3">Show lock icon for locked modules</subtask>
+        <subtask id="4.4">Show progress bar for in-progress modules</subtask>
+      </subtasks>
+      <files-to-modify>
+        - src/components/modules/StudentModuleCard.tsx (created in Story 3.1)
+      </files-to-modify>
+      <badge-implementation>
+        <![CDATA[
+// Status badge pattern (from ModuleCard.tsx)
+<span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+  status === 'completed' ? 'bg-green-100 text-green-800' :
+  status === 'in_progress' ? 'bg-yellow-100 text-yellow-800' :
+  status === 'available' ? 'bg-blue-100 text-blue-800' :
+  'bg-gray-100 text-gray-600'
+}`}>
+  {statusLabel}
+</span>
+        ]]>
+      </badge-implementation>
+      <icon-imports>
+        import { Lock, CheckCircle, Play, Clock } from 'lucide-react'
+      </icon-imports>
+    </task>
+
+    <task id="5" name="Create locked module info modal" acceptance-criteria="AC5">
+      <subtasks>
+        <subtask id="5.1">When clicking locked module, show modal</subtask>
+        <subtask id="5.2">Modal explains what needs to be completed</subtask>
+        <subtask id="5.3">Shows link/button to go to prerequisite module</subtask>
+        <subtask id="5.4">"Got it" button closes modal</subtask>
+      </subtasks>
+      <files-to-create>
+        - src/components/modules/ModuleLockInfoModal.tsx
+      </files-to-create>
+      <modal-pattern>
+        <![CDATA[
+import * as Dialog from '@radix-ui/react-dialog'
+import { Lock, AlertCircle, X } from 'lucide-react'
+
+interface ModuleLockInfoModalProps {
+  isOpen: boolean
+  onClose: () => void
+  moduleTitle: string
+  unlockMessage: string
+  prerequisiteModuleId?: string
+  prerequisiteModuleTitle?: string
+}
+
+// Modal shows:
+// - Lock icon with module title
+// - Explanation of prerequisite requirement
+// - "Go to [Prerequisite Module]" button (if available)
+// - "Got it" button to close
+        ]]>
+      </modal-pattern>
+      <styling-reference>
+        Use same Radix UI Dialog pattern as DeleteModuleModal.tsx and ModuleFormModal.tsx
+      </styling-reference>
+    </task>
+  </implementation-tasks>
+
+  <ui-styling-guidelines>
+    <design-system>
+      <framework>Tailwind CSS</framework>
+      <component-library>Radix UI (for modals/dialogs)</component-library>
+      <icon-library>Lucide React</icon-library>
+    </design-system>
+
+    <status-colors>
+      <status name="locked">
+        <badge>bg-gray-100 text-gray-600</badge>
+        <icon>Lock (text-gray-500)</icon>
+      </status>
+      <status name="available">
+        <badge>bg-blue-100 text-blue-800</badge>
+        <icon>Play (text-blue-600)</icon>
+      </status>
+      <status name="in_progress">
+        <badge>bg-yellow-100 text-yellow-800</badge>
+        <icon>Clock (text-yellow-600)</icon>
+      </status>
+      <status name="completed">
+        <badge>bg-green-100 text-green-800</badge>
+        <icon>CheckCircle (text-green-600)</icon>
+      </status>
+    </status-colors>
+
+    <progress-bar-pattern>
+      <![CDATA[
+{/* Progress bar for in-progress modules */}
+<div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+  <div
+    className="bg-yellow-600 h-2 rounded-full transition-all duration-300"
+    style={{ width: `${progress}%` }}
+  />
+</div>
+<p className="text-xs text-gray-500 mt-1">{progress}% complete</p>
+      ]]>
+    </progress-bar-pattern>
+
+    <modal-overlay-pattern>
+      <![CDATA[
+{/* Semi-transparent overlay for locked modules */}
+<div className="absolute inset-0 bg-gray-900/50 rounded-lg flex items-center justify-center backdrop-blur-sm">
+  <div className="text-center text-white">
+    <Lock className="h-12 w-12 mx-auto mb-2" />
+    <p className="text-sm font-medium">Locked</p>
+  </div>
+</div>
+      ]]>
+    </modal-overlay-pattern>
+  </ui-styling-guidelines>
+
+  <testing-requirements>
+    <unit-tests>
+      <test-file>src/lib/modules.test.ts</test-file>
+      <test-cases>
+        - First module (orderIndex 0) is always unlocked
+        - Module with requiresPrevious=false is always unlocked
+        - Module with requiresPrevious=true is locked if previous incomplete
+        - Module with requiresPrevious=true is unlocked if previous complete
+        - Handle edge cases (no previous module, deleted modules)
+      </test-cases>
+    </unit-tests>
+
+    <integration-tests>
+      <test-file>src/app/api/student/courses/[id]/modules/route.test.ts</test-file>
+      <test-cases>
+        - API returns correct isUnlocked status for each module
+        - API returns correct status (locked/available/in_progress/completed)
+        - API returns unlockMessage for locked modules
+        - API returns progress percentage for all modules
+      </test-cases>
+    </integration-tests>
+
+    <component-tests>
+      <test-cases>
+        - ModuleLockOverlay renders when module is locked
+        - Clicking locked module opens info modal
+        - ModuleLockInfoModal displays correct unlock message
+        - StudentModuleCard shows correct status badge
+        - StudentModuleCard shows progress bar for in_progress modules
+      </test-cases>
+    </component-tests>
+  </testing-requirements>
+
+  <dependencies>
+    <prerequisite-stories>
+      <story id="3-1">
+        Story 3.1: Student Module Overview must be complete
+        - Provides StudentModuleList and StudentModuleCard components
+        - Provides student modules API endpoint
+      </story>
+      <story id="1-4">
+        Story 1.4: Module Progress Tracking Model must be complete
+        - Provides ModuleProgress model for tracking completion
+      </story>
+    </prerequisite-stories>
+
+    <npm-packages>
+      <package name="@radix-ui/react-dialog">Already installed - used for modals</package>
+      <package name="lucide-react">Already installed - used for icons</package>
+      <package name="react-hot-toast">Already installed - used for notifications</package>
+    </npm-packages>
+  </dependencies>
+
+  <technical-notes>
+    <performance-considerations>
+      - Unlock logic should execute in &lt; 100ms (NFR002)
+      - Cache module unlock status where appropriate
+      - Use database indexes on moduleId and userId for ModuleProgress queries
+    </performance-considerations>
+
+    <security-considerations>
+      - ALWAYS calculate unlock status server-side (ADR-001)
+      - Never trust client-side unlock state
+      - Verify student enrollment before returning module data
+      - Locked module content should not be accessible via API
+    </security-considerations>
+
+    <error-handling>
+      - Handle missing prerequisite modules gracefully
+      - Show user-friendly error messages
+      - Log unlock logic errors for debugging
+      - Fallback to "locked" state on error
+    </error-handling>
+
+    <accessibility>
+      - Lock icon must have aria-label
+      - Modal must be keyboard navigable
+      - Status badges must have sufficient color contrast
+      - Screen reader support for status changes
+    </accessibility>
+  </technical-notes>
+
+  <references>
+    <document type="PRD">docs/PRD-course-modules.md</document>
+    <document type="Architecture">docs/architecture-course-modules.md</document>
+    <document type="Epics">docs/epics-course-modules.md</document>
+    <document type="Story">docs/stories/3-2-module-lock-unlock-states.md</document>
+    <related-story>docs/stories/3-1-student-module-overview.md</related-story>
+  </references>
+</story-context>

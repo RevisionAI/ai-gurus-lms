@@ -1,0 +1,339 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/2-7-module-prerequisites-configuration" v="1.0">
+  <metadata>
+    <epicId>epic-2</epicId>
+    <storyId>2-7-module-prerequisites-configuration</storyId>
+    <title>Module Prerequisites Configuration</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-11-28</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/2-7-module-prerequisites-configuration.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>an instructor</asA>
+    <iWant>to set prerequisites for modules</iWant>
+    <soThat>students must complete earlier modules first</soThat>
+    <tasks>
+      <task id="1" status="pending">
+        <title>Add prerequisites section to ModuleForm</title>
+        <acceptanceCriteria>AC: 1, 2</acceptanceCriteria>
+        <subtasks>
+          <subtask id="1.1">Add "Prerequisites" section divider in ModuleForm</subtask>
+          <subtask id="1.2">Add checkbox for "Require previous module completion"</subtask>
+          <subtask id="1.3">Checkbox maps to `requiresPrevious` field</subtask>
+          <subtask id="1.4">Include help text explaining the behavior</subtask>
+        </subtasks>
+      </task>
+      <task id="2" status="pending">
+        <title>Update module API to handle requiresPrevious</title>
+        <acceptanceCriteria>AC: 5</acceptanceCriteria>
+        <subtasks>
+          <subtask id="2.1">Ensure PUT endpoint accepts requiresPrevious field</subtask>
+          <subtask id="2.2">Validate requiresPrevious is boolean</subtask>
+          <subtask id="2.3">Update module record with new value</subtask>
+        </subtasks>
+      </task>
+      <task id="3" status="pending">
+        <title>First module handling</title>
+        <acceptanceCriteria>AC: 4</acceptanceCriteria>
+        <subtasks>
+          <subtask id="3.1">Disable checkbox for first module (orderIndex === 0)</subtask>
+          <subtask id="3.2">Show message: "First module is always accessible"</subtask>
+          <subtask id="3.3">API enforces first module requiresPrevious = false</subtask>
+        </subtasks>
+      </task>
+      <task id="4" status="pending">
+        <title>Add visual prerequisite indicator</title>
+        <acceptanceCriteria>AC: 6</acceptanceCriteria>
+        <subtasks>
+          <subtask id="4.1">Show prerequisite icon/indicator on modules with requiresPrevious</subtask>
+          <subtask id="4.2">Tooltip shows "Requires completion of previous module"</subtask>
+          <subtask id="4.3">Visual chain indicator (dotted line or arrow between modules)</subtask>
+        </subtasks>
+      </task>
+      <task id="5" status="pending">
+        <title>Update ModuleCard display</title>
+        <acceptanceCriteria>AC: 6</acceptanceCriteria>
+        <subtasks>
+          <subtask id="5.1">Add prerequisite indicator to module card</subtask>
+          <subtask id="5.2">First module shows "Always unlocked" indicator</subtask>
+          <subtask id="5.3">Sequential modules show "Sequential" or lock icon</subtask>
+        </subtasks>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="1">"Prerequisites" section in module edit form</criterion>
+    <criterion id="2">Checkbox: "Require previous module completion"</criterion>
+    <criterion id="3">When enabled, module locked until prior module complete</criterion>
+    <criterion id="4">First module has no prerequisites (always unlocked)</criterion>
+    <criterion id="5">Prerequisites saved to database</criterion>
+    <criterion id="6">Visual indicator shows prerequisite chain</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/PRD-course-modules.md" section="Functional Requirements">
+        <description>FR004: Instructors can set module prerequisites (e.g., Module 2 requires Module 1 completion)</description>
+        <relevance>Defines the business requirement for sequential module unlocking</relevance>
+      </doc>
+      <doc path="docs/architecture-course-modules.md" section="Module Model">
+        <description>Module model includes requiresPrevious Boolean field with default(true)</description>
+        <relevance>Database schema definition for prerequisite flag</relevance>
+      </doc>
+      <doc path="docs/architecture-course-modules.md" section="Implementation Patterns">
+        <description>Module unlock logic and server-side prerequisite validation patterns</description>
+        <relevance>Architectural guidance for unlock behavior (referenced in Story 3.2)</relevance>
+      </doc>
+      <doc path="docs/epics-course-modules.md" section="Story 2.7">
+        <description>Original story specification with acceptance criteria</description>
+        <relevance>Epic-level story definition and sequencing</relevance>
+      </doc>
+    </docs>
+    <code>
+      <artifact path="prisma/schema.prisma" type="schema">
+        <description>Module model with requiresPrevious Boolean @default(true) field</description>
+        <relevance>Database field already exists - form will read/write this field</relevance>
+        <keyDetails>
+          - requiresPrevious Boolean @default(true)
+          - orderIndex Int (used to determine first module)
+          - Relations: Module belongsTo Course, hasMany ModuleProgress
+        </keyDetails>
+      </artifact>
+      <artifact path="src/lib/validations/module.ts" type="validation">
+        <description>Zod schemas for module CRUD operations</description>
+        <relevance>createModuleSchema and updateModuleSchema already include requiresPrevious field</relevance>
+        <keyDetails>
+          - createModuleSchema: requiresPrevious z.boolean().default(true)
+          - updateModuleSchema: requiresPrevious z.boolean().optional()
+          - Input validation already handles the field
+        </keyDetails>
+      </artifact>
+      <artifact path="src/app/api/instructor/courses/[id]/modules/route.ts" type="api">
+        <description>GET/POST endpoints for module list and creation</description>
+        <relevance>POST endpoint already creates modules with requiresPrevious - returns requiresPrevious in response</relevance>
+        <keyDetails>
+          - POST accepts requiresPrevious in request body
+          - GET returns requiresPrevious for all modules
+          - Validation via createModuleSchema
+        </keyDetails>
+      </artifact>
+      <artifact path="src/app/api/instructor/courses/[id]/modules/[moduleId]/route.ts" type="api">
+        <description>GET/PUT/DELETE endpoints for single module operations</description>
+        <relevance>PUT endpoint will be used to update requiresPrevious; validation already in place</relevance>
+        <keyDetails>
+          - PUT accepts partial updates via updateModuleSchema
+          - Already handles requiresPrevious field updates
+          - Need to add validation: first module (orderIndex === 0) must have requiresPrevious = false
+        </keyDetails>
+      </artifact>
+      <artifact path="src/lib/soft-delete.ts" type="utility">
+        <description>Soft delete utilities including notDeleted filter</description>
+        <relevance>Use notDeleted filter in queries to exclude deleted modules</relevance>
+        <keyDetails>
+          - export const notDeleted = { deletedAt: null }
+          - Use in all module queries
+        </keyDetails>
+      </artifact>
+      <artifact path="src/app/instructor/courses/[id]/edit/page.tsx" type="component">
+        <description>Example form pattern using checkboxes and form state</description>
+        <relevance>Reference for implementing checkbox UI pattern in ModuleForm</relevance>
+        <keyDetails>
+          - Uses controlled checkbox with type="checkbox" and checked prop
+          - Pattern: const checked = (e.target as HTMLInputElement).checked
+          - Form submission handles boolean fields
+        </keyDetails>
+      </artifact>
+    </code>
+    <dependencies>
+      <dependency name="react" version="^19.0.0" usage="Core framework for UI components" />
+      <dependency name="react-dom" version="^19.0.0" usage="DOM rendering" />
+      <dependency name="next" version="15.3.3" usage="Next.js framework for routing and API" />
+      <dependency name="zod" version="^4.1.13" usage="Schema validation (already configured)" />
+      <dependency name="react-hot-toast" version="^2.5.2" usage="Toast notifications for success/error feedback" />
+      <dependency name="lucide-react" version="^0.514.0" usage="Icon library for lock/unlock/chain icons" />
+      <dependency name="@prisma/client" version="^6.9.0" usage="Database ORM (Module model)" />
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="architectural">
+      <title>requiresPrevious Default Value</title>
+      <description>New modules default to requiresPrevious = true (sequential unlock). This is already set in schema default and createModuleSchema.</description>
+    </constraint>
+    <constraint type="business-rule">
+      <title>First Module Exception</title>
+      <description>First module (orderIndex === 0) MUST always have requiresPrevious = false. API must enforce this rule on create and update.</description>
+    </constraint>
+    <constraint type="implementation">
+      <title>Simple Linear Prerequisites</title>
+      <description>This story implements simple linear progression only (Module N requires Module N-1). No complex prerequisite graphs or arbitrary dependencies.</description>
+    </constraint>
+    <constraint type="separation-of-concerns">
+      <title>Unlock Logic in Story 3.2</title>
+      <description>This story ONLY sets the prerequisite flag. Actual unlock/lock logic for students is implemented in Story 3.2 (Module Lock/Unlock States).</description>
+    </constraint>
+    <constraint type="validation">
+      <title>API Validation Enhancement</title>
+      <description>PUT endpoint must validate: if (orderIndex === 0 &amp;&amp; requiresPrevious === true) then override requiresPrevious to false and log warning.</description>
+    </constraint>
+    <constraint type="ui-framework">
+      <title>No Component Library for Checkboxes</title>
+      <description>Project does not use @radix-ui/react-checkbox. Use native HTML checkbox with controlled state (checked prop).</description>
+    </constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="Module API Response" type="api-response">
+      <description>Module object returned by GET/PUT endpoints</description>
+      <structure>
+        {
+          id: string,
+          title: string,
+          description: string | null,
+          orderIndex: number,
+          isPublished: boolean,
+          requiresPrevious: boolean,  // &lt;-- Field this story works with
+          createdAt: Date,
+          updatedAt: Date,
+          contentCount: number,
+          assignmentCount: number,
+          discussionCount: number
+        }
+      </structure>
+    </interface>
+    <interface name="UpdateModuleInput" type="zod-schema">
+      <description>Input schema for PUT /api/instructor/courses/[id]/modules/[moduleId]</description>
+      <structure>
+        {
+          title?: string,
+          description?: string | null,
+          isPublished?: boolean,
+          requiresPrevious?: boolean,  // &lt;-- Optional field for updates
+          orderIndex?: number
+        }
+      </structure>
+    </interface>
+    <interface name="ModuleFormProps" type="component-props">
+      <description>Props for ModuleForm component (to be created or referenced)</description>
+      <structure>
+        {
+          module?: Module | null,  // undefined = create mode, object = edit mode
+          courseId: string,
+          onSuccess: () => void,
+          onCancel: () => void
+        }
+      </structure>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      <standard>Unit tests use Jest with @testing-library/react for component testing</standard>
+      <standard>API route tests use Jest with mocked Prisma client (prismaMock)</standard>
+      <standard>E2E tests use Playwright for full user journeys</standard>
+      <standard>Test files located in __tests__/ directory mirroring src/ structure</standard>
+      <standard>Coverage target: 80% for critical paths (API validation, business logic)</standard>
+    </standards>
+    <locations>
+      <location>__tests__/integration/api/instructor/modules.test.ts - API route tests</location>
+      <location>__tests__/unit/components/modules/ModuleForm.test.tsx - Component unit tests</location>
+      <location>__tests__/e2e/instructor-module-prerequisites.spec.ts - E2E workflow tests</location>
+    </locations>
+    <ideas>
+      <idea priority="high">
+        <title>API Validation: First Module Override</title>
+        <description>Test PUT endpoint with orderIndex=0 and requiresPrevious=true should override to false</description>
+        <testCase>
+          - Create module with orderIndex=0
+          - Attempt to update requiresPrevious to true
+          - Assert API returns requiresPrevious=false
+          - Verify database shows requiresPrevious=false
+        </testCase>
+      </idea>
+      <idea priority="high">
+        <title>ModuleForm Checkbox Behavior</title>
+        <description>Test checkbox is disabled for first module, enabled for others</description>
+        <testCase>
+          - Render ModuleForm with module.orderIndex=0
+          - Assert checkbox is disabled
+          - Assert help text shows "First module is always accessible"
+          - Render ModuleForm with module.orderIndex=1
+          - Assert checkbox is enabled
+        </testCase>
+      </idea>
+      <idea priority="medium">
+        <title>Visual Indicator Rendering</title>
+        <description>Test ModuleCard displays correct prerequisite indicator</description>
+        <testCase>
+          - Render ModuleCard with requiresPrevious=true, orderIndex=1
+          - Assert "Sequential" badge or lock icon is visible
+          - Render ModuleCard with requiresPrevious=false, orderIndex=0
+          - Assert "Always unlocked" indicator is visible
+        </testCase>
+      </idea>
+      <idea priority="medium">
+        <title>E2E: Instructor Sets Prerequisites</title>
+        <description>Full workflow test: instructor creates module, sets prerequisite, sees visual indicator</description>
+        <testCase>
+          - Login as instructor
+          - Navigate to course modules
+          - Create Module 2
+          - Edit Module 2, check "Require previous module completion"
+          - Save and verify visual indicator shows prerequisite
+        </testCase>
+      </idea>
+      <idea priority="low">
+        <title>Default Value on Module Creation</title>
+        <description>Test new modules default to requiresPrevious=true (except first)</description>
+        <testCase>
+          - Create first module in course
+          - Assert requiresPrevious=false (forced by API)
+          - Create second module
+          - Assert requiresPrevious=true (default)
+        </testCase>
+      </idea>
+    </ideas>
+  </tests>
+
+  <implementation-notes>
+    <note type="key-decision">
+      <title>No Complex Prerequisite Graph</title>
+      <description>This implementation supports only linear prerequisites (Module N requires Module N-1). Future enhancement could add arbitrary prerequisite selection, but that is out of scope for this story.</description>
+    </note>
+    <note type="ui-pattern">
+      <title>Visual Indicator Options</title>
+      <description>
+        Suggested visual indicators:
+        - First module (orderIndex=0): Globe icon or "Always Unlocked" badge (green)
+        - requiresPrevious=true: Lock icon + "Sequential" badge (gray)
+        - requiresPrevious=false (not first): Unlock icon + "Open Access" badge (blue)
+      </description>
+    </note>
+    <note type="data-integrity">
+      <title>API Enforcement Over UI Enforcement</title>
+      <description>While the UI will disable the checkbox for first module, the API MUST also enforce requiresPrevious=false for orderIndex=0 to prevent bypass via direct API calls.</description>
+    </note>
+    <note type="file-creation">
+      <title>New Components Needed</title>
+      <description>
+        This story may require creating:
+        - ModuleForm.tsx (if not created by Story 2.2)
+        - ModuleCard.tsx (if not created by Story 2.1)
+
+        If these exist from previous stories, modify them to add prerequisite UI.
+      </description>
+    </note>
+    <note type="reference">
+      <title>Icons from lucide-react</title>
+      <description>
+        Suggested icons:
+        - Lock (locked module)
+        - Unlock (open access)
+        - Globe (always accessible)
+        - Link/LinkIcon (prerequisite chain)
+      </description>
+    </note>
+  </implementation-notes>
+</story-context>
