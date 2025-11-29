@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
+import { randomUUID } from 'crypto'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
@@ -17,7 +18,7 @@ export async function GET(
     const { id } = await params
 
     // Verify instructor owns the course
-    const course = await prisma.course.findUnique({
+    const course = await prisma.courses.findUnique({
       where: {
         id,
         instructorId: session.user.id
@@ -28,12 +29,12 @@ export async function GET(
       return NextResponse.json({ error: 'Course not found' }, { status: 404 })
     }
 
-    const enrollments = await prisma.enrollment.findMany({
+    const enrollments = await prisma.enrollments.findMany({
       where: {
         courseId: id
       },
       include: {
-        user: {
+        users: {
           select: {
             id: true,
             name: true,
@@ -46,7 +47,13 @@ export async function GET(
       }
     })
 
-    return NextResponse.json(enrollments)
+    // Transform 'users' to 'user' for frontend compatibility
+    const transformedEnrollments = enrollments.map(enrollment => ({
+      id: enrollment.id,
+      user: enrollment.users
+    }))
+
+    return NextResponse.json(transformedEnrollments)
   } catch (error) {
     console.error('Error fetching course enrollments:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
@@ -72,7 +79,7 @@ export async function POST(
     }
 
     // Verify instructor owns the course
-    const course = await prisma.course.findUnique({
+    const course = await prisma.courses.findUnique({
       where: {
         id,
         instructorId: session.user.id
@@ -84,7 +91,7 @@ export async function POST(
     }
 
     // Check if user exists and is a student
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: {
         id: userId,
         role: 'STUDENT'
@@ -96,7 +103,7 @@ export async function POST(
     }
 
     // Check if already enrolled
-    const existingEnrollment = await prisma.enrollment.findUnique({
+    const existingEnrollment = await prisma.enrollments.findUnique({
       where: {
         userId_courseId: {
           userId,
@@ -109,13 +116,14 @@ export async function POST(
       return NextResponse.json({ error: 'Student already enrolled' }, { status: 400 })
     }
 
-    const enrollment = await prisma.enrollment.create({
+    const enrollment = await prisma.enrollments.create({
       data: {
+        id: randomUUID(),
         userId,
         courseId: id
       },
       include: {
-        user: {
+        users: {
           select: {
             id: true,
             name: true,
@@ -125,7 +133,13 @@ export async function POST(
       }
     })
 
-    return NextResponse.json(enrollment, { status: 201 })
+    // Transform 'users' to 'user' for frontend compatibility
+    const transformedEnrollment = {
+      id: enrollment.id,
+      user: enrollment.users
+    }
+
+    return NextResponse.json(transformedEnrollment, { status: 201 })
   } catch (error) {
     console.error('Error enrolling student:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
