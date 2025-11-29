@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
+import { randomUUID } from 'crypto'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
@@ -16,7 +17,7 @@ export async function GET(
 
     const { id } = await params
 
-    const course = await prisma.course.findUnique({
+    const course = await prisma.courses.findUnique({
       where: {
         id: id,
         instructorId: session.user.id
@@ -27,7 +28,7 @@ export async function GET(
       return NextResponse.json({ error: 'Course not found' }, { status: 404 })
     }
 
-    const content = await prisma.courseContent.findMany({
+    const content = await prisma.course_content.findMany({
       where: {
         courseId: id
       },
@@ -56,7 +57,7 @@ export async function POST(
 
     const { id } = await params
 
-    const course = await prisma.course.findUnique({
+    const course = await prisma.courses.findUnique({
       where: {
         id: id,
         instructorId: session.user.id
@@ -67,7 +68,7 @@ export async function POST(
       return NextResponse.json({ error: 'Course not found' }, { status: 404 })
     }
 
-    const { title, type, content, fileUrl, thumbnailUrl, isPublished } = await request.json()
+    const { title, type, content, fileUrl, thumbnailUrl, isPublished, moduleId } = await request.json()
 
     if (!title || !type) {
       return NextResponse.json(
@@ -77,15 +78,16 @@ export async function POST(
     }
 
     // Get the next order index
-    const lastContent = await prisma.courseContent.findFirst({
+    const lastContent = await prisma.course_content.findFirst({
       where: { courseId: id },
       orderBy: { orderIndex: 'desc' }
     })
 
     const orderIndex = (lastContent?.orderIndex || 0) + 1
 
-    const newContent = await prisma.courseContent.create({
+    const newContent = await prisma.course_content.create({
       data: {
+        id: randomUUID(),
         title,
         type,
         content,
@@ -93,7 +95,8 @@ export async function POST(
         thumbnailUrl,
         orderIndex,
         isPublished: isPublished || false,
-        courseId: id
+        courseId: id,
+        moduleId: moduleId || null
       }
     })
 

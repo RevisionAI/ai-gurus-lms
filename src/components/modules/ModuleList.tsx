@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   DndContext,
   closestCenter,
@@ -29,6 +30,7 @@ interface ModuleListProps {
 }
 
 export default function ModuleList({ courseId }: ModuleListProps) {
+  const router = useRouter()
   const { modules, loading, error, refetch } = useModules(courseId)
 
   // DnD State
@@ -150,6 +152,11 @@ export default function ModuleList({ courseId }: ModuleListProps) {
     handleCloseModal()
     refetch()
   }, [handleCloseModal, refetch])
+
+  // Navigate to content page with module context for adding content
+  const handleAddContent = useCallback((moduleId: string) => {
+    router.push(`/instructor/courses/${courseId}/content?module=${moduleId}&new=true`)
+  }, [router, courseId])
 
   // Get module IDs for SortableContext
   const moduleIds = useMemo(() => localModules.map((m) => m.id), [localModules])
@@ -311,6 +318,7 @@ export default function ModuleList({ courseId }: ModuleListProps) {
                 module={module}
                 courseId={courseId}
                 onEdit={handleOpenEdit}
+                onAddContent={handleAddContent}
                 onMoveSuccess={refetch}
               />
             ))}

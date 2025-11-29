@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useMemo } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Navbar from '@/components/Navbar'
 import ProtectedRoute from '@/components/ProtectedRoute'
@@ -195,7 +195,14 @@ function SortableItem({
 export default function CourseContentPage() {
   const params = useParams()
   const router = useRouter()
+  const searchParams = useSearchParams()
+
+  // Get module context from URL query params
+  const moduleIdFromUrl = searchParams.get('module')
+  const shouldShowForm = searchParams.get('new') === 'true'
+
   const [course, setCourse] = useState<Course | null>(null)
+  const [selectedModuleId, setSelectedModuleId] = useState<string | null>(moduleIdFromUrl)
   const [content, setContent] = useState<CourseContent[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -226,7 +233,15 @@ export default function CourseContentPage() {
     thumbnailUrl: '',
     isPublished: false
   })
-  
+
+  // Auto-open form if navigating from module with ?new=true
+  useEffect(() => {
+    if (shouldShowForm && !loading) {
+      setShowForm(true)
+      setSelectedModuleId(moduleIdFromUrl)
+    }
+  }, [shouldShowForm, loading, moduleIdFromUrl])
+
   // Initialize sensors for drag-and-drop
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -413,24 +428,28 @@ export default function CourseContentPage() {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          ...formData,
+          moduleId: selectedModuleId // Include module context when creating content
+        })
       })
 
       if (response.ok) {
         const newContent = await response.json()
-        
+
         if (editingContent) {
-          setContent(prev => prev.map(item => 
+          setContent(prev => prev.map(item =>
             item.id === editingContent.id ? newContent : item
           ))
         } else {
           setContent(prev => [...prev, newContent])
         }
-        
+
         setShowForm(false)
         setEditingContent(null)
         setUploadedFile(null)
         setUploadedThumbnail(null)
+        setSelectedModuleId(null)
         setFormData({
           title: '',
           type: 'TEXT',
@@ -439,6 +458,11 @@ export default function CourseContentPage() {
           thumbnailUrl: '',
           isPublished: false
         })
+
+        // Clear URL params after successful submission
+        if (moduleIdFromUrl) {
+          router.replace(`/instructor/courses/${params.id}/content`)
+        }
       } else {
         const errorData = await response.json()
         console.error('API Error:', errorData)
@@ -621,6 +645,13 @@ export default function CourseContentPage() {
                 <h3 className="text-lg font-medium text-gray-900 mb-4">
                   {editingContent ? 'Edit Content' : 'Add New Content'}
                 </h3>
+                {selectedModuleId && (
+                  <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                    <p className="text-sm text-blue-800">
+                      This content will be added to the selected module.
+                    </p>
+                  </div>
+                )}
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Title</label>
@@ -905,6 +936,11 @@ export default function CourseContentPage() {
                         setEditingContent(null)
                         setUploadedFile(null)
                         setUploadedThumbnail(null)
+                        setSelectedModuleId(null)
+                        // Clear URL params when cancelling
+                        if (moduleIdFromUrl) {
+                          router.replace(`/instructor/courses/${params.id}/content`)
+                        }
                       }}
                       className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
                     >
