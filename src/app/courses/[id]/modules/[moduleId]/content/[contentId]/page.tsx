@@ -105,7 +105,7 @@ export default function StudentContentViewerPage() {
 
       const moduleData = await moduleResponse.json()
       setCourseInfo(moduleData.course)
-      setModuleInfo({ id: moduleData.modules.id, title: moduleData.modules.title })
+      setModuleInfo({ id: moduleData.module.id, title: moduleData.module.title })
 
       // Fetch content using module-scoped endpoint (Security Fix: Story 3.3)
       // This endpoint verifies module unlock authorization
