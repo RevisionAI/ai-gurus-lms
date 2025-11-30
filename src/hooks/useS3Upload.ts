@@ -60,9 +60,6 @@ export function isRetryableError(error: UploadError | null): boolean {
 export function useS3Upload(options: UseS3UploadOptions = {}): UseS3UploadReturn {
   const {
     directory = 'courses',
-    contentId,
-    assignmentId,
-    isPublic = false,
     onProgress,
     onSuccess,
     onError,
@@ -88,35 +85,13 @@ export function useS3Upload(options: UseS3UploadOptions = {}): UseS3UploadReturn
       setLastFile(file)
 
       try {
-        // Step 1: Request signed URL from our API
-        const signedUrlResponse = await fetch('/api/upload/signed-url', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            filename: file.name,
-            mimeType: file.type,
-            size: file.size,
-            directory,
-          }),
-        })
+        // Create FormData for proxy upload
+        const formData = new FormData()
+        formData.append('file', file)
+        formData.append('directory', directory)
 
-        if (!signedUrlResponse.ok) {
-          const errorData = await signedUrlResponse.json()
-          const uploadError: UploadError = errorData.error || {
-            code: 'SIGNED_URL_ERROR',
-            message: 'Failed to get upload URL',
-          }
-          setError(uploadError)
-          onError?.(uploadError)
-          return null
-        }
-
-        const { data: signedUrlData } = await signedUrlResponse.json()
-        const { uploadUrl, key } = signedUrlData
-
-        // Step 2: Upload file directly to R2 via signed URL
-        // Using XMLHttpRequest for progress tracking
-        const uploadResult = await new Promise<boolean>((resolve, reject) => {
+        // Upload via proxy endpoint using XMLHttpRequest for progress tracking
+        const result = await new Promise<UploadResult>((resolve, reject) => {
           const xhr = new XMLHttpRequest()
 
           xhr.upload.addEventListener('progress', (event) => {
@@ -133,9 +108,23 @@ export function useS3Upload(options: UseS3UploadOptions = {}): UseS3UploadReturn
 
           xhr.addEventListener('load', () => {
             if (xhr.status >= 200 && xhr.status < 300) {
-              resolve(true)
+              try {
+                const response = JSON.parse(xhr.responseText)
+                if (response.data) {
+                  resolve(response.data)
+                } else {
+                  reject(new Error(response.error?.message || 'Upload failed'))
+                }
+              } catch {
+                reject(new Error('Invalid response from server'))
+              }
             } else {
-              reject(new Error(`Upload failed with status ${xhr.status}`))
+              try {
+                const errorResponse = JSON.parse(xhr.responseText)
+                reject(new Error(errorResponse.error?.message || `Upload failed with status ${xhr.status}`))
+              } catch {
+                reject(new Error(`Upload failed with status ${xhr.status}`))
+              }
             }
           })
 
@@ -147,49 +136,10 @@ export function useS3Upload(options: UseS3UploadOptions = {}): UseS3UploadReturn
             reject(new Error('Upload timed out'))
           })
 
-          xhr.open('PUT', uploadUrl)
-          xhr.setRequestHeader('Content-Type', file.type)
+          xhr.open('POST', '/api/upload/proxy')
           xhr.timeout = 5 * 60 * 1000 // 5 minute timeout
-          xhr.send(file)
+          xhr.send(formData)
         })
-
-        if (!uploadResult) {
-          const uploadError: UploadError = {
-            code: 'UPLOAD_FAILED',
-            message: 'Failed to upload file to storage',
-          }
-          setError(uploadError)
-          onError?.(uploadError)
-          return null
-        }
-
-        // Step 3: Complete upload by storing metadata
-        const completeResponse = await fetch('/api/upload/complete', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            key,
-            filename: file.name,
-            size: file.size,
-            mimeType: file.type,
-            contentId,
-            assignmentId,
-            isPublic,
-          }),
-        })
-
-        if (!completeResponse.ok) {
-          const errorData = await completeResponse.json()
-          const uploadError: UploadError = errorData.error || {
-            code: 'COMPLETE_ERROR',
-            message: 'Failed to complete upload',
-          }
-          setError(uploadError)
-          onError?.(uploadError)
-          return null
-        }
-
-        const { data: result } = await completeResponse.json()
 
         setProgress({ loaded: file.size, total: file.size, percentage: 100 })
         setUploading(false)
@@ -207,7 +157,7 @@ export function useS3Upload(options: UseS3UploadOptions = {}): UseS3UploadReturn
         return null
       }
     },
-    [directory, contentId, assignmentId, isPublic, onProgress, onSuccess, onError]
+    [directory, onProgress, onSuccess, onError]
   )
 
   const retry = useCallback(async (): Promise<UploadResult | null> => {
@@ -235,64 +185,24 @@ export async function uploadToS3(
   file: File,
   options: Omit<UseS3UploadOptions, 'onProgress' | 'onSuccess' | 'onError'> = {}
 ): Promise<UploadResult> {
-  const {
-    directory = 'courses',
-    contentId,
-    assignmentId,
-    isPublic = false,
-  } = options
+  const { directory = 'courses' } = options
 
-  // Step 1: Request signed URL
-  const signedUrlResponse = await fetch('/api/upload/signed-url', {
+  // Create FormData for proxy upload
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('directory', directory)
+
+  // Upload via proxy endpoint (bypasses CORS)
+  const response = await fetch('/api/upload/proxy', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      filename: file.name,
-      mimeType: file.type,
-      size: file.size,
-      directory,
-    }),
+    body: formData,
   })
 
-  if (!signedUrlResponse.ok) {
-    const errorData = await signedUrlResponse.json()
-    throw new Error(errorData.error?.message || 'Failed to get upload URL')
+  if (!response.ok) {
+    const errorData = await response.json()
+    throw new Error(errorData.error?.message || 'Upload failed')
   }
 
-  const { data: signedUrlData } = await signedUrlResponse.json()
-  const { uploadUrl, key } = signedUrlData
-
-  // Step 2: Upload to R2
-  const uploadResponse = await fetch(uploadUrl, {
-    method: 'PUT',
-    headers: { 'Content-Type': file.type },
-    body: file,
-  })
-
-  if (!uploadResponse.ok) {
-    throw new Error('Failed to upload file to storage')
-  }
-
-  // Step 3: Complete upload
-  const completeResponse = await fetch('/api/upload/complete', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      key,
-      filename: file.name,
-      size: file.size,
-      mimeType: file.type,
-      contentId,
-      assignmentId,
-      isPublic,
-    }),
-  })
-
-  if (!completeResponse.ok) {
-    const errorData = await completeResponse.json()
-    throw new Error(errorData.error?.message || 'Failed to complete upload')
-  }
-
-  const { data: result } = await completeResponse.json()
+  const { data: result } = await response.json()
   return result
 }

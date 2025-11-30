@@ -3,6 +3,14 @@ import { withSentryConfig } from '@sentry/nextjs'
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+
+  // Increase body size limit for file uploads (100MB)
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '100mb',
+    },
+  },
+
   // Configure webpack to handle CSS files from node_modules
   webpack: (config) => {
     return config
