@@ -159,11 +159,6 @@ export default function ModuleSidebar({
                     {module.title}
                   </span>
                 </div>
-                {module.progress !== undefined && !module.isLocked && (
-                  <span className="text-xs md:text-sm text-gray-500 ml-2 flex-shrink-0">
-                    {module.progress}%
-                  </span>
-                )}
               </button>
 
               {/* Module Content (AC-3: show content/assignments/discussions under each module) */}

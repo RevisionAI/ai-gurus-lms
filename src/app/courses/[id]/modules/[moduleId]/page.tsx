@@ -7,7 +7,6 @@ import Navbar from '@/components/Navbar'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import Breadcrumb, { generateBreadcrumbs } from '@/components/Breadcrumb'
 import StudentContentItem from '@/components/modules/StudentContentItem'
-import CourseProgressBar from '@/components/modules/CourseProgressBar'
 import ModuleSidebar from '@/components/modules/ModuleSidebar'
 import {
   ArrowLeft,
@@ -395,13 +394,6 @@ export default function StudentModuleDetailPage() {
                 </Link>
               </div>
 
-              {/* Module Progress */}
-              <div className="mt-4 pt-4 border-t border-gray-200">
-                <CourseProgressBar
-                  progress={moduleData.progress}
-                  label="Module Progress"
-                />
-              </div>
             </div>
 
             {/* Content Section */}

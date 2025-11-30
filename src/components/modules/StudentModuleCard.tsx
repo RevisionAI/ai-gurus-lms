@@ -128,18 +128,6 @@ export default function StudentModuleCard({
             </div>
           </div>
 
-          {/* Progress bar for in-progress modules */}
-          {module.status === 'in_progress' && module.progress > 0 && (
-            <div className="mt-3 ml-7">
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div
-                  className="bg-yellow-500 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${module.progress}%` }}
-                />
-              </div>
-              <p className="text-xs text-gray-500 mt-1">{module.progress}% complete</p>
-            </div>
-          )}
         </div>
 
         {/* Chevron indicator for unlocked modules */}
