@@ -43,7 +43,7 @@ interface ActivityItemProps {
 
 function ActivityItem({ icon, label, count, color }: ActivityItemProps) {
   return (
-    <div className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
+    <div className="flex items-center justify-between py-3 border-b border-border-color last:border-0">
       <div className="flex items-center space-x-3">
         <div
           className={`flex-shrink-0 h-8 w-8 rounded-full ${color} flex items-center justify-center`}
@@ -51,9 +51,9 @@ function ActivityItem({ icon, label, count, color }: ActivityItemProps) {
         >
           {icon}
         </div>
-        <span className="text-sm font-medium text-gray-700">{label}</span>
+        <span className="text-sm font-medium text-text-secondary">{label}</span>
       </div>
-      <span className="text-lg font-semibold text-gray-900">
+      <span className="text-lg font-semibold text-text-primary">
         {count.toLocaleString()}
       </span>
     </div>
@@ -71,18 +71,18 @@ export function ActivityFeed({ activity }: ActivityFeedProps) {
 
   return (
     <section
-      className="bg-white rounded-lg shadow p-6"
+      className="bg-card-bg rounded-lg shadow p-6"
       aria-labelledby="activity-feed-heading"
     >
       <div className="flex items-center justify-between mb-4">
         <h3
           id="activity-feed-heading"
-          className="text-lg font-semibold text-gray-900"
+          className="text-lg font-semibold text-text-primary"
         >
           Activity (Last 24 Hours)
         </h3>
         <div
-          className="flex items-center text-xs text-gray-500"
+          className="flex items-center text-xs text-text-secondary"
           title={`Last updated at ${formattedTime}`}
         >
           <Clock className="h-3 w-3 mr-1" aria-hidden="true" />
@@ -111,7 +111,7 @@ export function ActivityFeed({ activity }: ActivityFeedProps) {
         />
       </div>
 
-      <p className="mt-4 text-xs text-gray-400 text-center">
+      <p className="mt-4 text-xs text-text-secondary text-center">
         Metrics calculated from the last 24 hours
       </p>
     </section>

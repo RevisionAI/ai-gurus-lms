@@ -61,9 +61,9 @@ function CustomTooltip({ active, payload }: CustomTooltipProps) {
   const data = payload[0].payload
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-3 max-w-xs">
-      <p className="text-sm font-medium text-gray-900 truncate">{data.courseTitle}</p>
-      <p className="text-sm text-gray-600">
+    <div className="bg-card-bg border border-border-color rounded-lg shadow-lg p-3 max-w-xs">
+      <p className="text-sm font-medium text-text-primary truncate">{data.courseTitle}</p>
+      <p className="text-sm text-text-secondary">
         Completion Rate:{' '}
         <span className="font-semibold" style={{ color: getColorByRate(data.rate) }}>
           {data.rate}%
@@ -91,16 +91,16 @@ export function CompletionRateChart({ data }: CompletionRateChartProps) {
   if (data.length === 0) {
     return (
       <section
-        className="bg-white rounded-lg shadow p-6"
+        className="bg-card-bg rounded-lg shadow p-6"
         aria-labelledby="completion-chart-heading"
       >
         <h3
           id="completion-chart-heading"
-          className="text-lg font-semibold text-gray-900 mb-4"
+          className="text-lg font-semibold text-text-primary mb-4"
         >
           Top 10 Courses by Completion Rate
         </h3>
-        <div className="h-[400px] flex items-center justify-center text-gray-500">
+        <div className="h-[400px] flex items-center justify-center text-text-secondary">
           No course completion data available
         </div>
       </section>
@@ -109,12 +109,12 @@ export function CompletionRateChart({ data }: CompletionRateChartProps) {
 
   return (
     <section
-      className="bg-white rounded-lg shadow p-6"
+      className="bg-card-bg rounded-lg shadow p-6"
       aria-labelledby="completion-chart-heading"
     >
       <h3
         id="completion-chart-heading"
-        className="text-lg font-semibold text-gray-900 mb-4"
+        className="text-lg font-semibold text-text-primary mb-4"
       >
         Top 10 Courses by Completion Rate
       </h3>
@@ -130,22 +130,22 @@ export function CompletionRateChart({ data }: CompletionRateChartProps) {
             layout="vertical"
             margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
           >
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.2)" />
             <XAxis
               type="number"
               domain={[0, 100]}
-              tick={{ fontSize: 12, fill: '#6b7280' }}
+              tick={{ fontSize: 12, fill: '#e5e7eb' }}
               tickFormatter={(value) => `${value}%`}
-              tickLine={{ stroke: '#e5e7eb' }}
-              axisLine={{ stroke: '#e5e7eb' }}
+              tickLine={{ stroke: 'rgba(255,255,255,0.3)' }}
+              axisLine={{ stroke: 'rgba(255,255,255,0.3)' }}
             />
             <YAxis
               type="category"
               dataKey="displayTitle"
               width={150}
-              tick={{ fontSize: 11, fill: '#6b7280' }}
-              tickLine={{ stroke: '#e5e7eb' }}
-              axisLine={{ stroke: '#e5e7eb' }}
+              tick={{ fontSize: 11, fill: '#e5e7eb' }}
+              tickLine={{ stroke: 'rgba(255,255,255,0.3)' }}
+              axisLine={{ stroke: 'rgba(255,255,255,0.3)' }}
             />
             <Tooltip content={<CustomTooltip />} />
             <Bar dataKey="rate" radius={[0, 4, 4, 0]}>
@@ -161,23 +161,23 @@ export function CompletionRateChart({ data }: CompletionRateChartProps) {
       <div className="mt-4 flex flex-wrap gap-4 justify-center text-xs">
         <div className="flex items-center">
           <div className="w-3 h-3 rounded mr-1.5" style={{ backgroundColor: '#22c55e' }} />
-          <span className="text-gray-600">80%+</span>
+          <span className="text-text-secondary">80%+</span>
         </div>
         <div className="flex items-center">
           <div className="w-3 h-3 rounded mr-1.5" style={{ backgroundColor: '#84cc16' }} />
-          <span className="text-gray-600">60-79%</span>
+          <span className="text-text-secondary">60-79%</span>
         </div>
         <div className="flex items-center">
           <div className="w-3 h-3 rounded mr-1.5" style={{ backgroundColor: '#eab308' }} />
-          <span className="text-gray-600">40-59%</span>
+          <span className="text-text-secondary">40-59%</span>
         </div>
         <div className="flex items-center">
           <div className="w-3 h-3 rounded mr-1.5" style={{ backgroundColor: '#f97316' }} />
-          <span className="text-gray-600">20-39%</span>
+          <span className="text-text-secondary">20-39%</span>
         </div>
         <div className="flex items-center">
           <div className="w-3 h-3 rounded mr-1.5" style={{ backgroundColor: '#ef4444' }} />
-          <span className="text-gray-600">&lt;20%</span>
+          <span className="text-text-secondary">&lt;20%</span>
         </div>
       </div>
 

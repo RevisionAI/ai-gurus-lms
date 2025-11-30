@@ -3,7 +3,9 @@
 import { useSession } from 'next-auth/react'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { BookOpen, ClipboardList, MessageSquare, GraduationCap } from 'lucide-react'
+import { BookOpen, ClipboardList, MessageSquare, GraduationCap, MoreVertical, LogOut, AlertTriangle } from 'lucide-react'
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
+import * as AlertDialog from '@radix-ui/react-alert-dialog'
 import { useGPA, CourseGPAData } from '@/hooks/useGPA'
 import GPASummary from '@/components/gpa/GPASummary'
 
@@ -55,6 +57,9 @@ export default function StudentDashboard() {
   const [upcomingAssignments, setUpcomingAssignments] = useState<Assignment[]>([])
   const [recentAnnouncements, setRecentAnnouncements] = useState<Announcement[]>([])
   const [loading, setLoading] = useState(true)
+  const [unenrolling, setUnenrolling] = useState<string | null>(null)
+  const [unenrollConfirmOpen, setUnenrollConfirmOpen] = useState(false)
+  const [courseToUnenroll, setCourseToUnenroll] = useState<Course | null>(null)
 
   // Fetch GPA data using custom hook
   const { data: gpaData, isLoading: gpaLoading, error: gpaError, refetch: refetchGPA } = useGPA()
@@ -91,6 +96,44 @@ export default function StudentDashboard() {
 
     fetchDashboardData()
   }, [])
+
+  const handleUnenrollClick = (course: Course) => {
+    setCourseToUnenroll(course)
+    setUnenrollConfirmOpen(true)
+  }
+
+  const handleUnenroll = async () => {
+    if (!courseToUnenroll) return
+
+    setUnenrolling(courseToUnenroll.id)
+
+    try {
+      const response = await fetch('/api/student/unenroll', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ courseId: courseToUnenroll.id }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to unenroll from course')
+      }
+
+      // Remove course from list
+      setCourses(prevCourses => prevCourses.filter(c => c.id !== courseToUnenroll.id))
+      setUnenrollConfirmOpen(false)
+      setCourseToUnenroll(null)
+      // Refetch GPA data after unenrolling
+      refetchGPA()
+    } catch (error) {
+      console.error('Error unenrolling from course:', error)
+      alert(error instanceof Error ? error.message : 'Failed to unenroll from course')
+    } finally {
+      setUnenrolling(null)
+    }
+  }
 
   if (loading) {
     return (
@@ -208,35 +251,65 @@ export default function StudentDashboard() {
                 {courses.map((course) => {
                   const courseGPA = gpaData?.courseGPAs ? findCourseGPA(gpaData.courseGPAs, course.id) : undefined
                   return (
-                    <Link
+                    <div
                       key={course.id}
-                      href={`/courses/${course.id}`}
-                      className="block p-3 border border-pink-100 dark:border-purple-800/30 rounded-lg hover:bg-bg-content transition-colors"
+                      className="relative p-3 border border-pink-100 dark:border-purple-800/30 rounded-lg hover:bg-bg-content transition-colors group"
                     >
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-medium text-white truncate">{course.title}</h4>
-                          <p className="text-sm text-white">{course.code}</p>
-                          <p className="text-sm text-white">Instructor: {course.instructor.name}</p>
-                        </div>
-                        {/* Course GPA Badge */}
-                        {!gpaLoading && courseGPA && (
-                          <div className="ml-3 text-right flex-shrink-0">
-                            <div className={`text-lg font-bold ${getGPAColorClass(courseGPA.letterGrade)}`}>
-                              {courseGPA.gpa !== null ? courseGPA.gpa.toFixed(2) : 'N/A'}
-                            </div>
-                            {courseGPA.letterGrade !== 'N/A' && (
-                              <div className="text-xs text-white/60">{courseGPA.letterGrade}</div>
-                            )}
-                          </div>
-                        )}
-                        {gpaLoading && (
-                          <div className="ml-3 text-right flex-shrink-0">
-                            <div className="h-6 w-12 bg-white/20 rounded animate-pulse"></div>
-                          </div>
-                        )}
+                      {/* Dropdown Menu */}
+                      <div className="absolute top-2 right-2 z-10">
+                        <DropdownMenu.Root>
+                          <DropdownMenu.Trigger asChild>
+                            <button
+                              className="p-1 rounded-md text-gray-400 hover:text-white hover:bg-gray-700/50 opacity-0 group-hover:opacity-100 transition-opacity"
+                              aria-label="Course options"
+                            >
+                              <MoreVertical className="h-4 w-4" />
+                            </button>
+                          </DropdownMenu.Trigger>
+                          <DropdownMenu.Portal>
+                            <DropdownMenu.Content
+                              className="min-w-[160px] bg-gray-800 rounded-md shadow-lg border border-gray-700 py-1 z-50"
+                              sideOffset={5}
+                              align="end"
+                            >
+                              <DropdownMenu.Item
+                                className="flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-900/30 cursor-pointer outline-none"
+                                onClick={() => handleUnenrollClick(course)}
+                              >
+                                <LogOut className="h-4 w-4" />
+                                Unenroll
+                              </DropdownMenu.Item>
+                            </DropdownMenu.Content>
+                          </DropdownMenu.Portal>
+                        </DropdownMenu.Root>
                       </div>
-                    </Link>
+
+                      <Link href={`/courses/${course.id}`} className="block">
+                        <div className="flex justify-between items-start pr-6">
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-medium text-white truncate">{course.title}</h4>
+                            <p className="text-sm text-white">{course.code}</p>
+                            <p className="text-sm text-white">Instructor: {course.instructor.name}</p>
+                          </div>
+                          {/* Course GPA Badge */}
+                          {!gpaLoading && courseGPA && (
+                            <div className="ml-3 text-right flex-shrink-0">
+                              <div className={`text-lg font-bold ${getGPAColorClass(courseGPA.letterGrade)}`}>
+                                {courseGPA.gpa !== null ? courseGPA.gpa.toFixed(2) : 'N/A'}
+                              </div>
+                              {courseGPA.letterGrade !== 'N/A' && (
+                                <div className="text-xs text-white/60">{courseGPA.letterGrade}</div>
+                              )}
+                            </div>
+                          )}
+                          {gpaLoading && (
+                            <div className="ml-3 text-right flex-shrink-0">
+                              <div className="h-6 w-12 bg-white/20 rounded animate-pulse"></div>
+                            </div>
+                          )}
+                        </div>
+                      </Link>
+                    </div>
                   )
                 })}
               </div>
@@ -317,6 +390,51 @@ export default function StudentDashboard() {
           )}
         </div>
       </div>
+
+      {/* Unenroll Confirmation Modal */}
+      <AlertDialog.Root open={unenrollConfirmOpen} onOpenChange={setUnenrollConfirmOpen}>
+        <AlertDialog.Portal>
+          <AlertDialog.Overlay className="fixed inset-0 bg-black/60 z-50" />
+          <AlertDialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-gray-800 rounded-lg shadow-xl border border-gray-700 p-6 w-full max-w-md z-50">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex-shrink-0 w-10 h-10 bg-red-900/50 rounded-full flex items-center justify-center">
+                <AlertTriangle className="h-5 w-5 text-red-400" />
+              </div>
+              <AlertDialog.Title className="text-lg font-semibold text-white">
+                Unenroll from Course
+              </AlertDialog.Title>
+            </div>
+
+            <AlertDialog.Description className="text-gray-300 mb-6">
+              Are you sure you want to unenroll from{' '}
+              <span className="font-medium text-white">{courseToUnenroll?.title}</span>?
+              <br /><br />
+              <span className="text-yellow-400 text-sm">
+                Warning: Any progress, grades, or submissions in this course may be lost.
+              </span>
+            </AlertDialog.Description>
+
+            <div className="flex justify-end gap-3">
+              <AlertDialog.Cancel asChild>
+                <button
+                  className="px-4 py-2 text-sm font-medium text-gray-300 bg-gray-700 hover:bg-gray-600 rounded-md transition-colors"
+                >
+                  Cancel
+                </button>
+              </AlertDialog.Cancel>
+              <AlertDialog.Action asChild>
+                <button
+                  onClick={handleUnenroll}
+                  disabled={unenrolling !== null}
+                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md transition-colors disabled:opacity-50"
+                >
+                  {unenrolling ? 'Unenrolling...' : 'Unenroll'}
+                </button>
+              </AlertDialog.Action>
+            </div>
+          </AlertDialog.Content>
+        </AlertDialog.Portal>
+      </AlertDialog.Root>
     </div>
   )
 }

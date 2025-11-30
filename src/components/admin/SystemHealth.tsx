@@ -47,20 +47,20 @@ const statusConfig: Record<
 > = {
   healthy: {
     icon: <CheckCircle className="h-4 w-4" />,
-    bgColor: 'bg-green-100',
-    textColor: 'text-green-800',
+    bgColor: 'bg-green-500/20',
+    textColor: 'text-green-400',
     label: 'Healthy',
   },
   degraded: {
     icon: <AlertCircle className="h-4 w-4" />,
-    bgColor: 'bg-yellow-100',
-    textColor: 'text-yellow-800',
+    bgColor: 'bg-yellow-500/20',
+    textColor: 'text-yellow-400',
     label: 'Degraded',
   },
   down: {
     icon: <XCircle className="h-4 w-4" />,
-    bgColor: 'bg-red-100',
-    textColor: 'text-red-800',
+    bgColor: 'bg-red-500/20',
+    textColor: 'text-red-400',
     label: 'Down',
   },
 }
@@ -79,15 +79,15 @@ function HealthIndicator({ service, status, icon }: HealthIndicatorProps) {
   const config = statusConfig[status]
 
   return (
-    <div className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
+    <div className="flex items-center justify-between py-3 border-b border-border-color last:border-0">
       <div className="flex items-center space-x-3">
         <div
-          className="flex-shrink-0 h-8 w-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600"
+          className="flex-shrink-0 h-8 w-8 rounded-lg bg-bg-content flex items-center justify-center text-text-secondary"
           aria-hidden="true"
         >
           {icon}
         </div>
-        <span className="text-sm font-medium text-gray-700">{service}</span>
+        <span className="text-sm font-medium text-text-secondary">{service}</span>
       </div>
       <span
         className={`inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${config.bgColor} ${config.textColor}`}
@@ -122,13 +122,13 @@ export function SystemHealth({ health }: SystemHealthProps) {
 
   return (
     <section
-      className="bg-white rounded-lg shadow p-6"
+      className="bg-card-bg rounded-lg shadow p-6"
       aria-labelledby="system-health-heading"
     >
       <div className="flex items-center justify-between mb-4">
         <h3
           id="system-health-heading"
-          className="text-lg font-semibold text-gray-900"
+          className="text-lg font-semibold text-text-primary"
         >
           System Health
         </h3>
@@ -156,7 +156,7 @@ export function SystemHealth({ health }: SystemHealthProps) {
       </div>
 
       <div
-        className="mt-4 flex items-center justify-center text-xs text-gray-400"
+        className="mt-4 flex items-center justify-center text-xs text-text-secondary"
         title={`Last checked at ${formattedTime}`}
       >
         <Clock className="h-3 w-3 mr-1" aria-hidden="true" />

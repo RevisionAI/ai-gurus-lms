@@ -68,12 +68,12 @@ export interface UserTableProps {
 }
 
 /**
- * Role badge colors
+ * Role badge colors - dark mode compatible with proper contrast
  */
 const roleBadgeColors: Record<User['role'], string> = {
-  STUDENT: 'bg-blue-100 text-blue-800',
-  INSTRUCTOR: 'bg-purple-100 text-purple-800',
-  ADMIN: 'bg-red-100 text-red-800',
+  STUDENT: 'bg-cyan-600 text-white',
+  INSTRUCTOR: 'bg-purple-600 text-white',
+  ADMIN: 'bg-emerald-600 text-white',
 }
 
 /**
@@ -204,16 +204,16 @@ export function UserTable({
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="divide-y divide-gray-700">
             {users.map((user) => (
-              <tr key={user.id} className="hover:bg-gray-50">
+              <tr key={user.id} className="hover:bg-slate-700/50">
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">
+                  <div className="text-sm font-medium text-gray-100">
                     {user.name} {user.surname}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-500">{user.email}</div>
+                  <div className="text-sm text-gray-300">{user.email}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span
@@ -222,15 +222,15 @@ export function UserTable({
                     {roleDisplayNames[user.role]}
                   </span>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
                   {format(new Date(user.createdAt), 'MMM dd, yyyy')}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span
                     className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                       user.deletedAt
-                        ? 'bg-gray-100 text-gray-600'
-                        : 'bg-green-100 text-green-800'
+                        ? 'bg-gray-600 text-white'
+                        : 'bg-green-600 text-white'
                     }`}
                   >
                     {user.deletedAt ? 'Inactive' : 'Active'}
@@ -241,7 +241,7 @@ export function UserTable({
                     <DropdownMenu.Trigger asChild>
                       <button
                         type="button"
-                        className="text-gray-400 hover:text-gray-600 p-1 rounded-md hover:bg-gray-100"
+                        className="text-gray-300 hover:text-white p-1 rounded-md hover:bg-slate-600"
                         aria-label="User actions"
                       >
                         <MoreVertical className="h-5 w-5" />

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { notDeleted } from '@/lib/soft-delete'
 
 export async function GET(
   request: NextRequest,
@@ -30,9 +31,12 @@ export async function GET(
       return NextResponse.json({ error: 'Not enrolled in this course' }, { status: 403 })
     }
 
-    const course = await prisma.courses.findUnique({
+    // Only return course if it's active and not deleted
+    const course = await prisma.courses.findFirst({
       where: {
-        id
+        id,
+        isActive: true,
+        ...notDeleted
       },
       include: {
         users: {
@@ -44,7 +48,7 @@ export async function GET(
     })
 
     if (!course) {
-      return NextResponse.json({ error: 'Course not found' }, { status: 404 })
+      return NextResponse.json({ error: 'Course not found or no longer available' }, { status: 404 })
     }
 
     // Transform 'users' to 'instructor' for frontend compatibility

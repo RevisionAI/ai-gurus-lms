@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { randomUUID } from 'crypto'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { notDeleted } from '@/lib/soft-delete'
 
 export async function GET(
   request: NextRequest,
@@ -55,11 +56,16 @@ export async function POST(
       return NextResponse.json({ error: 'Either content or file is required' }, { status: 400 })
     }
 
-    // Check if assignment exists and is published
-    const assignment = await prisma.assignments.findUnique({
+    // Check if assignment exists, is published, and not deleted
+    const assignment = await prisma.assignments.findFirst({
       where: {
         id: id,
-        isPublished: true
+        isPublished: true,
+        ...notDeleted,
+        courses: {
+          isActive: true,
+          ...notDeleted
+        }
       },
       include: {
         courses: true
@@ -67,7 +73,7 @@ export async function POST(
     })
 
     if (!assignment) {
-      return NextResponse.json({ error: 'Assignment not found' }, { status: 404 })
+      return NextResponse.json({ error: 'Assignment not found or no longer available' }, { status: 404 })
     }
 
     // Check if student is enrolled in the course

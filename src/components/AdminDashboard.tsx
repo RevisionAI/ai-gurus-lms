@@ -327,7 +327,7 @@ export default function AdminDashboard() {
               Manage Users
             </Link>
             <Link
-              href="/instructor/courses"
+              href="/admin/courses"
               className="flex items-center justify-center px-4 py-3 border border-gray-200 rounded-md shadow-sm bg-card-bg text-sm font-medium text-text-primary hover:bg-bg-content transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
             >
               <BookOpen className="h-5 w-5 mr-2 text-purple-500" />

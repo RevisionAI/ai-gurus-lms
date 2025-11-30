@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { notDeleted } from '@/lib/soft-delete'
 
 export async function GET() {
   try {
@@ -11,9 +12,14 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Get enrollments only for active, non-deleted courses
     const enrollments = await prisma.enrollments.findMany({
       where: {
-        userId: session.user.id
+        userId: session.user.id,
+        courses: {
+          isActive: true,
+          ...notDeleted
+        }
       },
       select: {
         courseId: true
@@ -22,12 +28,14 @@ export async function GET() {
 
     const courseIds = enrollments.map(e => e.courseId)
 
+    // Only get non-deleted assignments from non-deleted courses
     const assignments = await prisma.assignments.findMany({
       where: {
         courseId: {
           in: courseIds
         },
         isPublished: true,
+        ...notDeleted,
         dueDate: {
           gte: new Date()
         }

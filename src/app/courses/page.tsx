@@ -5,7 +5,9 @@ import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import Navbar from '@/components/Navbar'
 import ProtectedRoute from '@/components/ProtectedRoute'
-import { BookOpen, Users, Calendar, Search } from 'lucide-react'
+import { BookOpen, Users, Calendar, Search, MoreVertical, LogOut, AlertTriangle } from 'lucide-react'
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
+import * as AlertDialog from '@radix-ui/react-alert-dialog'
 
 interface Course {
   id: string
@@ -32,6 +34,9 @@ export default function CoursesPage() {
   const [enrolling, setEnrolling] = useState<string | null>(null)
   const [enrollmentError, setEnrollmentError] = useState<string | null>(null)
   const [prerequisiteConfirmed, setPrerequisiteConfirmed] = useState<Record<string, boolean>>({})
+  const [unenrolling, setUnenrolling] = useState<string | null>(null)
+  const [unenrollConfirmOpen, setUnenrollConfirmOpen] = useState(false)
+  const [courseToUnenroll, setCourseToUnenroll] = useState<Course | null>(null)
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -105,6 +110,43 @@ export default function CoursesPage() {
       setEnrollmentError(errorMessage)
     } finally {
       setEnrolling(null)
+    }
+  }
+
+  const handleUnenrollClick = (course: Course) => {
+    setCourseToUnenroll(course)
+    setUnenrollConfirmOpen(true)
+  }
+
+  const handleUnenroll = async () => {
+    if (!courseToUnenroll) return
+
+    setUnenrolling(courseToUnenroll.id)
+
+    try {
+      const response = await fetch('/api/student/unenroll', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ courseId: courseToUnenroll.id }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to unenroll from course')
+      }
+
+      // Move course from enrolled to available
+      setCourses(prevCourses => prevCourses.filter(c => c.id !== courseToUnenroll.id))
+      setAvailableCourses(prevCourses => [...prevCourses, courseToUnenroll])
+      setUnenrollConfirmOpen(false)
+      setCourseToUnenroll(null)
+    } catch (error) {
+      console.error('Error unenrolling from course:', error)
+      alert(error instanceof Error ? error.message : 'Failed to unenroll from course')
+    } finally {
+      setUnenrolling(null)
     }
   }
 
@@ -189,13 +231,41 @@ export default function CoursesPage() {
                   ) : (
                     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 mb-8">
                       {filteredCourses.map((course) => (
-                        <Link
+                        <div
                           key={course.id}
-                          href={`/courses/${course.id}`}
-                          className="block bg-card-bg border border-pink-100 dark:border-purple-800/30 rounded-lg shadow-sm hover:shadow-md transition-shadow"
+                          className="relative bg-card-bg border border-pink-100 dark:border-purple-800/30 rounded-lg shadow-sm hover:shadow-md transition-shadow"
                         >
-                          <div className="p-6">
-                            <div className="flex items-center justify-between mb-2">
+                          {/* Dropdown Menu */}
+                          <div className="absolute top-3 right-3 z-10">
+                            <DropdownMenu.Root>
+                              <DropdownMenu.Trigger asChild>
+                                <button
+                                  className="p-1.5 rounded-md text-gray-400 hover:text-white hover:bg-gray-700/50 transition-colors"
+                                  aria-label="Course options"
+                                >
+                                  <MoreVertical className="h-5 w-5" />
+                                </button>
+                              </DropdownMenu.Trigger>
+                              <DropdownMenu.Portal>
+                                <DropdownMenu.Content
+                                  className="min-w-[160px] bg-gray-800 rounded-md shadow-lg border border-gray-700 py-1 z-50"
+                                  sideOffset={5}
+                                  align="end"
+                                >
+                                  <DropdownMenu.Item
+                                    className="flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-900/30 cursor-pointer outline-none"
+                                    onClick={() => handleUnenrollClick(course)}
+                                  >
+                                    <LogOut className="h-4 w-4" />
+                                    Unenroll from Course
+                                  </DropdownMenu.Item>
+                                </DropdownMenu.Content>
+                              </DropdownMenu.Portal>
+                            </DropdownMenu.Root>
+                          </div>
+
+                          <Link href={`/courses/${course.id}`} className="block p-6">
+                            <div className="flex items-center justify-between mb-2 pr-8">
                               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-pink-100 text-pink-800">
                                 {course.code}
                               </span>
@@ -203,17 +273,17 @@ export default function CoursesPage() {
                                 {course.semester} {course.year}
                               </span>
                             </div>
-                            
+
                             <h3 className="text-lg font-medium text-white mb-2">
                               {course.title}
                             </h3>
-                            
+
                             {course.description && (
                               <p className="text-sm text-white/80 mb-3 line-clamp-2">
                                 {course.description}
                               </p>
                             )}
-                            
+
                             <div className="flex items-center justify-between text-sm text-white/90">
                               <div className="flex items-center">
                                 <Users className="h-4 w-4 mr-1" />
@@ -226,8 +296,8 @@ export default function CoursesPage() {
                                 </div>
                               )}
                             </div>
-                          </div>
-                        </Link>
+                          </Link>
+                        </div>
                       ))}
                     </div>
                   )}
@@ -427,6 +497,51 @@ export default function CoursesPage() {
             </div>
           </div>
         </main>
+
+        {/* Unenroll Confirmation Modal */}
+        <AlertDialog.Root open={unenrollConfirmOpen} onOpenChange={setUnenrollConfirmOpen}>
+          <AlertDialog.Portal>
+            <AlertDialog.Overlay className="fixed inset-0 bg-black/60 z-50" />
+            <AlertDialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-gray-800 rounded-lg shadow-xl border border-gray-700 p-6 w-full max-w-md z-50">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex-shrink-0 w-10 h-10 bg-red-900/50 rounded-full flex items-center justify-center">
+                  <AlertTriangle className="h-5 w-5 text-red-400" />
+                </div>
+                <AlertDialog.Title className="text-lg font-semibold text-white">
+                  Unenroll from Course
+                </AlertDialog.Title>
+              </div>
+
+              <AlertDialog.Description className="text-gray-300 mb-6">
+                Are you sure you want to unenroll from{' '}
+                <span className="font-medium text-white">{courseToUnenroll?.title}</span>?
+                <br /><br />
+                <span className="text-yellow-400 text-sm">
+                  Warning: Any progress, grades, or submissions in this course may be lost.
+                </span>
+              </AlertDialog.Description>
+
+              <div className="flex justify-end gap-3">
+                <AlertDialog.Cancel asChild>
+                  <button
+                    className="px-4 py-2 text-sm font-medium text-gray-300 bg-gray-700 hover:bg-gray-600 rounded-md transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </AlertDialog.Cancel>
+                <AlertDialog.Action asChild>
+                  <button
+                    onClick={handleUnenroll}
+                    disabled={unenrolling !== null}
+                    className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md transition-colors disabled:opacity-50"
+                  >
+                    {unenrolling ? 'Unenrolling...' : 'Unenroll'}
+                  </button>
+                </AlertDialog.Action>
+              </div>
+            </AlertDialog.Content>
+          </AlertDialog.Portal>
+        </AlertDialog.Root>
       </div>
     </ProtectedRoute>
   )

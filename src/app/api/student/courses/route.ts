@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { notDeleted } from '@/lib/soft-delete'
 
 export async function GET() {
   try {
@@ -15,7 +16,8 @@ export async function GET() {
       where: {
         userId: session.user.id,
         courses: {
-          isActive: true
+          isActive: true,
+          ...notDeleted // Filter out soft-deleted courses
         }
       },
       include: {

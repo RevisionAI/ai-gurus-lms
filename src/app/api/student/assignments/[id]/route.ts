@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { notDeleted } from '@/lib/soft-delete'
 
 export async function GET(
   request: NextRequest,
@@ -15,11 +16,17 @@ export async function GET(
     }
 
     const { id } = await params
-    
-    const assignment = await prisma.assignments.findUnique({
+
+    // Only get published, non-deleted assignments from active, non-deleted courses
+    const assignment = await prisma.assignments.findFirst({
       where: {
         id,
-        isPublished: true
+        isPublished: true,
+        ...notDeleted,
+        courses: {
+          isActive: true,
+          ...notDeleted
+        }
       },
       include: {
         courses: {
@@ -33,7 +40,7 @@ export async function GET(
     })
 
     if (!assignment) {
-      return NextResponse.json({ error: 'Assignment not found' }, { status: 404 })
+      return NextResponse.json({ error: 'Assignment not found or no longer available' }, { status: 404 })
     }
 
     // Check if student is enrolled in the course

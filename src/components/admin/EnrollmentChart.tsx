@@ -39,20 +39,24 @@ interface EnrollmentChartProps {
 
 interface CustomTooltipProps {
   active?: boolean
-  payload?: Array<{ value: number }>
+  payload?: Array<{ value: number; payload: { date: string } }>
   label?: string
 }
 
-function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
-  if (!active || !payload || !payload.length || !label) return null
+function CustomTooltip({ active, payload }: CustomTooltipProps) {
+  if (!active || !payload || !payload.length) return null
 
-  const date = parseISO(label)
+  // Access the original ISO date from the data point, not the formatted label
+  const isoDate = payload[0].payload.date
+  if (!isoDate) return null
+
+  const date = parseISO(isoDate)
   const formattedDate = format(date, 'MMMM d, yyyy')
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-3">
-      <p className="text-sm font-medium text-gray-900">{formattedDate}</p>
-      <p className="text-sm text-blue-600">
+    <div className="bg-card-bg border border-border-color rounded-lg shadow-lg p-3">
+      <p className="text-sm font-medium text-text-primary">{formattedDate}</p>
+      <p className="text-sm text-blue-400">
         <span className="font-semibold">{payload[0].value}</span> enrollments
       </p>
     </div>
@@ -77,16 +81,16 @@ export function EnrollmentChart({ data }: EnrollmentChartProps) {
   if (data.length === 0) {
     return (
       <section
-        className="bg-white rounded-lg shadow p-6"
+        className="bg-card-bg rounded-lg shadow p-6"
         aria-labelledby="enrollment-chart-heading"
       >
         <h3
           id="enrollment-chart-heading"
-          className="text-lg font-semibold text-gray-900 mb-4"
+          className="text-lg font-semibold text-text-primary mb-4"
         >
           Enrollments Over Time (30 Days)
         </h3>
-        <div className="h-[300px] flex items-center justify-center text-gray-500">
+        <div className="h-[300px] flex items-center justify-center text-text-secondary">
           No enrollment data available for the last 30 days
         </div>
       </section>
@@ -95,18 +99,18 @@ export function EnrollmentChart({ data }: EnrollmentChartProps) {
 
   return (
     <section
-      className="bg-white rounded-lg shadow p-6"
+      className="bg-card-bg rounded-lg shadow p-6"
       aria-labelledby="enrollment-chart-heading"
     >
       <div className="flex items-center justify-between mb-4">
         <h3
           id="enrollment-chart-heading"
-          className="text-lg font-semibold text-gray-900"
+          className="text-lg font-semibold text-text-primary"
         >
           Enrollments Over Time (30 Days)
         </h3>
-        <span className="text-sm text-gray-500">
-          Total: <span className="font-semibold text-gray-900">{totalEnrollments}</span>
+        <span className="text-sm text-text-secondary">
+          Total: <span className="font-semibold text-text-primary">{totalEnrollments}</span>
         </span>
       </div>
 
@@ -120,27 +124,27 @@ export function EnrollmentChart({ data }: EnrollmentChartProps) {
             data={formattedData}
             margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
           >
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.2)" />
             <XAxis
               dataKey="displayDate"
-              tick={{ fontSize: 12, fill: '#6b7280' }}
-              tickLine={{ stroke: '#e5e7eb' }}
-              axisLine={{ stroke: '#e5e7eb' }}
+              tick={{ fontSize: 12, fill: '#e5e7eb' }}
+              tickLine={{ stroke: 'rgba(255,255,255,0.3)' }}
+              axisLine={{ stroke: 'rgba(255,255,255,0.3)' }}
             />
             <YAxis
-              tick={{ fontSize: 12, fill: '#6b7280' }}
-              tickLine={{ stroke: '#e5e7eb' }}
-              axisLine={{ stroke: '#e5e7eb' }}
+              tick={{ fontSize: 12, fill: '#e5e7eb' }}
+              tickLine={{ stroke: 'rgba(255,255,255,0.3)' }}
+              axisLine={{ stroke: 'rgba(255,255,255,0.3)' }}
               allowDecimals={false}
             />
             <Tooltip content={<CustomTooltip />} />
             <Line
               type="monotone"
               dataKey="count"
-              stroke="#3b82f6"
+              stroke="#60a5fa"
               strokeWidth={2}
-              dot={{ r: 3, fill: '#3b82f6' }}
-              activeDot={{ r: 5, fill: '#3b82f6' }}
+              dot={{ r: 4, fill: '#60a5fa' }}
+              activeDot={{ r: 6, fill: '#60a5fa' }}
             />
           </LineChart>
         </ResponsiveContainer>
