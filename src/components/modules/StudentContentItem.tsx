@@ -80,19 +80,19 @@ function getContentIcon(type: ContentType) {
 function getContentIconColor(type: ContentType) {
   switch (type) {
     case 'TEXT':
-      return 'text-gray-600 bg-gray-50'
+      return 'text-white bg-gray-500'
     case 'VIDEO':
-      return 'text-red-600 bg-red-50'
+      return 'text-white bg-red-500'
     case 'YOUTUBE':
-      return 'text-red-600 bg-red-50'
+      return 'text-white bg-red-600'
     case 'DOCUMENT':
-      return 'text-green-600 bg-green-50'
+      return 'text-white bg-green-500'
     case 'LINK':
-      return 'text-purple-600 bg-purple-50'
+      return 'text-white bg-purple-500'
     case 'SCORM':
-      return 'text-blue-600 bg-blue-50'
+      return 'text-white bg-blue-500'
     default:
-      return 'text-gray-600 bg-gray-50'
+      return 'text-white bg-gray-500'
   }
 }
 
