@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get all students with basic information
-    const students = await prisma.user.findMany({
+    const students = await prisma.users.findMany({
       where: {
         role: 'STUDENT'
       },

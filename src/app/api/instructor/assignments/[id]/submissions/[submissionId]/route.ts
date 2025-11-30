@@ -17,7 +17,7 @@ export async function GET(
     const { id, submissionId } = await params
 
     // Verify instructor owns the assignment
-    const assignment = await prisma.assignment.findUnique({
+    const assignment = await prisma.assignments.findUnique({
       where: {
         id,
         createdById: session.user.id
@@ -28,13 +28,13 @@ export async function GET(
       return NextResponse.json({ error: 'Assignment not found' }, { status: 404 })
     }
 
-    const submission = await prisma.submission.findUnique({
+    const submission = await prisma.submissions.findUnique({
       where: {
         id: submissionId,
         assignmentId: id
       },
       include: {
-        student: {
+        users: {
           select: {
             id: true,
             name: true,

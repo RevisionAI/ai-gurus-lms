@@ -17,7 +17,7 @@ export async function GET(
     const { id } = await params
 
     // Verify instructor owns the assignment
-    const assignment = await prisma.assignment.findUnique({
+    const assignment = await prisma.assignments.findUnique({
       where: {
         id,
         createdById: session.user.id
@@ -28,19 +28,19 @@ export async function GET(
       return NextResponse.json({ error: 'Assignment not found' }, { status: 404 })
     }
 
-    const submissions = await prisma.submission.findMany({
+    const submissions = await prisma.submissions.findMany({
       where: {
         assignmentId: id
       },
       include: {
-        student: {
+        users: {
           select: {
             id: true,
             name: true,
             email: true
           }
         },
-        assignment: {
+        assignments: {
           select: {
             id: true,
             title: true,
@@ -56,7 +56,7 @@ export async function GET(
     // Get grades for these submissions
     const submissionsWithGrades = await Promise.all(
       submissions.map(async (submission) => {
-        const grade = await prisma.grade.findUnique({
+        const grade = await prisma.grades.findUnique({
           where: {
             assignmentId_studentId: {
               assignmentId: id,

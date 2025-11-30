@@ -98,7 +98,7 @@ export interface SystemStats {
  * Filters out soft-deleted users
  */
 async function aggregateUserStats(): Promise<UserStats> {
-  const roleGroups = await prisma.user.groupBy({
+  const roleGroups = await prisma.users.groupBy({
     by: ['role'],
     where: { deletedAt: null },
     _count: true,
@@ -127,7 +127,7 @@ async function aggregateUserStats(): Promise<UserStats> {
  * Filters out soft-deleted courses
  */
 async function aggregateCourseStats(): Promise<CourseStats> {
-  const statusGroups = await prisma.course.groupBy({
+  const statusGroups = await prisma.courses.groupBy({
     by: ['isActive'],
     where: { deletedAt: null },
     _count: true,
@@ -156,7 +156,7 @@ async function aggregateCourseStats(): Promise<CourseStats> {
  * Enrollments don't have soft delete
  */
 async function getEnrollmentCount(): Promise<number> {
-  return prisma.enrollment.count()
+  return prisma.enrollments.count()
 }
 
 /**
@@ -165,8 +165,8 @@ async function getEnrollmentCount(): Promise<number> {
  */
 async function aggregateAssignmentStats(): Promise<AssignmentStats> {
   const [assignmentCount, submissionCount] = await Promise.all([
-    prisma.assignment.count({ where: { deletedAt: null } }),
-    prisma.submission.count(),
+    prisma.assignments.count({ where: { deletedAt: null } }),
+    prisma.submissions.count(),
   ])
 
   return {
@@ -181,8 +181,8 @@ async function aggregateAssignmentStats(): Promise<AssignmentStats> {
  */
 async function aggregateDiscussionStats(): Promise<DiscussionStats> {
   const [discussionCount, postCount] = await Promise.all([
-    prisma.discussion.count({ where: { deletedAt: null } }),
-    prisma.discussionPost.count(),
+    prisma.discussions.count({ where: { deletedAt: null } }),
+    prisma.discussion_posts.count(),
   ])
 
   return {
@@ -199,16 +199,16 @@ async function calculateRecentActivity(): Promise<RecentActivity> {
 
   const [recentLogins, recentEnrollments, recentSubmissions] = await Promise.all([
     // Recent logins approximated by updatedAt (actual login tracking would need separate table)
-    prisma.user.count({
+    prisma.users.count({
       where: {
         deletedAt: null,
         updatedAt: { gte: twentyFourHoursAgo },
       },
     }),
-    prisma.enrollment.count({
+    prisma.enrollments.count({
       where: { enrolledAt: { gte: twentyFourHoursAgo } },
     }),
-    prisma.submission.count({
+    prisma.submissions.count({
       where: { submittedAt: { gte: twentyFourHoursAgo } },
     }),
   ])
@@ -284,7 +284,7 @@ async function getEnrollmentsOverTime(): Promise<EnrollmentOverTime[]> {
  * Completion rate = (grades count) / (enrollments * assignments) * 100
  */
 async function calculateCompletionRates(): Promise<CourseCompletionRate[]> {
-  const coursesWithStats = await prisma.course.findMany({
+  const coursesWithStats = await prisma.courses.findMany({
     where: { deletedAt: null },
     select: {
       id: true,

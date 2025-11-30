@@ -52,7 +52,7 @@ export async function GET(request: Request, { params }: RouteParams) {
       )
     }
 
-    const template = await prisma.feedbackTemplate.findUnique({
+    const template = await prisma.feedback_templates.findUnique({
       where: { id },
     })
 
@@ -115,7 +115,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
     }
 
     // Check template exists and verify ownership
-    const existingTemplate = await prisma.feedbackTemplate.findUnique({
+    const existingTemplate = await prisma.feedback_templates.findUnique({
       where: { id },
     })
 
@@ -149,7 +149,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
     if (template !== undefined) updateData.template = template
     if (isShared !== undefined) updateData.isShared = isShared
 
-    const updatedTemplate = await prisma.feedbackTemplate.update({
+    const updatedTemplate = await prisma.feedback_templates.update({
       where: { id },
       data: updateData,
     })
@@ -198,7 +198,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     }
 
     // Check template exists and verify ownership
-    const existingTemplate = await prisma.feedbackTemplate.findUnique({
+    const existingTemplate = await prisma.feedback_templates.findUnique({
       where: { id },
     })
 
@@ -217,7 +217,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
       )
     }
 
-    await prisma.feedbackTemplate.delete({
+    await prisma.feedback_templates.delete({
       where: { id },
     })
 

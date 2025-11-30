@@ -18,13 +18,13 @@ export async function GET(
 
     const { id } = await params
 
-    const course = await prisma.course.findUnique({
+    const course = await prisma.courses.findUnique({
       where: {
         id,
         instructorId: session.user.id
       },
       include: {
-        instructor: {
+        users: {
           select: {
             name: true
           }
@@ -35,7 +35,7 @@ export async function GET(
             assignments: true,
             discussions: true,
             announcements: true,
-            content: true
+            course_content: true
           }
         }
       }
@@ -90,7 +90,7 @@ export async function PUT(
       targetAudience
     } = validation.data
 
-    const course = await prisma.course.findUnique({
+    const course = await prisma.courses.findUnique({
       where: {
         id,
         instructorId: session.user.id
@@ -103,7 +103,7 @@ export async function PUT(
 
     // Check if course code is being changed and if it already exists
     if (code && code !== course.code) {
-      const existingCourse = await prisma.course.findUnique({
+      const existingCourse = await prisma.courses.findUnique({
         where: { code }
       })
 
@@ -127,7 +127,7 @@ export async function PUT(
     if (learningObjectives !== undefined) updateData.learningObjectives = learningObjectives
     if (targetAudience !== undefined) updateData.targetAudience = targetAudience
 
-    const updatedCourse = await prisma.course.update({
+    const updatedCourse = await prisma.courses.update({
       where: {
         id
       },
@@ -154,7 +154,7 @@ export async function DELETE(
 
     const { id } = await params
 
-    const course = await prisma.course.findUnique({
+    const course = await prisma.courses.findUnique({
       where: {
         id,
         instructorId: session.user.id,

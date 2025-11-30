@@ -17,7 +17,7 @@ export async function GET(
     const { id } = await params
 
     // Check if student is enrolled in the course
-    const enrollment = await prisma.enrollment.findUnique({
+    const enrollment = await prisma.enrollments.findUnique({
       where: {
         userId_courseId: {
           userId: session.user.id,
@@ -30,7 +30,7 @@ export async function GET(
       return NextResponse.json({ error: 'Not enrolled in this course' }, { status: 403 })
     }
 
-    const assignments = await prisma.assignment.findMany({
+    const assignments = await prisma.assignments.findMany({
       where: {
         courseId: id,
         isPublished: true

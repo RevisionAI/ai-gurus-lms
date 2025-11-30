@@ -17,7 +17,7 @@ export async function GET(
 
     const { id, discussionId } = await params
 
-    const course = await prisma.course.findUnique({
+    const course = await prisma.courses.findUnique({
       where: {
         id,
         instructorId: session.user.id
@@ -28,34 +28,34 @@ export async function GET(
       return NextResponse.json({ error: 'Course not found' }, { status: 404 })
     }
 
-    const discussion = await prisma.discussion.findUnique({
+    const discussion = await prisma.discussions.findUnique({
       where: {
         id: discussionId,
         courseId: id
       },
       include: {
-        author: {
+        users: {
           select: {
             id: true,
             name: true,
             email: true
           }
         },
-        posts: {
+        discussion_posts: {
           where: {
             parentId: null // Only get top-level posts
           },
           include: {
-            author: {
+            users: {
               select: {
                 id: true,
                 name: true,
                 email: true
               }
             },
-            replies: {
+            other_discussion_posts: {
               include: {
-                author: {
+                users: {
                   select: {
                     id: true,
                     name: true,
@@ -99,7 +99,7 @@ export async function PUT(
 
     const { id, discussionId } = await params
 
-    const course = await prisma.course.findUnique({
+    const course = await prisma.courses.findUnique({
       where: {
         id,
         instructorId: session.user.id
@@ -112,7 +112,7 @@ export async function PUT(
 
     const { title, description, isPinned, isLocked } = await request.json()
 
-    const discussion = await prisma.discussion.findUnique({
+    const discussion = await prisma.discussions.findUnique({
       where: {
         id: discussionId,
         courseId: id
@@ -123,7 +123,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Discussion not found' }, { status: 404 })
     }
 
-    const updatedDiscussion = await prisma.discussion.update({
+    const updatedDiscussion = await prisma.discussions.update({
       where: {
         id: discussionId
       },
@@ -134,7 +134,7 @@ export async function PUT(
         isLocked: isLocked !== undefined ? isLocked : discussion.isLocked
       },
       include: {
-        author: {
+        users: {
           select: {
             id: true,
             name: true,
@@ -143,7 +143,7 @@ export async function PUT(
         },
         _count: {
           select: {
-            posts: true
+            discussion_posts: true
           }
         }
       }
@@ -169,7 +169,7 @@ export async function DELETE(
 
     const { id, discussionId } = await params
 
-    const course = await prisma.course.findUnique({
+    const course = await prisma.courses.findUnique({
       where: {
         id,
         instructorId: session.user.id
@@ -180,7 +180,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Course not found' }, { status: 404 })
     }
 
-    const discussion = await prisma.discussion.findUnique({
+    const discussion = await prisma.discussions.findUnique({
       where: {
         id: discussionId,
         courseId: id,
@@ -193,7 +193,7 @@ export async function DELETE(
     }
 
     // Soft delete discussion
-    await softDelete(prisma.discussion, discussionId)
+    await softDelete(prisma.discussions, discussionId)
 
     return NextResponse.json({ message: 'Discussion archived successfully' })
   } catch (error) {

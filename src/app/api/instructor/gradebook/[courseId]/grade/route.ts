@@ -10,6 +10,7 @@
 
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import { randomUUID } from 'crypto';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { validateRequest, createCustomValidationError } from '@/lib/validation';
@@ -90,7 +91,7 @@ export async function PUT(
     const { courseId } = await params;
 
     // Fetch course and verify instructor ownership
-    const course = await prisma.course.findUnique({
+    const course = await prisma.courses.findUnique({
       where: {
         id: courseId,
         deletedAt: null,
@@ -117,10 +118,10 @@ export async function PUT(
     }
 
     // Fetch submission and verify it belongs to an assignment in this course
-    const submission = await prisma.submission.findUnique({
+    const submission = await prisma.submissions.findUnique({
       where: { id: submissionId },
       include: {
-        assignment: {
+        assignments: {
           select: {
             id: true,
             courseId: true,
@@ -140,7 +141,7 @@ export async function PUT(
     }
 
     // Verify submission belongs to an assignment in this course
-    if (submission.assignment.courseId !== courseId) {
+    if (submission.assignments.courseId !== courseId) {
       return NextResponse.json(
         { error: { code: 'NOT_FOUND', message: 'Submission not found in this course' } },
         { status: 404 }
@@ -148,7 +149,7 @@ export async function PUT(
     }
 
     // Verify assignment is not deleted
-    if (submission.assignment.deletedAt) {
+    if (submission.assignments.deletedAt) {
       return NextResponse.json(
         { error: { code: 'NOT_FOUND', message: 'Assignment has been deleted' } },
         { status: 404 }
@@ -156,23 +157,23 @@ export async function PUT(
     }
 
     // Validate grade does not exceed assignment maxPoints
-    if (grade > submission.assignment.maxPoints) {
+    if (grade > submission.assignments.maxPoints) {
       return createCustomValidationError(
-        `Grade cannot exceed maximum points (${submission.assignment.maxPoints})`,
+        `Grade cannot exceed maximum points (${submission.assignments.maxPoints})`,
         [
           {
             path: 'grade',
-            message: `Grade must be ${submission.assignment.maxPoints} or less`,
+            message: `Grade must be ${submission.assignments.maxPoints} or less`,
           },
         ]
       );
     }
 
     // Get existing grade (if any) to track previous value
-    const existingGrade = await prisma.grade.findUnique({
+    const existingGrade = await prisma.grades.findUnique({
       where: {
         assignmentId_studentId: {
-          assignmentId: submission.assignment.id,
+          assignmentId: submission.assignments.id,
           studentId: submission.studentId,
         },
       },
@@ -186,15 +187,16 @@ export async function PUT(
 
     // Upsert grade (create or update)
     // Story: 2.7 - Added feedback field support
-    const updatedGrade = await prisma.grade.upsert({
+    const updatedGrade = await prisma.grades.upsert({
       where: {
         assignmentId_studentId: {
-          assignmentId: submission.assignment.id,
+          assignmentId: submission.assignments.id,
           studentId: submission.studentId,
         },
       },
       create: {
-        assignmentId: submission.assignment.id,
+        id: randomUUID(),
+        assignmentId: submission.assignments.id,
         studentId: submission.studentId,
         gradedById: session.user.id,
         points: grade,
@@ -212,7 +214,7 @@ export async function PUT(
 
     // Log grade update for audit trail
     console.log(
-      `[Grade API] Grade updated: courseId=${courseId}, assignmentId=${submission.assignment.id}, ` +
+      `[Grade API] Grade updated: courseId=${courseId}, assignmentId=${submission.assignments.id}, ` +
         `studentId=${submission.studentId}, previousPoints=${previousPoints}, newPoints=${grade}, ` +
         `gradedBy=${session.user.id}`
     );

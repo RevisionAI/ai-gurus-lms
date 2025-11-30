@@ -13,9 +13,9 @@ export async function GET() {
 
     // For admin users, return all courses
     if (session.user.role === 'ADMIN') {
-      const courses = await prisma.course.findMany({
+      const courses = await prisma.courses.findMany({
         include: {
-          instructor: {
+          users: {
             select: {
               name: true
             }

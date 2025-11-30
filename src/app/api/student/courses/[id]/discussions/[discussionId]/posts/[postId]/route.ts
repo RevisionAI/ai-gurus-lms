@@ -17,7 +17,7 @@ export async function PUT(
     const { id, discussionId, postId } = await params
 
     // Check if student is enrolled in the course
-    const enrollment = await prisma.enrollment.findUnique({
+    const enrollment = await prisma.enrollments.findUnique({
       where: {
         userId_courseId: {
           userId: session.user.id,
@@ -31,7 +31,7 @@ export async function PUT(
     }
 
     // Check if discussion exists and is not locked
-    const discussion = await prisma.discussion.findUnique({
+    const discussion = await prisma.discussions.findUnique({
       where: {
         id: discussionId,
         courseId: id
@@ -47,7 +47,7 @@ export async function PUT(
     }
 
     // Check if post exists and user is the author
-    const post = await prisma.discussionPost.findUnique({
+    const post = await prisma.discussion_posts.findUnique({
       where: {
         id: postId,
         discussionId: discussionId
@@ -71,7 +71,7 @@ export async function PUT(
       )
     }
 
-    const updatedPost = await prisma.discussionPost.update({
+    const updatedPost = await prisma.discussion_posts.update({
       where: {
         id: postId
       },
@@ -79,7 +79,7 @@ export async function PUT(
         content: content.trim()
       },
       include: {
-        author: {
+        users: {
           select: {
             id: true,
             name: true,
@@ -110,7 +110,7 @@ export async function DELETE(
     const { id, discussionId, postId } = await params
 
     // Check if student is enrolled in the course
-    const enrollment = await prisma.enrollment.findUnique({
+    const enrollment = await prisma.enrollments.findUnique({
       where: {
         userId_courseId: {
           userId: session.user.id,
@@ -124,7 +124,7 @@ export async function DELETE(
     }
 
     // Check if discussion exists and is not locked
-    const discussion = await prisma.discussion.findUnique({
+    const discussion = await prisma.discussions.findUnique({
       where: {
         id: discussionId,
         courseId: id
@@ -140,7 +140,7 @@ export async function DELETE(
     }
 
     // Check if post exists and user is the author
-    const post = await prisma.discussionPost.findUnique({
+    const post = await prisma.discussion_posts.findUnique({
       where: {
         id: postId,
         discussionId: discussionId
@@ -155,7 +155,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'You can only delete your own posts' }, { status: 403 })
     }
 
-    await prisma.discussionPost.delete({
+    await prisma.discussion_posts.delete({
       where: {
         id: postId
       }

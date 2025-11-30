@@ -28,7 +28,7 @@ async function addTestUsers() {
     // Create/update test users
     console.log('Creating test users...')
 
-    const admin = await prisma.user.upsert({
+    const admin = await prisma.users.upsert({
       where: { email: 'admin@aigurus.test' },
       update: { password }, // Update password if exists
       create: {
@@ -45,7 +45,7 @@ async function addTestUsers() {
     })
     console.log(`  ✓ Admin: ${admin.email}`)
 
-    const instructor = await prisma.user.upsert({
+    const instructor = await prisma.users.upsert({
       where: { email: 'instructor@aigurus.test' },
       update: { password },
       create: {
@@ -62,7 +62,7 @@ async function addTestUsers() {
     })
     console.log(`  ✓ Instructor: ${instructor.email}`)
 
-    const student = await prisma.user.upsert({
+    const student = await prisma.users.upsert({
       where: { email: 'student@aigurus.test' },
       update: { password },
       create: {
@@ -82,7 +82,7 @@ async function addTestUsers() {
     // Get all active courses
     console.log('')
     console.log('Finding existing courses...')
-    const courses = await prisma.course.findMany({
+    const courses = await prisma.courses.findMany({
       where: { isActive: true },
       select: { id: true, title: true, code: true }
     })
@@ -98,7 +98,7 @@ async function addTestUsers() {
 
       for (const course of courses) {
         try {
-          await prisma.enrollment.upsert({
+          await prisma.enrollments.upsert({
             where: {
               userId_courseId: {
                 userId: student.id,

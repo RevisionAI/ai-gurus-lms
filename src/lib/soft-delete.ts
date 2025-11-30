@@ -107,27 +107,27 @@ export async function cascadeSoftDeleteCourse(courseId: string): Promise<void> {
 
   await prisma.$transaction([
     // Soft delete the course itself
-    prisma.course.update({
+    prisma.courses.update({
       where: { id: courseId },
       data: { deletedAt: now },
     }),
     // Cascade to related Assignments
-    prisma.assignment.updateMany({
+    prisma.assignments.updateMany({
       where: { courseId },
       data: { deletedAt: now },
     }),
     // Cascade to related Discussions
-    prisma.discussion.updateMany({
+    prisma.discussions.updateMany({
       where: { courseId },
       data: { deletedAt: now },
     }),
     // Cascade to related CourseContent
-    prisma.courseContent.updateMany({
+    prisma.course_content.updateMany({
       where: { courseId },
       data: { deletedAt: now },
     }),
     // Cascade to related Announcements
-    prisma.announcement.updateMany({
+    prisma.announcements.updateMany({
       where: { courseId },
       data: { deletedAt: now },
     }),
@@ -146,27 +146,27 @@ export async function cascadeSoftDeleteCourse(courseId: string): Promise<void> {
 export async function cascadeRestoreCourse(courseId: string): Promise<void> {
   await prisma.$transaction([
     // Restore the course itself
-    prisma.course.update({
+    prisma.courses.update({
       where: { id: courseId },
       data: { deletedAt: null },
     }),
     // Restore related Assignments
-    prisma.assignment.updateMany({
+    prisma.assignments.updateMany({
       where: { courseId, deletedAt: { not: null } },
       data: { deletedAt: null },
     }),
     // Restore related Discussions
-    prisma.discussion.updateMany({
+    prisma.discussions.updateMany({
       where: { courseId, deletedAt: { not: null } },
       data: { deletedAt: null },
     }),
     // Restore related CourseContent
-    prisma.courseContent.updateMany({
+    prisma.course_content.updateMany({
       where: { courseId, deletedAt: { not: null } },
       data: { deletedAt: null },
     }),
     // Restore related Announcements
-    prisma.announcement.updateMany({
+    prisma.announcements.updateMany({
       where: { courseId, deletedAt: { not: null } },
       data: { deletedAt: null },
     }),
@@ -182,7 +182,7 @@ export async function cascadeRestoreCourse(courseId: string): Promise<void> {
 export async function getSoftDeletedRecords(model: SoftDeleteModel) {
   switch (model) {
     case 'user':
-      return prisma.user.findMany({
+      return prisma.users.findMany({
         where: onlyDeleted,
         select: {
           id: true,
@@ -195,71 +195,71 @@ export async function getSoftDeletedRecords(model: SoftDeleteModel) {
         orderBy: { deletedAt: 'desc' },
       })
     case 'course':
-      return prisma.course.findMany({
+      return prisma.courses.findMany({
         where: onlyDeleted,
         select: {
           id: true,
           title: true,
           code: true,
           deletedAt: true,
-          instructor: { select: { name: true, surname: true } },
+          users: { select: { name: true, surname: true } },
         },
         orderBy: { deletedAt: 'desc' },
       })
     case 'assignment':
-      return prisma.assignment.findMany({
+      return prisma.assignments.findMany({
         where: onlyDeleted,
         select: {
           id: true,
           title: true,
           deletedAt: true,
-          course: { select: { title: true, code: true } },
+          courses: { select: { title: true, code: true } },
         },
         orderBy: { deletedAt: 'desc' },
       })
     case 'grade':
-      return prisma.grade.findMany({
+      return prisma.grades.findMany({
         where: onlyDeleted,
         select: {
           id: true,
           points: true,
           deletedAt: true,
-          student: { select: { name: true, surname: true } },
-          assignment: { select: { title: true } },
+          users_grades_studentIdTousers: { select: { name: true, surname: true } },
+          assignments: { select: { title: true } },
         },
         orderBy: { deletedAt: 'desc' },
       })
     case 'discussion':
-      return prisma.discussion.findMany({
+      return prisma.discussions.findMany({
         where: onlyDeleted,
         select: {
           id: true,
           title: true,
           deletedAt: true,
-          course: { select: { title: true, code: true } },
+          courses: { select: { title: true, code: true } },
         },
         orderBy: { deletedAt: 'desc' },
       })
     case 'courseContent':
-      return prisma.courseContent.findMany({
+      return prisma.course_content.findMany({
         where: onlyDeleted,
         select: {
           id: true,
           title: true,
           type: true,
           deletedAt: true,
-          course: { select: { title: true, code: true } },
+          courses: { select: { title: true, code: true } },
         },
         orderBy: { deletedAt: 'desc' },
       })
     case 'announcement':
-      return prisma.announcement.findMany({
+      return prisma.announcements.findMany({
         where: onlyDeleted,
         select: {
           id: true,
           title: true,
           deletedAt: true,
-          course: { select: { title: true, code: true } },
+          courses: { select: { title: true, code: true } },
         },
         orderBy: { deletedAt: 'desc' },
       })
@@ -282,23 +282,23 @@ export async function restoreRecord(
 ) {
   switch (model) {
     case 'user':
-      return restore(prisma.user, id)
+      return restore(prisma.users, id)
     case 'course':
       if (cascadeRestore) {
         await cascadeRestoreCourse(id)
-        return prisma.course.findUnique({ where: { id } })
+        return prisma.courses.findUnique({ where: { id } })
       }
-      return restore(prisma.course, id)
+      return restore(prisma.courses, id)
     case 'assignment':
-      return restore(prisma.assignment, id)
+      return restore(prisma.assignments, id)
     case 'grade':
-      return restore(prisma.grade, id)
+      return restore(prisma.grades, id)
     case 'discussion':
-      return restore(prisma.discussion, id)
+      return restore(prisma.discussions, id)
     case 'courseContent':
-      return restore(prisma.courseContent, id)
+      return restore(prisma.course_content, id)
     case 'announcement':
-      return restore(prisma.announcement, id)
+      return restore(prisma.announcements, id)
     default:
       throw new Error(`Invalid model: ${model}`)
   }

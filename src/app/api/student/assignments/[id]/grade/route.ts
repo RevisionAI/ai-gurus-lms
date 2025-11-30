@@ -16,7 +16,7 @@ export async function GET(
 
     const { id } = await params
 
-    const grade = await prisma.grade.findUnique({
+    const grade = await prisma.grades.findUnique({
       where: {
         assignmentId_studentId: {
           assignmentId: id,

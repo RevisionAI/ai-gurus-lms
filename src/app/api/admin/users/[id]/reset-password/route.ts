@@ -39,7 +39,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const { id } = await params
 
     // Get user
-    const user = await prisma.user.findFirst({
+    const user = await prisma.users.findFirst({
       where: { id, ...notDeleted },
       select: { id: true, email: true, name: true },
     })
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const hashedPassword = await bcrypt.hash(newPassword, 10)
 
     // Update user password
-    await prisma.user.update({
+    await prisma.users.update({
       where: { id },
       data: { password: hashedPassword },
     })

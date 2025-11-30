@@ -19,6 +19,7 @@ import {
 } from '@/validators/user'
 import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
+import { randomUUID } from 'crypto'
 import { Prisma } from '@prisma/client'
 import { invalidateAdminStats } from '@/lib/redis'
 
@@ -62,7 +63,7 @@ export async function GET(request: NextRequest) {
     const { search, role, page, limit } = validation.data
 
     // Build where clause
-    const where: Prisma.UserWhereInput = {
+    const where: Prisma.usersWhereInput = {
       ...notDeleted,
       ...(role && { role }),
       ...(search && {
@@ -76,7 +77,7 @@ export async function GET(request: NextRequest) {
 
     // Fetch users and total count in parallel
     const [users, total] = await Promise.all([
-      prisma.user.findMany({
+      prisma.users.findMany({
         where,
         select: {
           id: true,
@@ -92,7 +93,7 @@ export async function GET(request: NextRequest) {
         take: limit,
         orderBy: { createdAt: 'desc' },
       }),
-      prisma.user.count({ where }),
+      prisma.users.count({ where }),
     ])
 
     return NextResponse.json({
@@ -148,7 +149,7 @@ export async function POST(request: NextRequest) {
     const { name, email, role, password: providedPassword } = validation.data
 
     // Check if email already exists (including soft-deleted users)
-    const existingUser = await prisma.user.findUnique({
+    const existingUser = await prisma.users.findUnique({
       where: { email },
     })
 
@@ -169,8 +170,9 @@ export async function POST(request: NextRequest) {
     const hashedPassword = await bcrypt.hash(plainPassword, 10)
 
     // Create user with default values for required fields
-    const user = await prisma.user.create({
+    const user = await prisma.users.create({
       data: {
+        id: randomUUID(),
         email,
         name,
         surname: '', // Default empty - admin can update later
@@ -180,6 +182,7 @@ export async function POST(request: NextRequest) {
         company: '',
         position: '',
         workAddress: '',
+        updatedAt: new Date(),
       },
       select: {
         id: true,

@@ -17,7 +17,7 @@ export async function GET(
 
     const { id, contentId } = await params
 
-    const course = await prisma.course.findUnique({
+    const course = await prisma.courses.findUnique({
       where: {
         id: id,
         instructorId: session.user.id
@@ -28,7 +28,7 @@ export async function GET(
       return NextResponse.json({ error: 'Course not found' }, { status: 404 })
     }
 
-    const content = await prisma.courseContent.findUnique({
+    const content = await prisma.course_content.findUnique({
       where: {
         id: contentId,
         courseId: id
@@ -59,7 +59,7 @@ export async function PUT(
 
     const { id, contentId } = await params
 
-    const course = await prisma.course.findUnique({
+    const course = await prisma.courses.findUnique({
       where: {
         id: id,
         instructorId: session.user.id
@@ -72,7 +72,7 @@ export async function PUT(
 
     const { title, type, content, fileUrl, thumbnailUrl, isPublished, orderIndex } = await request.json()
 
-    const existingContent = await prisma.courseContent.findUnique({
+    const existingContent = await prisma.course_content.findUnique({
       where: {
         id: contentId,
         courseId: id
@@ -83,7 +83,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Content not found' }, { status: 404 })
     }
 
-    const updatedContent = await prisma.courseContent.update({
+    const updatedContent = await prisma.course_content.update({
       where: {
         id: contentId
       },
@@ -118,7 +118,7 @@ export async function DELETE(
 
     const { id, contentId } = await params
 
-    const course = await prisma.course.findUnique({
+    const course = await prisma.courses.findUnique({
       where: {
         id: id,
         instructorId: session.user.id
@@ -129,7 +129,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Course not found' }, { status: 404 })
     }
 
-    const content = await prisma.courseContent.findUnique({
+    const content = await prisma.course_content.findUnique({
       where: {
         id: contentId,
         courseId: id,
@@ -142,7 +142,7 @@ export async function DELETE(
     }
 
     // Soft delete content
-    await softDelete(prisma.courseContent, contentId)
+    await softDelete(prisma.course_content, contentId)
 
     return NextResponse.json({ message: 'Content archived successfully' })
   } catch (error) {

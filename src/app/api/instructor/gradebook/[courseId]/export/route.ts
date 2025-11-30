@@ -204,7 +204,7 @@ export async function GET(
     const filters = filterResult.data;
 
     // Fetch course and verify instructor ownership
-    const course = await prisma.course.findUnique({
+    const course = await prisma.courses.findUnique({
       where: {
         id: courseId,
         deletedAt: null,
@@ -245,18 +245,18 @@ export async function GET(
     }
 
     // Fetch enrollments with student data
-    const enrollments = await prisma.enrollment.findMany({
+    const enrollments = await prisma.enrollments.findMany({
       where: {
         courseId,
-        user: studentWhere,
+        users: studentWhere,
       },
       include: {
-        user: {
+        users: {
           select: { id: true, name: true, surname: true, email: true },
         },
       },
       orderBy: {
-        user: { name: 'asc' },
+        users: { name: 'asc' },
       },
     });
 
@@ -290,7 +290,7 @@ export async function GET(
     }
 
     // Fetch assignments with grades and submissions
-    const assignments = await prisma.assignment.findMany({
+    const assignments = await prisma.assignments.findMany({
       where: assignmentWhere,
       include: {
         grades: {
@@ -322,7 +322,7 @@ export async function GET(
     const csvStudents: CSVGradebookMatrix['students'] = [];
 
     for (const enrollment of enrollments) {
-      const student = enrollment.user;
+      const student = enrollment.users;
       let totalPoints = 0;
       const gradedAssignments: GradeInput[] = [];
       let matchesStatusFilterForStudent = false;

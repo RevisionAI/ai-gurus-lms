@@ -141,7 +141,7 @@ export default function ModuleSidebar({
                 onClick={() => !module.isLocked && toggleModule(module.id)}
                 disabled={module.isLocked}
                 className={`w-full flex items-center justify-between p-3 md:p-4 min-h-[44px] text-left transition-colors
-                  ${isCurrentModule ? 'bg-blue-50 border-l-4 border-blue-600' : 'hover:bg-gray-50'}
+                  ${isCurrentModule ? 'bg-blue-600 text-white' : 'hover:bg-gray-50 text-gray-900'}
                   ${module.isLocked ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}
                 `}
                 aria-expanded={isExpanded}
@@ -149,13 +149,13 @@ export default function ModuleSidebar({
               >
                 <div className="flex items-center gap-2 md:gap-3 min-w-0">
                   {module.isLocked ? (
-                    <Lock className="h-4 w-4 md:h-5 md:w-5 text-gray-400 flex-shrink-0" />
+                    <Lock className={`h-4 w-4 md:h-5 md:w-5 flex-shrink-0 ${isCurrentModule ? 'text-blue-200' : 'text-gray-400'}`} />
                   ) : isExpanded ? (
-                    <ChevronDown className="h-4 w-4 md:h-5 md:w-5 text-gray-500 flex-shrink-0" />
+                    <ChevronDown className={`h-4 w-4 md:h-5 md:w-5 flex-shrink-0 ${isCurrentModule ? 'text-white' : 'text-gray-500'}`} />
                   ) : (
-                    <ChevronRight className="h-4 w-4 md:h-5 md:w-5 text-gray-500 flex-shrink-0" />
+                    <ChevronRight className={`h-4 w-4 md:h-5 md:w-5 flex-shrink-0 ${isCurrentModule ? 'text-white' : 'text-gray-500'}`} />
                   )}
-                  <span className={`font-medium truncate text-sm md:text-base ${isCurrentModule ? 'text-blue-700' : 'text-gray-900'}`}>
+                  <span className={`font-medium truncate text-sm md:text-base ${isCurrentModule ? 'text-white' : 'text-gray-900'}`}>
                     {module.title}
                   </span>
                 </div>
@@ -288,30 +288,30 @@ export default function ModuleSidebar({
 
                   {/* Show summary counts when content exists but we only have counts (placeholder data) */}
                   {(hasContent || hasAssignments || hasDiscussions) &&
-                   !hasRealContentData && !hasRealAssignmentData && !hasRealDiscussionData && (
-                    <div className="px-3 md:px-4 py-2 text-sm text-gray-600">
-                      <div className="flex items-center gap-4">
-                        {hasContent && (
-                          <span className="flex items-center gap-1">
-                            <BookOpen className="h-4 w-4" />
-                            {module.content?.length} items
-                          </span>
-                        )}
-                        {hasAssignments && (
-                          <span className="flex items-center gap-1">
-                            <ClipboardList className="h-4 w-4" />
-                            {module.assignments?.length}
-                          </span>
-                        )}
-                        {hasDiscussions && (
-                          <span className="flex items-center gap-1">
-                            <MessageSquare className="h-4 w-4" />
-                            {module.discussions?.length}
-                          </span>
-                        )}
+                    !hasRealContentData && !hasRealAssignmentData && !hasRealDiscussionData && (
+                      <div className="px-3 md:px-4 py-2 text-sm text-gray-600">
+                        <div className="flex items-center gap-4">
+                          {hasContent && (
+                            <span className="flex items-center gap-1">
+                              <BookOpen className="h-4 w-4" />
+                              {module.content?.length} items
+                            </span>
+                          )}
+                          {hasAssignments && (
+                            <span className="flex items-center gap-1">
+                              <ClipboardList className="h-4 w-4" />
+                              {module.assignments?.length}
+                            </span>
+                          )}
+                          {hasDiscussions && (
+                            <span className="flex items-center gap-1">
+                              <MessageSquare className="h-4 w-4" />
+                              {module.discussions?.length}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
                 </div>
               )}
             </div>

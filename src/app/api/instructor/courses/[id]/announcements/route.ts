@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
+import { randomUUID } from 'crypto'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
@@ -16,7 +17,7 @@ export async function GET(
 
     const { id } = await params
 
-    const course = await prisma.course.findUnique({
+    const course = await prisma.courses.findUnique({
       where: {
         id,
         instructorId: session.user.id
@@ -27,19 +28,19 @@ export async function GET(
       return NextResponse.json({ error: 'Course not found' }, { status: 404 })
     }
 
-    const announcements = await prisma.announcement.findMany({
+    const announcements = await prisma.announcements.findMany({
       where: {
         courseId: id
       },
       include: {
-        author: {
+        users: {
           select: {
             id: true,
             name: true,
             email: true
           }
         },
-        course: {
+        courses: {
           select: {
             id: true,
             title: true,
@@ -72,7 +73,7 @@ export async function POST(
 
     const { id } = await params
 
-    const course = await prisma.course.findUnique({
+    const course = await prisma.courses.findUnique({
       where: {
         id,
         instructorId: session.user.id
@@ -92,15 +93,16 @@ export async function POST(
       )
     }
 
-    const announcement = await prisma.announcement.create({
+    const announcement = await prisma.announcements.create({
       data: {
+        id: randomUUID(),
         title: title.trim(),
         content: content.trim(),
         courseId: id,
         authorId: session.user.id
       },
       include: {
-        author: {
+        users: {
           select: {
             id: true,
             name: true,

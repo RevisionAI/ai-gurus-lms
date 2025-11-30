@@ -16,13 +16,13 @@ export async function GET(
     }
 
     const { id } = await params
-    const assignment = await prisma.assignment.findUnique({
+    const assignment = await prisma.assignments.findUnique({
       where: {
         id,
         createdById: session.user.id
       },
       include: {
-        course: {
+        courses: {
           select: {
             id: true,
             title: true,
@@ -61,7 +61,7 @@ export async function PUT(
 
     const { id } = await params
 
-    const assignment = await prisma.assignment.findUnique({
+    const assignment = await prisma.assignments.findUnique({
       where: {
         id,
         createdById: session.user.id
@@ -74,7 +74,7 @@ export async function PUT(
 
     const { title, description, dueDate, maxPoints, isPublished } = await request.json()
 
-    const updatedAssignment = await prisma.assignment.update({
+    const updatedAssignment = await prisma.assignments.update({
       where: {
         id
       },
@@ -107,7 +107,7 @@ export async function DELETE(
 
     const { id } = await params
 
-    const assignment = await prisma.assignment.findUnique({
+    const assignment = await prisma.assignments.findUnique({
       where: {
         id,
         createdById: session.user.id,
@@ -120,7 +120,7 @@ export async function DELETE(
     }
 
     // Soft delete assignment
-    await softDelete(prisma.assignment, id)
+    await softDelete(prisma.assignments, id)
 
     return NextResponse.json({ message: 'Assignment archived successfully' })
   } catch (error) {

@@ -9,6 +9,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
+import { randomUUID } from 'crypto'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getPublicUrl, fileExists, getFileMetadata } from '@/lib/r2'
@@ -107,9 +108,9 @@ export async function POST(request: NextRequest) {
 
     if (contentId) {
       // Update CourseContent
-      const content = await prisma.courseContent.findUnique({
+      const content = await prisma.course_content.findUnique({
         where: { id: contentId },
-        include: { course: true },
+        include: { courses: true },
       })
 
       if (!content) {
@@ -123,7 +124,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Verify user owns the course
-      if (content.course.instructorId !== session.user.id && session.user.role !== 'ADMIN') {
+      if (content.courses.instructorId !== session.user.id && session.user.role !== 'ADMIN') {
         return NextResponse.json(
           createUploadError(
             UploadErrorCodes.UNAUTHORIZED,
@@ -133,7 +134,7 @@ export async function POST(request: NextRequest) {
         )
       }
 
-      const updated = await prisma.courseContent.update({
+      const updated = await prisma.course_content.update({
         where: { id: contentId },
         data: {
           fileUrl: cdnUrl,
@@ -151,9 +152,9 @@ export async function POST(request: NextRequest) {
       }
     } else if (assignmentId) {
       // Create or update Submission
-      const assignment = await prisma.assignment.findUnique({
+      const assignment = await prisma.assignments.findUnique({
         where: { id: assignmentId },
-        include: { course: { include: { enrollments: true } } },
+        include: { courses: { include: { enrollments: true } } },
       })
 
       if (!assignment) {
@@ -167,10 +168,10 @@ export async function POST(request: NextRequest) {
       }
 
       // Verify user is enrolled in the course
-      const isEnrolled = assignment.course.enrollments.some(
+      const isEnrolled = assignment.courses.enrollments.some(
         (e) => e.userId === session.user.id
       )
-      const isInstructor = assignment.course.instructorId === session.user.id
+      const isInstructor = assignment.courses.instructorId === session.user.id
 
       if (!isEnrolled && !isInstructor && session.user.role !== 'ADMIN') {
         return NextResponse.json(
@@ -182,7 +183,7 @@ export async function POST(request: NextRequest) {
         )
       }
 
-      const submission = await prisma.submission.upsert({
+      const submission = await prisma.submissions.upsert({
         where: {
           assignmentId_studentId: {
             assignmentId,
@@ -190,6 +191,7 @@ export async function POST(request: NextRequest) {
           },
         },
         create: {
+          id: randomUUID(),
           assignmentId,
           studentId: session.user.id,
           fileUrl: cdnUrl,

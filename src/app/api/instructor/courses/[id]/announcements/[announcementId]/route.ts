@@ -17,7 +17,7 @@ export async function GET(
 
     const { id, announcementId } = await params
 
-    const course = await prisma.course.findUnique({
+    const course = await prisma.courses.findUnique({
       where: {
         id,
         instructorId: session.user.id
@@ -28,20 +28,20 @@ export async function GET(
       return NextResponse.json({ error: 'Course not found' }, { status: 404 })
     }
 
-    const announcement = await prisma.announcement.findUnique({
+    const announcement = await prisma.announcements.findUnique({
       where: {
         id: announcementId,
         courseId: id
       },
       include: {
-        author: {
+        users: {
           select: {
             id: true,
             name: true,
             email: true
           }
         },
-        course: {
+        courses: {
           select: {
             id: true,
             title: true,
@@ -75,7 +75,7 @@ export async function PUT(
 
     const { id, announcementId } = await params
 
-    const course = await prisma.course.findUnique({
+    const course = await prisma.courses.findUnique({
       where: {
         id,
         instructorId: session.user.id
@@ -88,7 +88,7 @@ export async function PUT(
 
     const { title, content } = await request.json()
 
-    const announcement = await prisma.announcement.findUnique({
+    const announcement = await prisma.announcements.findUnique({
       where: {
         id: announcementId,
         courseId: id
@@ -103,7 +103,7 @@ export async function PUT(
       return NextResponse.json({ error: 'You can only edit your own announcements' }, { status: 403 })
     }
 
-    const updatedAnnouncement = await prisma.announcement.update({
+    const updatedAnnouncement = await prisma.announcements.update({
       where: {
         id: announcementId
       },
@@ -112,7 +112,7 @@ export async function PUT(
         content: content || announcement.content
       },
       include: {
-        author: {
+        users: {
           select: {
             id: true,
             name: true,
@@ -142,7 +142,7 @@ export async function DELETE(
 
     const { id, announcementId } = await params
 
-    const course = await prisma.course.findUnique({
+    const course = await prisma.courses.findUnique({
       where: {
         id,
         instructorId: session.user.id
@@ -153,7 +153,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Course not found' }, { status: 404 })
     }
 
-    const announcement = await prisma.announcement.findUnique({
+    const announcement = await prisma.announcements.findUnique({
       where: {
         id: announcementId,
         courseId: id,
@@ -170,7 +170,7 @@ export async function DELETE(
     }
 
     // Soft delete announcement
-    await softDelete(prisma.announcement, announcementId)
+    await softDelete(prisma.announcements, announcementId)
 
     return NextResponse.json({ message: 'Announcement archived successfully' })
   } catch (error) {

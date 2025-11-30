@@ -42,15 +42,15 @@ export async function GET() {
     const userId = session.user.id;
 
     // Fetch all enrollments with course details
-    const enrollments = await prisma.enrollment.findMany({
+    const enrollments = await prisma.enrollments.findMany({
       where: {
         userId,
-        course: {
+        courses: {
           deletedAt: null,
         },
       },
       include: {
-        course: {
+        courses: {
           select: {
             id: true,
             title: true,
@@ -79,20 +79,20 @@ export async function GET() {
     const validPercentages: number[] = [];
 
     for (const enrollment of enrollments) {
-      const course = enrollment.course;
+      const course = enrollment.courses;
 
       // Fetch grades for this course
-      const grades = await prisma.grade.findMany({
+      const grades = await prisma.grades.findMany({
         where: {
           studentId: userId,
           deletedAt: null,
-          assignment: {
+          assignments: {
             courseId: course.id,
             deletedAt: null,
           },
         },
         include: {
-          assignment: {
+          assignments: {
             select: {
               maxPoints: true,
             },
@@ -103,7 +103,7 @@ export async function GET() {
       // Transform to GradeInput format
       const gradeInputs: GradeInput[] = grades.map((g) => ({
         points: g.points,
-        maxPoints: g.assignment.maxPoints,
+        maxPoints: g.assignments.maxPoints,
         weight: 1,
         isGraded: true,
       }));

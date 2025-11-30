@@ -70,7 +70,7 @@ export async function POST(
     const { id } = await params
 
     // Verify instructor owns the course
-    const course = await prisma.course.findUnique({
+    const course = await prisma.courses.findUnique({
       where: {
         id,
         instructorId: session.user.id

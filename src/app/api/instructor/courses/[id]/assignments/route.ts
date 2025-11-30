@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
+import { randomUUID } from 'crypto'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
@@ -17,7 +18,7 @@ export async function GET(
     const { id } = await params
 
     // Verify instructor owns the course
-    const course = await prisma.course.findUnique({
+    const course = await prisma.courses.findUnique({
       where: {
         id,
         instructorId: session.user.id
@@ -28,7 +29,7 @@ export async function GET(
       return NextResponse.json({ error: 'Course not found' }, { status: 404 })
     }
 
-    const assignments = await prisma.assignment.findMany({
+    const assignments = await prisma.assignments.findMany({
       where: {
         courseId: id
       },
@@ -65,7 +66,7 @@ export async function POST(
     const { id } = await params
 
     // Verify instructor owns the course
-    const course = await prisma.course.findUnique({
+    const course = await prisma.courses.findUnique({
       where: {
         id,
         instructorId: session.user.id
@@ -85,15 +86,17 @@ export async function POST(
       )
     }
 
-    const assignment = await prisma.assignment.create({
+    const assignment = await prisma.assignments.create({
       data: {
+        id: randomUUID(),
         title,
         description,
         dueDate: dueDate ? new Date(dueDate) : null,
         maxPoints: parseInt(maxPoints),
         isPublished: Boolean(isPublished),
         courseId: id,
-        createdById: session.user.id
+        createdById: session.user.id,
+        updatedAt: new Date()
       }
     })
 

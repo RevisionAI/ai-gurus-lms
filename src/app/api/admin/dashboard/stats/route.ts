@@ -19,12 +19,12 @@ export async function GET() {
       totalEnrollments,
       totalAssignments
     ] = await Promise.all([
-      prisma.user.count(),
-      prisma.course.count(),
-      prisma.user.count({ where: { role: 'STUDENT' } }),
-      prisma.user.count({ where: { role: 'INSTRUCTOR' } }),
-      prisma.enrollment.count(),
-      prisma.assignment.count()
+      prisma.users.count(),
+      prisma.courses.count(),
+      prisma.users.count({ where: { role: 'STUDENT' } }),
+      prisma.users.count({ where: { role: 'INSTRUCTOR' } }),
+      prisma.enrollments.count(),
+      prisma.assignments.count()
     ])
 
     const stats = {

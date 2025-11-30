@@ -45,7 +45,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     const { id } = await params
 
-    const user = await prisma.user.findFirst({
+    const user = await prisma.users.findFirst({
       where: { id, ...notDeleted },
       select: {
         id: true,
@@ -116,7 +116,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const { name, email, role, isActive } = validation.data
 
     // Get current user
-    const currentUser = await prisma.user.findFirst({
+    const currentUser = await prisma.users.findFirst({
       where: { id, ...notDeleted },
     })
 
@@ -129,7 +129,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     // Check if email is being changed to an existing email
     if (email && email !== currentUser.email) {
-      const existingUser = await prisma.user.findUnique({
+      const existingUser = await prisma.users.findUnique({
         where: { email },
       })
       if (existingUser) {
@@ -147,7 +147,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     // Prevent removing last admin role
     if (role && currentUser.role === 'ADMIN' && role !== 'ADMIN') {
-      const adminCount = await prisma.user.count({
+      const adminCount = await prisma.users.count({
         where: {
           role: 'ADMIN',
           deletedAt: null,
@@ -183,7 +183,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         )
       }
 
-      await softDelete(prisma.user, id)
+      await softDelete(prisma.users, id)
 
       // Log deactivation
       console.log(
@@ -214,7 +214,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const roleChanged = role && role !== currentUser.role
 
     // Update user
-    const updatedUser = await prisma.user.update({
+    const updatedUser = await prisma.users.update({
       where: { id },
       data: updateData,
       select: {
@@ -295,7 +295,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     const { id } = await params
 
     // Get current user
-    const user = await prisma.user.findFirst({
+    const user = await prisma.users.findFirst({
       where: { id, ...notDeleted },
     })
 
@@ -321,7 +321,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     // Prevent deleting last admin
     if (user.role === 'ADMIN') {
-      const adminCount = await prisma.user.count({
+      const adminCount = await prisma.users.count({
         where: {
           role: 'ADMIN',
           deletedAt: null,
@@ -343,7 +343,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     }
 
     // Soft delete user
-    await softDelete(prisma.user, id)
+    await softDelete(prisma.users, id)
 
     // Log deletion
     console.log(

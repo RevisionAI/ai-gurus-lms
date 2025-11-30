@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import { randomUUID } from 'crypto';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
@@ -18,7 +19,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify the course exists and is active
-    const course = await prisma.course.findUnique({
+    const course = await prisma.courses.findUnique({
       where: {
         id: courseId,
         isActive: true
@@ -30,7 +31,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if already enrolled
-    const existingEnrollment = await prisma.enrollment.findUnique({
+    const existingEnrollment = await prisma.enrollments.findUnique({
       where: {
         userId_courseId: {
           userId: session.user.id,
@@ -44,8 +45,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Create enrollment
-    const enrollment = await prisma.enrollment.create({
+    const enrollment = await prisma.enrollments.create({
       data: {
+        id: randomUUID(),
         userId: session.user.id,
         courseId
       }

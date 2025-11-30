@@ -27,7 +27,7 @@ export async function GET(
     const userId = session.user.id;
 
     // Verify course exists
-    const course = await prisma.course.findUnique({
+    const course = await prisma.courses.findUnique({
       where: {
         id: courseId,
         deletedAt: null,
@@ -44,7 +44,7 @@ export async function GET(
     }
 
     // Verify enrollment (student must be enrolled in the course)
-    const enrollment = await prisma.enrollment.findUnique({
+    const enrollment = await prisma.enrollments.findUnique({
       where: {
         userId_courseId: { userId, courseId },
       },
@@ -58,17 +58,17 @@ export async function GET(
     }
 
     // Fetch all grades for the student in this course
-    const grades = await prisma.grade.findMany({
+    const grades = await prisma.grades.findMany({
       where: {
         studentId: userId,
         deletedAt: null,
-        assignment: {
+        assignments: {
           courseId,
           deletedAt: null,
         },
       },
       include: {
-        assignment: {
+        assignments: {
           select: {
             maxPoints: true,
             title: true,
@@ -80,7 +80,7 @@ export async function GET(
     // Transform to GradeInput format
     const gradeInputs: GradeInput[] = grades.map((g) => ({
       points: g.points,
-      maxPoints: g.assignment.maxPoints,
+      maxPoints: g.assignments.maxPoints,
       weight: 1, // Equal weight for MVP
       isGraded: true,
     }));

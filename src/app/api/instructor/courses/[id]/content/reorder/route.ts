@@ -16,7 +16,7 @@ export async function PUT(
 
     const { id } = await params
 
-    const course = await prisma.course.findUnique({
+    const course = await prisma.courses.findUnique({
       where: {
         id: id,
         instructorId: session.user.id
@@ -39,7 +39,7 @@ export async function PUT(
     // Update the order of each content item
     await Promise.all(
       contentOrder.map(async (contentId, index) => {
-        await prisma.courseContent.update({
+        await prisma.course_content.update({
           where: {
             id: contentId,
             courseId: id
@@ -52,7 +52,7 @@ export async function PUT(
     )
 
     // Get the updated content
-    const updatedContent = await prisma.courseContent.findMany({
+    const updatedContent = await prisma.course_content.findMany({
       where: {
         courseId: id
       },

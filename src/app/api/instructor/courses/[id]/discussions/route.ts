@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
+import { randomUUID } from 'crypto'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
@@ -16,7 +17,7 @@ export async function GET(
 
     const { id } = await params
 
-    const course = await prisma.course.findUnique({
+    const course = await prisma.courses.findUnique({
       where: {
         id,
         instructorId: session.user.id
@@ -27,12 +28,12 @@ export async function GET(
       return NextResponse.json({ error: 'Course not found' }, { status: 404 })
     }
 
-    const discussions = await prisma.discussion.findMany({
+    const discussions = await prisma.discussions.findMany({
       where: {
         courseId: id
       },
       include: {
-        author: {
+        users: {
           select: {
             id: true,
             name: true,
@@ -41,7 +42,7 @@ export async function GET(
         },
         _count: {
           select: {
-            posts: true
+            discussion_posts: true
           }
         }
       },
@@ -71,7 +72,7 @@ export async function POST(
 
     const { id } = await params
 
-    const course = await prisma.course.findUnique({
+    const course = await prisma.courses.findUnique({
       where: {
         id,
         instructorId: session.user.id
@@ -91,8 +92,9 @@ export async function POST(
       )
     }
 
-    const discussion = await prisma.discussion.create({
+    const discussion = await prisma.discussions.create({
       data: {
+        id: randomUUID(),
         title,
         description,
         isPinned: isPinned || false,
@@ -100,7 +102,7 @@ export async function POST(
         createdBy: session.user.id
       },
       include: {
-        author: {
+        users: {
           select: {
             id: true,
             name: true,
@@ -109,7 +111,7 @@ export async function POST(
         },
         _count: {
           select: {
-            posts: true
+            discussion_posts: true
           }
         }
       }

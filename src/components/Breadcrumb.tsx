@@ -57,18 +57,38 @@ export const generateBreadcrumbs = {
   ],
 
   studentCourseSection: (
-    courseId: string, 
-    courseTitle: string | null | undefined, 
+    courseId: string,
+    courseTitle: string | null | undefined,
     sectionName: string,
     sectionHref?: string
   ): BreadcrumbItem[] => [
     { label: 'Dashboard', href: '/dashboard' },
-    { 
-      label: courseTitle || 'Course', 
+    {
+      label: courseTitle || 'Course',
       href: `/courses/${courseId}`,
-      isLoading: !courseTitle 
+      isLoading: !courseTitle
     },
     { label: sectionName, href: sectionHref }
+  ],
+
+  // Module breadcrumbs
+  studentModule: (
+    courseId: string,
+    courseTitle: string | null | undefined,
+    moduleId: string,
+    moduleTitle?: string | null
+  ): BreadcrumbItem[] => [
+    { label: 'Dashboard', href: '/dashboard' },
+    {
+      label: courseTitle || 'Course',
+      href: `/courses/${courseId}`,
+      isLoading: !courseTitle
+    },
+    { label: 'Modules', href: `/courses/${courseId}` },
+    {
+      label: moduleTitle || 'Module',
+      isLoading: !moduleTitle
+    }
   ],
 
   // Instructor course breadcrumbs

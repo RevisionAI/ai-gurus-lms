@@ -12,7 +12,7 @@ export async function GET() {
     }
 
     // Find all active courses where the student is not enrolled
-    const availableCourses = await prisma.course.findMany({
+    const availableCourses = await prisma.courses.findMany({
       where: {
         isActive: true,
         enrollments: {
@@ -22,7 +22,7 @@ export async function GET() {
         }
       },
       include: {
-        instructor: {
+        users: {
           select: {
             name: true
           }

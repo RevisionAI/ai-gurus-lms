@@ -20,13 +20,13 @@ export async function POST(
     const { id } = await params
 
     // Check if assignment exists and is published
-    const assignment = await prisma.assignment.findUnique({
+    const assignment = await prisma.assignments.findUnique({
       where: {
         id: id,
         isPublished: true
       },
       include: {
-        course: true
+        courses: true
       }
     })
 
@@ -35,7 +35,7 @@ export async function POST(
     }
 
     // Check if student is enrolled in the course
-    const enrollment = await prisma.enrollment.findUnique({
+    const enrollment = await prisma.enrollments.findUnique({
       where: {
         userId_courseId: {
           userId: session.user.id,

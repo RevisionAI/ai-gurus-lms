@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
+import { randomUUID } from 'crypto'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
@@ -17,7 +18,7 @@ export async function GET(
     const { id, submissionId } = await params
 
     // Verify instructor owns the assignment
-    const assignment = await prisma.assignment.findUnique({
+    const assignment = await prisma.assignments.findUnique({
       where: {
         id: id,
         createdById: session.user.id
@@ -28,7 +29,7 @@ export async function GET(
       return NextResponse.json({ error: 'Assignment not found' }, { status: 404 })
     }
 
-    const submission = await prisma.submission.findUnique({
+    const submission = await prisma.submissions.findUnique({
       where: {
         id: submissionId,
         assignmentId: id
@@ -39,7 +40,7 @@ export async function GET(
       return NextResponse.json({ error: 'Submission not found' }, { status: 404 })
     }
 
-    const grade = await prisma.grade.findUnique({
+    const grade = await prisma.grades.findUnique({
       where: {
         assignmentId_studentId: {
           assignmentId: id,
@@ -78,7 +79,7 @@ export async function POST(
     }
 
     // Verify instructor owns the assignment
-    const assignment = await prisma.assignment.findUnique({
+    const assignment = await prisma.assignments.findUnique({
       where: {
         id: id,
         createdById: session.user.id
@@ -89,7 +90,7 @@ export async function POST(
       return NextResponse.json({ error: 'Assignment not found' }, { status: 404 })
     }
 
-    const submission = await prisma.submission.findUnique({
+    const submission = await prisma.submissions.findUnique({
       where: {
         id: submissionId,
         assignmentId: id
@@ -109,7 +110,7 @@ export async function POST(
     }
 
     // Check if grade already exists
-    const existingGrade = await prisma.grade.findUnique({
+    const existingGrade = await prisma.grades.findUnique({
       where: {
         assignmentId_studentId: {
           assignmentId: id,
@@ -122,8 +123,9 @@ export async function POST(
       return NextResponse.json({ error: 'Grade already exists' }, { status: 400 })
     }
 
-    const grade = await prisma.grade.create({
+    const grade = await prisma.grades.create({
       data: {
+        id: randomUUID(),
         points: pointsValue,
         feedback: feedback || null,
         assignmentId: id,
@@ -158,7 +160,7 @@ export async function PUT(
     }
 
     // Verify instructor owns the assignment
-    const assignment = await prisma.assignment.findUnique({
+    const assignment = await prisma.assignments.findUnique({
       where: {
         id: id,
         createdById: session.user.id
@@ -169,7 +171,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Assignment not found' }, { status: 404 })
     }
 
-    const submission = await prisma.submission.findUnique({
+    const submission = await prisma.submissions.findUnique({
       where: {
         id: submissionId,
         assignmentId: id
@@ -188,7 +190,7 @@ export async function PUT(
       )
     }
 
-    const grade = await prisma.grade.update({
+    const grade = await prisma.grades.update({
       where: {
         assignmentId_studentId: {
           assignmentId: id,

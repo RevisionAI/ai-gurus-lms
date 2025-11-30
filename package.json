@@ -27,7 +27,9 @@
     "validate:migration": "npx tsx scripts/validate-migration.ts",
     "validate:performance": "npx tsx scripts/measure-performance.ts",
     "db:seed": "npx tsx scripts/seed-sample-data.ts",
-    "r2:test": "npx tsx scripts/test-r2-upload.ts"
+    "r2:test": "npx tsx scripts/test-r2-upload.ts",
+    "db:migrate-modules": "npx tsx prisma/scripts/migrate-to-modules.ts",
+    "db:migrate-modules:rollback": "npx tsx prisma/scripts/migrate-to-modules.ts --rollback"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.939.0",

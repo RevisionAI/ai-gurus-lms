@@ -17,7 +17,7 @@ export async function GET(
     const { id } = await params
 
     // Check if student is enrolled in the course
-    const enrollment = await prisma.enrollment.findUnique({
+    const enrollment = await prisma.enrollments.findUnique({
       where: {
         userId_courseId: {
           userId: session.user.id,
@@ -31,7 +31,7 @@ export async function GET(
     }
 
     // Get published content only
-    const content = await prisma.courseContent.findMany({
+    const content = await prisma.course_content.findMany({
       where: {
         courseId: id,
         isPublished: true

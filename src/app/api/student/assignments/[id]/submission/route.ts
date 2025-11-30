@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
+import { randomUUID } from 'crypto'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
@@ -16,7 +17,7 @@ export async function GET(
 
     const { id } = await params
 
-    const submission = await prisma.submission.findUnique({
+    const submission = await prisma.submissions.findUnique({
       where: {
         assignmentId_studentId: {
           assignmentId: id,
@@ -55,13 +56,13 @@ export async function POST(
     }
 
     // Check if assignment exists and is published
-    const assignment = await prisma.assignment.findUnique({
+    const assignment = await prisma.assignments.findUnique({
       where: {
         id: id,
         isPublished: true
       },
       include: {
-        course: true
+        courses: true
       }
     })
 
@@ -70,7 +71,7 @@ export async function POST(
     }
 
     // Check if student is enrolled in the course
-    const enrollment = await prisma.enrollment.findUnique({
+    const enrollment = await prisma.enrollments.findUnique({
       where: {
         userId_courseId: {
           userId: session.user.id,
@@ -89,7 +90,7 @@ export async function POST(
     }
 
     // Check if submission already exists
-    const existingSubmission = await prisma.submission.findUnique({
+    const existingSubmission = await prisma.submissions.findUnique({
       where: {
         assignmentId_studentId: {
           assignmentId: id,
@@ -102,8 +103,9 @@ export async function POST(
       return NextResponse.json({ error: 'Submission already exists' }, { status: 400 })
     }
 
-    const submission = await prisma.submission.create({
+    const submission = await prisma.submissions.create({
       data: {
+        id: randomUUID(),
         content: content || null,
         fileUrl: fileUrl || null,
         assignmentId: id,
@@ -137,7 +139,7 @@ export async function PUT(
     }
 
     // Check if submission exists
-    const existingSubmission = await prisma.submission.findUnique({
+    const existingSubmission = await prisma.submissions.findUnique({
       where: {
         assignmentId_studentId: {
           assignmentId: id,
@@ -145,9 +147,9 @@ export async function PUT(
         }
       },
       include: {
-        assignment: {
+        assignments: {
           include: {
-            course: true
+            courses: true
           }
         }
       }
@@ -158,11 +160,11 @@ export async function PUT(
     }
 
     // Check if assignment is overdue
-    if (existingSubmission.assignment.dueDate && new Date() > existingSubmission.assignment.dueDate) {
+    if (existingSubmission.assignments.dueDate && new Date() > existingSubmission.assignments.dueDate) {
       return NextResponse.json({ error: 'Assignment is overdue' }, { status: 400 })
     }
 
-    const submission = await prisma.submission.update({
+    const submission = await prisma.submissions.update({
       where: {
         assignmentId_studentId: {
           assignmentId: id,

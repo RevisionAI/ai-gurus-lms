@@ -16,13 +16,13 @@ export async function GET(
 
     const { id } = await params
     
-    const assignment = await prisma.assignment.findUnique({
+    const assignment = await prisma.assignments.findUnique({
       where: {
         id,
         isPublished: true
       },
       include: {
-        course: {
+        courses: {
           select: {
             id: true,
             title: true,
@@ -37,11 +37,11 @@ export async function GET(
     }
 
     // Check if student is enrolled in the course
-    const enrollment = await prisma.enrollment.findUnique({
+    const enrollment = await prisma.enrollments.findUnique({
       where: {
         userId_courseId: {
           userId: session.user.id,
-          courseId: assignment.course.id
+          courseId: assignment.courses.id
         }
       }
     })

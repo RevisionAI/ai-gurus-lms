@@ -62,7 +62,7 @@ export async function POST(request: Request, { params }: RouteParams) {
     // Fetch template and verify ownership in a transaction
     // Atomically increment usage count to prevent race conditions
     const template = await prisma.$transaction(async (tx) => {
-      const existingTemplate = await tx.feedbackTemplate.findUnique({
+      const existingTemplate = await tx.feedback_templates.findUnique({
         where: { id },
       })
 
@@ -80,7 +80,7 @@ export async function POST(request: Request, { params }: RouteParams) {
       }
 
       // Increment usage count atomically
-      return await tx.feedbackTemplate.update({
+      return await tx.feedback_templates.update({
         where: { id },
         data: {
           usageCount: { increment: 1 },

@@ -9,6 +9,7 @@
 
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
+import { randomUUID } from 'crypto'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { validateRequest } from '@/lib/validation'
@@ -75,7 +76,7 @@ export async function GET(request: Request) {
     const orderBy: Record<string, OrderByValue> = {}
     orderBy[sortBy || 'createdAt'] = order || 'desc'
 
-    const templates = await prisma.feedbackTemplate.findMany({
+    const templates = await prisma.feedback_templates.findMany({
       where,
       orderBy,
     })
@@ -121,13 +122,15 @@ export async function POST(request: Request) {
     const { name, category, template, isShared } = validation.data
 
     // Create template
-    const newTemplate = await prisma.feedbackTemplate.create({
+    const newTemplate = await prisma.feedback_templates.create({
       data: {
+        id: randomUUID(),
         name,
         category,
         template,
         isShared: isShared ?? false,
         instructorId: session.user.id,
+        updatedAt: new Date(),
       },
     })
 

@@ -47,7 +47,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const limit = parseInt(searchParams.get('limit') || '20')
 
     // Verify user exists
-    const user = await prisma.user.findFirst({
+    const user = await prisma.users.findFirst({
       where: { id, ...notDeleted },
       select: { id: true, role: true },
     })
@@ -67,13 +67,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const activities: Activity[] = []
 
     // 1. Recent enrollments
-    const enrollments = await prisma.enrollment.findMany({
+    const enrollments = await prisma.enrollments.findMany({
       where: {
         userId: id,
         enrolledAt: { gte: thirtyDaysAgo },
       },
       include: {
-        course: { select: { title: true, code: true } },
+        courses: { select: { title: true, code: true } },
       },
       orderBy: { enrolledAt: 'desc' },
     })
@@ -81,23 +81,23 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     for (const enrollment of enrollments) {
       activities.push({
         type: 'enrollment',
-        description: `Enrolled in ${enrollment.course.title}`,
+        description: `Enrolled in ${enrollment.courses.title}`,
         timestamp: enrollment.enrolledAt,
-        details: { courseCode: enrollment.course.code },
+        details: { courseCode: enrollment.courses.code },
       })
     }
 
     // 2. Recent submissions
-    const submissions = await prisma.submission.findMany({
+    const submissions = await prisma.submissions.findMany({
       where: {
         studentId: id,
         submittedAt: { gte: thirtyDaysAgo },
       },
       include: {
-        assignment: {
+        assignments: {
           select: {
             title: true,
-            course: { select: { title: true, code: true } },
+            courses: { select: { title: true, code: true } },
           },
         },
       },
@@ -107,28 +107,28 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     for (const submission of submissions) {
       activities.push({
         type: 'submission',
-        description: `Submitted ${submission.assignment.title}`,
+        description: `Submitted ${submission.assignments.title}`,
         timestamp: submission.submittedAt,
         details: {
-          courseTitle: submission.assignment.course.title,
-          courseCode: submission.assignment.course.code,
+          courseTitle: submission.assignments.courses.title,
+          courseCode: submission.assignments.courses.code,
         },
       })
     }
 
     // 3. Grades received (as student)
-    const gradesReceived = await prisma.grade.findMany({
+    const gradesReceived = await prisma.grades.findMany({
       where: {
         studentId: id,
         gradedAt: { gte: thirtyDaysAgo },
         deletedAt: null,
       },
       include: {
-        assignment: {
+        assignments: {
           select: {
             title: true,
             maxPoints: true,
-            course: { select: { title: true } },
+            courses: { select: { title: true } },
           },
         },
       },
@@ -138,26 +138,26 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     for (const grade of gradesReceived) {
       activities.push({
         type: 'grade_received',
-        description: `Received grade on ${grade.assignment.title}: ${grade.points}/${grade.assignment.maxPoints}`,
+        description: `Received grade on ${grade.assignments.title}: ${grade.points}/${grade.assignments.maxPoints}`,
         timestamp: grade.gradedAt,
-        details: { courseTitle: grade.assignment.course.title },
+        details: { courseTitle: grade.assignments.courses.title },
       })
     }
 
     // 4. Grades given (if user is instructor)
     if (user.role === 'INSTRUCTOR' || user.role === 'ADMIN') {
-      const gradesGiven = await prisma.grade.findMany({
+      const gradesGiven = await prisma.grades.findMany({
         where: {
           gradedById: id,
           gradedAt: { gte: thirtyDaysAgo },
           deletedAt: null,
         },
         include: {
-          student: { select: { name: true, surname: true } },
-          assignment: {
+          users_grades_studentIdTousers: { select: { name: true, surname: true } },
+          assignments: {
             select: {
               title: true,
-              course: { select: { title: true } },
+              courses: { select: { title: true } },
             },
           },
         },
@@ -167,9 +167,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       for (const grade of gradesGiven) {
         activities.push({
           type: 'grade_given',
-          description: `Graded ${grade.student.name} ${grade.student.surname} on ${grade.assignment.title}`,
+          description: `Graded ${grade.users_grades_studentIdTousers.name} ${grade.users_grades_studentIdTousers.surname} on ${grade.assignments.title}`,
           timestamp: grade.gradedAt,
-          details: { courseTitle: grade.assignment.course.title },
+          details: { courseTitle: grade.assignments.courses.title },
         })
       }
     }

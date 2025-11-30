@@ -11,12 +11,12 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const assignments = await prisma.assignment.findMany({
+    const assignments = await prisma.assignments.findMany({
       where: {
         createdById: session.user.id
       },
       include: {
-        course: {
+        courses: {
           select: {
             title: true,
             code: true
