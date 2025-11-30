@@ -162,8 +162,8 @@ function SortableContentItem({ item, courseId, onMoveContent }: SortableContentI
         <span
           className={`text-xs px-1.5 py-0.5 rounded ${
             item.isPublished
-              ? 'bg-green-100 text-green-700'
-              : 'bg-gray-200 text-gray-600'
+              ? 'bg-green-600 text-white'
+              : 'bg-gray-600 text-white'
           }`}
         >
           {item.isPublished ? 'Published' : 'Draft'}

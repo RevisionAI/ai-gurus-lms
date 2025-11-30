@@ -225,8 +225,8 @@ export default function SortableModuleCard({
               <span
                 className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                   module.isPublished
-                    ? 'bg-green-100 text-green-800'
-                    : 'bg-gray-100 text-gray-600'
+                    ? 'bg-green-600 text-white'
+                    : 'bg-gray-600 text-white'
                 }`}
               >
                 {module.isPublished ? 'Published' : 'Draft'}
@@ -235,7 +235,7 @@ export default function SortableModuleCard({
               {/* Prerequisite indicator */}
               {module.orderIndex === 0 ? (
                 <span
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-600 text-white"
                   title="First module - always accessible"
                 >
                   <Globe className="h-3 w-3" />
@@ -243,7 +243,7 @@ export default function SortableModuleCard({
                 </span>
               ) : module.requiresPrevious ? (
                 <span
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-600 text-white"
                   title="Requires completion of previous module"
                 >
                   <Lock className="h-3 w-3" />
@@ -251,7 +251,7 @@ export default function SortableModuleCard({
                 </span>
               ) : (
                 <span
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-600 text-white"
                   title="Open access - no prerequisites"
                 >
                   <Globe className="h-3 w-3" />
@@ -260,16 +260,16 @@ export default function SortableModuleCard({
               )}
 
               {/* Counts */}
-              <div className="flex items-center gap-3 text-sm text-gray-500">
-                <span className="flex items-center gap-1">
+              <div className="flex items-center gap-3 text-sm text-white">
+                <span className="flex items-center gap-1 bg-gray-600 px-2 py-0.5 rounded">
                   <FileText className="h-4 w-4" />
                   {module.contentCount}
                 </span>
-                <span className="flex items-center gap-1">
+                <span className="flex items-center gap-1 bg-gray-600 px-2 py-0.5 rounded">
                   <ClipboardList className="h-4 w-4" />
                   {module.assignmentCount}
                 </span>
-                <span className="flex items-center gap-1">
+                <span className="flex items-center gap-1 bg-gray-600 px-2 py-0.5 rounded">
                   <MessageSquare className="h-4 w-4" />
                   {module.discussionCount}
                 </span>

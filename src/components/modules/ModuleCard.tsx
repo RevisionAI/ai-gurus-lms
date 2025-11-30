@@ -34,24 +34,24 @@ export default function ModuleCard({ module }: ModuleCardProps) {
             <span
               className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                 module.isPublished
-                  ? 'bg-green-100 text-green-800'
-                  : 'bg-gray-100 text-gray-600'
+                  ? 'bg-green-600 text-white'
+                  : 'bg-gray-600 text-white'
               }`}
             >
               {module.isPublished ? 'Published' : 'Draft'}
             </span>
 
             {/* Counts */}
-            <div className="flex items-center gap-3 text-sm text-gray-500">
-              <span className="flex items-center gap-1" title="Content items">
+            <div className="flex items-center gap-3 text-sm text-white">
+              <span className="flex items-center gap-1 bg-gray-600 px-2 py-0.5 rounded" title="Content items">
                 <FileText className="h-4 w-4" />
                 {module.contentCount}
               </span>
-              <span className="flex items-center gap-1" title="Assignments">
+              <span className="flex items-center gap-1 bg-gray-600 px-2 py-0.5 rounded" title="Assignments">
                 <ClipboardList className="h-4 w-4" />
                 {module.assignmentCount}
               </span>
-              <span className="flex items-center gap-1" title="Discussions">
+              <span className="flex items-center gap-1 bg-gray-600 px-2 py-0.5 rounded" title="Discussions">
                 <MessageSquare className="h-4 w-4" />
                 {module.discussionCount}
               </span>
