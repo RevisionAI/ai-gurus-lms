@@ -22,31 +22,31 @@ function getStatusBadge(status: ModuleStatus) {
     case 'completed':
       return {
         label: 'Complete',
-        className: 'bg-green-100 text-green-800',
+        className: 'bg-green-600 text-white',
         icon: CheckCircle,
-        iconClassName: 'text-green-600',
+        iconClassName: 'text-green-400',
       }
     case 'in_progress':
       return {
         label: 'In Progress',
-        className: 'bg-yellow-100 text-yellow-800',
+        className: 'bg-yellow-500 text-white',
         icon: Clock,
-        iconClassName: 'text-yellow-600',
+        iconClassName: 'text-yellow-400',
       }
     case 'available':
       return {
         label: 'Available',
-        className: 'bg-blue-100 text-blue-800',
+        className: 'bg-blue-600 text-white',
         icon: Play,
-        iconClassName: 'text-blue-600',
+        iconClassName: 'text-blue-400',
       }
     case 'locked':
     default:
       return {
         label: 'Locked',
-        className: 'bg-gray-100 text-gray-600',
+        className: 'bg-gray-600 text-white',
         icon: Lock,
-        iconClassName: 'text-gray-500',
+        iconClassName: 'text-gray-400',
       }
   }
 }
@@ -112,16 +112,16 @@ export default function StudentModuleCard({
             </span>
 
             {/* Counts */}
-            <div className="flex items-center gap-3 text-sm text-gray-500">
-              <span className="flex items-center gap-1">
+            <div className="flex items-center gap-3 text-sm">
+              <span className="flex items-center gap-1 text-white bg-gray-600 px-2 py-0.5 rounded">
                 <FileText className="h-4 w-4" />
                 {module.contentCount}
               </span>
-              <span className="flex items-center gap-1">
+              <span className="flex items-center gap-1 text-white bg-gray-600 px-2 py-0.5 rounded">
                 <ClipboardList className="h-4 w-4" />
                 {module.assignmentCount}
               </span>
-              <span className="flex items-center gap-1">
+              <span className="flex items-center gap-1 text-white bg-gray-600 px-2 py-0.5 rounded">
                 <MessageSquare className="h-4 w-4" />
                 {module.discussionCount}
               </span>
