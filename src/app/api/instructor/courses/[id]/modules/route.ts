@@ -161,7 +161,7 @@ export async function POST(
         description,
         orderIndex,
         isPublished: false,
-        requiresPrevious: requiresPrevious ?? true,
+        requiresPrevious: requiresPrevious ?? false,
         courseId: id,
         updatedAt: new Date(),
       },

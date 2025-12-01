@@ -29,7 +29,7 @@ export interface ModuleFormModalProps {
 const initialFormData: ModuleFormData = {
   title: '',
   description: '',
-  requiresPrevious: true,
+  requiresPrevious: false,
 }
 
 export function ModuleFormModal({

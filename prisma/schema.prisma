@@ -195,7 +195,7 @@ model modules {
   description      String?
   orderIndex       Int
   isPublished      Boolean           @default(false)
-  requiresPrevious Boolean           @default(true)
+  requiresPrevious Boolean           @default(false)
   createdAt        DateTime          @default(now())
   updatedAt        DateTime
   deletedAt        DateTime?
