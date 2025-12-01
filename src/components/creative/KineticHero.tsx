@@ -2,7 +2,6 @@
 
 import { motion, useScroll, useTransform } from 'framer-motion'
 import { useRef } from 'react'
-import Image from 'next/image'
 
 export default function KineticHero() {
     const containerRef = useRef(null)
@@ -19,15 +18,9 @@ export default function KineticHero() {
         <section ref={containerRef} className="relative h-screen w-full flex flex-col justify-center overflow-hidden">
             <div className="z-10 px-6 md:px-12 mix-blend-difference text-white">
                 <motion.div style={{ x: x1, opacity }} className="mb-4">
-                    {/* Revision AI Logo */}
-                    <Image
-                        src="/Logo.png"
-                        alt="Revision AI"
-                        width={400}
-                        height={120}
-                        className="w-[40vw] max-w-[500px] h-auto"
-                        priority
-                    />
+                    <h1 className="text-[12vw] leading-[0.9] font-black tracking-tighter uppercase">
+                        Revision AI
+                    </h1>
                 </motion.div>
 
                 <motion.div style={{ x: x2, opacity }} className="flex flex-col items-end">

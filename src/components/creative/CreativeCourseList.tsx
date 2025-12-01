@@ -43,21 +43,21 @@ function CourseCard({ course }: { course: Course }) {
             style={{ transform: transformStyle }}
             className="group relative h-[60vh] w-[30vw] shrink-0 overflow-hidden rounded-3xl border border-white/10 bg-white/5 backdrop-blur-md transition-all hover:border-indigo-500/30"
         >
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/80 z-10" />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/60 to-black z-10" />
             {course.thumbnail ? (
                 <img
                     src={course.thumbnail}
                     alt={course.name}
-                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110 opacity-60 group-hover:opacity-80"
+                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110 opacity-80 group-hover:opacity-90"
                 />
             ) : (
                 <div className="absolute inset-0 bg-gradient-to-br from-slate-800 to-slate-900" />
             )}
 
             <div className="absolute inset-0 z-20 flex flex-col justify-end p-8">
-                <span className="text-xs font-mono text-indigo-400 mb-2">{course.code}</span>
-                <h3 className="text-3xl font-bold text-white mb-4 leading-tight">{course.name}</h3>
-                <p className="text-slate-300 line-clamp-3 mb-8 text-sm leading-relaxed">
+                <span className="text-xs font-mono text-indigo-400 mb-2 drop-shadow-md">{course.code}</span>
+                <h3 className="text-3xl font-bold text-white mb-4 leading-tight drop-shadow-lg">{course.name}</h3>
+                <p className="text-slate-200 line-clamp-3 mb-8 text-sm leading-relaxed drop-shadow-md font-medium">
                     {course.description}
                 </p>
                 <Link

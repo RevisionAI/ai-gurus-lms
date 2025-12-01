@@ -7,6 +7,11 @@ import { Toaster } from 'react-hot-toast'
 export const metadata: Metadata = {
   title: "Revision AI Learning Port",
   description: "AI-powered learning platform for professionals",
+  icons: {
+    icon: "/Logo.png",
+    shortcut: "/Logo.png",
+    apple: "/Logo.png",
+  },
 };
 
 export default function RootLayout({

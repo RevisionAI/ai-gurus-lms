@@ -5,18 +5,18 @@ import { motion } from 'framer-motion'
 const features = [
     {
         id: '01',
-        title: 'Strategic AI Roadmaps',
-        description: 'Build your organization\'s AI implementation roadmap. Learn which use cases to prioritize, when to act, and when to wait.',
+        title: 'Executive Focus',
+        description: 'Content designed for decision makers, not developers. We skip the code and focus on strategy, ROI, and implementation frameworks.',
     },
     {
         id: '02',
-        title: 'Vendor Evaluation',
-        description: 'Cut through the hype. Learn the right questions to ask vendors and how to calculate true implementation costs—not just quotes.',
+        title: 'Live Cohorts',
+        description: 'Learn with peers in interactive sessions. Network with other leaders facing the same challenges and build your AI support system.',
     },
     {
         id: '03',
-        title: 'Technical Credibility',
-        description: 'Understand transformer architecture at a strategic level. Speak credibly with technical teams and lead AI initiatives with confidence.',
+        title: 'Actionable Frameworks',
+        description: 'Take away tools you can use immediately. From vendor assessment scorecards to internal policy templates, we provide the toolkit.',
     },
 ]
 
