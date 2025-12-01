@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
@@ -34,7 +34,13 @@ export async function GET() {
       take: 5
     })
 
-    return NextResponse.json(assignments)
+    // Transform Prisma relation names to frontend expected names
+    const transformed = assignments.map(({ courses, ...rest }) => ({
+      ...rest,
+      course: courses // rename 'courses' → 'course' for frontend
+    }))
+
+    return NextResponse.json(transformed)
   } catch (error) {
     console.error('Error fetching recent assignments:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
