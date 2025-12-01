@@ -57,7 +57,12 @@ export async function GET(
       return NextResponse.json({ error: 'Not enrolled in this course' }, { status: 403 })
     }
 
-    return NextResponse.json(assignment)
+    // Transform Prisma relation name to frontend expected name
+    const { courses, ...rest } = assignment
+    return NextResponse.json({
+      ...rest,
+      course: courses // rename 'courses' → 'course' for frontend
+    })
   } catch (error) {
     console.error('Error fetching assignment:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
