@@ -408,10 +408,11 @@ export default function SortableModuleCard({
             )}
 
             <div className="flex flex-col gap-2 mt-4">
+              {/* Primary action: Publish with all content (recommended) */}
               <button
-                onClick={() => handlePublish(false)}
+                onClick={() => handlePublish(true)}
                 disabled={isPublishing}
-                className="w-full px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+                className="w-full px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
               >
                 {isPublishing ? (
                   <span className="flex items-center justify-center gap-2">
@@ -419,14 +420,15 @@ export default function SortableModuleCard({
                     Publishing...
                   </span>
                 ) : (
-                  'Publish module only'
+                  'Publish module and all content'
                 )}
               </button>
+              {/* Secondary action: Publish module only (less common) */}
               {(module.contentCount > 0 || module.assignmentCount > 0) && (
                 <button
-                  onClick={() => handlePublish(true)}
+                  onClick={() => handlePublish(false)}
                   disabled={isPublishing}
-                  className="w-full px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
+                  className="w-full px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
                 >
                   {isPublishing ? (
                     <span className="flex items-center justify-center gap-2">
@@ -434,7 +436,7 @@ export default function SortableModuleCard({
                       Publishing...
                     </span>
                   ) : (
-                    'Publish module and all content'
+                    'Publish module only (content stays hidden)'
                   )}
                 </button>
               )}

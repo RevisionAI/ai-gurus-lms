@@ -407,10 +407,10 @@ export default function StudentModuleDetailPage() {
                 <div className="text-center py-8">
                   <BookOpen className="mx-auto h-12 w-12 text-gray-400" />
                   <h3 className="mt-2 text-sm font-medium text-gray-900">
-                    No content yet
+                    Content coming soon
                   </h3>
                   <p className="mt-1 text-sm text-gray-500">
-                    Your instructor hasn&apos;t added content to this module.
+                    Content for this module is being prepared. Check back later!
                   </p>
                 </div>
               ) : (
